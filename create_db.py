@@ -4,33 +4,38 @@
 import gzip
 import sys
 import csv
-from parse_p4 import parse_lease_record, parse_gpn_record
+from parse_p4 import parse_lease_record, parse_gpn_record, parse_lease_name_record
 
 
 def main():
     input_file = sys.argv[1] if len(sys.argv) > 1 else "data/p4f606.ebc.gz"
     leases_csv = sys.argv[2] if len(sys.argv) > 2 else "leases.csv"
     gpn_csv = sys.argv[3] if len(sys.argv) > 3 else "gatherers_purchasers.csv"
+    names_csv = sys.argv[4] if len(sys.argv) > 4 else "lease_names.csv"
 
     print(f"Parsing {input_file}...")
 
     with gzip.open(input_file, 'rb') as f, \
          open(leases_csv, 'w', newline='') as leases_out, \
-         open(gpn_csv, 'w', newline='') as gpn_out:
+         open(gpn_csv, 'w', newline='') as gpn_out, \
+         open(names_csv, 'w', newline='') as names_out:
 
         leases_writer = csv.writer(leases_out)
         gpn_writer = csv.writer(gpn_out)
+        names_writer = csv.writer(names_out)
 
         # Write headers
         leases_writer.writerow(['oil_gas_code', 'district', 'lease_rrcid', 'field_number',
                                 'on_off_schedule', 'operator_number'])
         gpn_writer.writerow(['oil_gas_code', 'district', 'lease_rrcid', 'product_code',
                             'type_code', 'gpn_number', 'purch_system_no', 'actual_percent'])
+        names_writer.writerow(['oil_gas_code', 'district', 'lease_rrcid', 'lease_name'])
 
         current_lease_key = None
         record_count = 0
         lease_count = 0
         gpn_count = 0
+        name_count = 0
 
         while True:
             record = f.read(92)
@@ -70,8 +75,18 @@ def main():
                 ])
                 gpn_count += 1
 
-    print(f"\nParsed {lease_count:,} leases and {gpn_count:,} gatherer/purchaser records")
-    print(f"Output: {leases_csv}, {gpn_csv}")
+            elif record_id == '07' and current_lease_key:
+                name = parse_lease_name_record(record)
+                names_writer.writerow([
+                    current_lease_key[0],
+                    current_lease_key[1],
+                    current_lease_key[2],
+                    name.lease_name,
+                ])
+                name_count += 1
+
+    print(f"\nParsed {lease_count:,} leases, {gpn_count:,} gatherer/purchaser records, and {name_count:,} lease names")
+    print(f"Output: {leases_csv}, {gpn_csv}, {names_csv}")
 
 
 if __name__ == '__main__':

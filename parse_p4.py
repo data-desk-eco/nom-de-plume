@@ -29,6 +29,14 @@ class GathererPurchaserRecord:
     actual_percent: float  # pos 21-25: PIC 9(01)V9(04)
 
 
+@dataclass
+class LeaseNameRecord:
+    """Record type 07: Lease name"""
+    sequence_date_key: int  # pos 3-10
+    effect_date_key: int  # pos 11-18
+    lease_name: str  # pos 19-50
+
+
 def parse_lease_record(data: bytes) -> LeaseRecord:
     """Parse record type 01."""
     oil_gas_code = data[2:3].decode('cp500').strip()
@@ -66,6 +74,19 @@ def parse_gpn_record(data: bytes) -> GathererPurchaserRecord:
         gpn_number=gpn_number,
         purch_system_no=purch_system_no,
         actual_percent=actual_percent
+    )
+
+
+def parse_lease_name_record(data: bytes) -> LeaseNameRecord:
+    """Parse record type 07."""
+    sequence_date_key = int(data[2:10].decode('cp500'))
+    effect_date_key = int(data[10:18].decode('cp500'))
+    lease_name = data[18:50].decode('cp500').strip()
+
+    return LeaseNameRecord(
+        sequence_date_key=sequence_date_key,
+        effect_date_key=effect_date_key,
+        lease_name=lease_name
     )
 
 

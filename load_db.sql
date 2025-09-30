@@ -10,10 +10,18 @@ ORDER BY oil_gas_code, district, lease_rrcid;
 CREATE TABLE gatherers_purchasers AS
 SELECT * FROM read_csv_auto('gatherers_purchasers.csv');
 
+-- Create lease_names table (deduplicate by keeping last occurrence)
+CREATE TABLE lease_names AS
+SELECT DISTINCT ON (oil_gas_code, district, lease_rrcid) *
+FROM read_csv_auto('lease_names.csv')
+ORDER BY oil_gas_code, district, lease_rrcid;
+
 -- Show summary
 SELECT 'Total leases' as metric, COUNT(*) as count FROM leases
 UNION ALL
 SELECT 'Total gatherer/purchaser records', COUNT(*) FROM gatherers_purchasers
+UNION ALL
+SELECT 'Total lease names', COUNT(*) FROM lease_names
 UNION ALL
 SELECT 'Unique operators', COUNT(DISTINCT operator_number) FROM leases
 UNION ALL
