@@ -23,6 +23,7 @@ plume_well_distances AS (
     SELECT
         e.id,
         e.emission_auto,
+        e.persistence,
         e.plume_count,
         e.timestamp_min,
         e.timestamp_max,
@@ -57,7 +58,8 @@ operator_well_counts AS (
 )
 SELECT
     pwd.id,
-    pwd.emission_auto as kg_per_hr,
+    pwd.emission_auto as emission_avg_kg_hr,
+    ROUND(pwd.emission_auto / NULLIF(pwd.persistence, 0), 2) as rate_detected_kg_hr,
     pwd.plume_count,
     pwd.timestamp_min,
     pwd.timestamp_max,
@@ -73,4 +75,4 @@ LEFT JOIN total_well_counts twc ON pwd.id = twc.id
 LEFT JOIN operator_well_counts owc ON pwd.id = owc.id
                                    AND pwd.operator_number = owc.operator_number
 WHERE pwd.rn = 1
-ORDER BY pwd.emission_auto DESC NULLS LAST;
+ORDER BY pwd.timestamp_max DESC, rate_detected_kg_hr DESC NULLS LAST;
