@@ -24,6 +24,18 @@ class RootRecord:
 
 
 @dataclass
+class WellIdRecord:
+    """Record type 21: Well Bore Well-ID (WBWELLID) - links API to RRC lease identifiers"""
+    api_county: int
+    api_unique: int
+    oil_gas_code: str  # 'O' for oil, 'G' for gas
+    district: int  # For both oil and gas
+    lease_number: int  # For oil wells (5 digits)
+    well_number: str  # For oil wells (6 chars)
+    gas_rrcid: int  # For gas wells (6 digits)
+
+
+@dataclass
 class NewLocationRecord:
     """Record type 13: Well Bore new location (WBNEWLOC)"""
     api_county: int
@@ -154,6 +166,39 @@ def parse_new_location_record(record: bytes, api_county: int, api_unique: int) -
         plane_coordinate_east=plane_coordinate_east,
         plane_coordinate_north=plane_coordinate_north,
         verification_flag=verification_flag
+    )
+
+
+def parse_well_id_record(record: bytes, api_county: int, api_unique: int) -> WellIdRecord:
+    """Parse Well Bore Well-ID record (type 21, 247 bytes)."""
+    # Decode the record
+    decoded = record.decode('cp500')
+
+    # First byte indicates oil or gas
+    oil_gas_code = decoded[2].upper()
+
+    if oil_gas_code == 'O':
+        # Oil well format
+        district = int(decoded[3:5])
+        lease_number = int(decoded[5:10])
+        well_number = decoded[10:16].strip()
+        gas_rrcid = 0
+    else:
+        # Gas well format (oil_gas_code == 'G')
+        district_and_rrcid = decoded[3:9]
+        district = int(district_and_rrcid[0:2]) if district_and_rrcid[0:2].strip() else 0
+        gas_rrcid = int(district_and_rrcid) if district_and_rrcid.strip() else 0
+        lease_number = 0
+        well_number = ''
+
+    return WellIdRecord(
+        api_county=api_county,
+        api_unique=api_unique,
+        oil_gas_code=oil_gas_code,
+        district=district,
+        lease_number=lease_number,
+        well_number=well_number,
+        gas_rrcid=gas_rrcid
     )
 
 

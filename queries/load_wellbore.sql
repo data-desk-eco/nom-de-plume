@@ -34,10 +34,16 @@ FROM read_csv('data/wellbore_location.csv',
     all_varchar=true,
     ignore_errors=true);
 
+-- Load Well Bore Well-ID table (links API to RRC lease IDs)
+CREATE TABLE wellbore.wellid AS
+SELECT * FROM read_csv_auto('data/wellbore_wellid.csv');
+
 -- Show summary
 SELECT 'Well bores' as metric, COUNT(*) as count FROM wellbore.root
 UNION ALL
 SELECT 'Well bores with location data', COUNT(*) FROM wellbore.location
 UNION ALL
 SELECT 'Well bores with coordinates', COUNT(*) FROM wellbore.location
-WHERE wgs84_latitude != 0 OR wgs84_longitude != 0;
+WHERE wgs84_latitude != 0 OR wgs84_longitude != 0
+UNION ALL
+SELECT 'Well bores with RRC lease linkage', COUNT(*) FROM wellbore.wellid;

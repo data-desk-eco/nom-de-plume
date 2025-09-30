@@ -4,22 +4,25 @@
 import gzip
 import sys
 import csv
-from parse_wellbore import parse_root_record, parse_new_location_record
+from parse_wellbore import parse_root_record, parse_new_location_record, parse_well_id_record
 
 
 def main():
     input_file = sys.argv[1] if len(sys.argv) > 1 else "data/dbf900.ebc.gz"
     root_csv = sys.argv[2] if len(sys.argv) > 2 else "data/wellbore_root.csv"
     location_csv = sys.argv[3] if len(sys.argv) > 3 else "data/wellbore_location.csv"
+    wellid_csv = sys.argv[4] if len(sys.argv) > 4 else "data/wellbore_wellid.csv"
 
     print(f"Parsing {input_file}...")
 
     with gzip.open(input_file, 'rb') as f, \
          open(root_csv, 'w', newline='') as root_out, \
-         open(location_csv, 'w', newline='') as location_out:
+         open(location_csv, 'w', newline='') as location_out, \
+         open(wellid_csv, 'w', newline='') as wellid_out:
 
         root_writer = csv.writer(root_out)
         location_writer = csv.writer(location_out)
+        wellid_writer = csv.writer(wellid_out)
 
         # Write headers
         root_writer.writerow([
@@ -39,10 +42,16 @@ def main():
             'verification_flag'
         ])
 
+        wellid_writer.writerow([
+            'api_county', 'api_unique', 'oil_gas_code', 'district',
+            'lease_number', 'well_number', 'gas_rrcid'
+        ])
+
         current_api = None
         record_count = 0
         root_count = 0
         location_count = 0
+        wellid_count = 0
 
         while True:
             record = f.read(247)
@@ -83,8 +92,18 @@ def main():
                 ])
                 location_count += 1
 
-    print(f"\nParsed {root_count:,} well bore records and {location_count:,} location records")
-    print(f"Output: {root_csv}, {location_csv}")
+            elif record_id == '21' and current_api:
+                # Well-ID record - links API to RRC lease identifiers
+                wellid = parse_well_id_record(record, current_api[0], current_api[1])
+
+                wellid_writer.writerow([
+                    wellid.api_county, wellid.api_unique, wellid.oil_gas_code, wellid.district,
+                    wellid.lease_number, wellid.well_number, wellid.gas_rrcid
+                ])
+                wellid_count += 1
+
+    print(f"\nParsed {root_count:,} well bore records, {location_count:,} location records, and {wellid_count:,} well-ID records")
+    print(f"Output: {root_csv}, {location_csv}, {wellid_csv}")
 
 
 if __name__ == '__main__':
