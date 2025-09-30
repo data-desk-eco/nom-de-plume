@@ -7,6 +7,9 @@ data/*.duckdb.wal
 data/*.ebc.gz
 data/*.json
 
+# Generated output files
+output/
+
 # Python
 __pycache__/
 *.pyc

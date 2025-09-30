@@ -1,6 +1,13 @@
-.PHONY: all clean csvs db
+.PHONY: all clean csvs db attribution
 
 all: data/data.duckdb
+
+# Generate emissions attribution report
+attribution: output/emissions_attribution.csv
+
+output/emissions_attribution.csv: data/data.duckdb queries/emissions_attribution.sql
+	@mkdir -p output
+	duckdb --csv data/data.duckdb < queries/emissions_attribution.sql > output/emissions_attribution.csv
 
 # Generate CSV files from EBCDIC data
 csvs: data/root.csv data/info.csv data/gpn.csv data/lease_name.csv data/wellbore_root.csv data/wellbore_location.csv data/wellbore_wellid.csv data/p5_org.csv data/p5_specialty.csv data/p5_officer.csv data/p5_activity.csv
