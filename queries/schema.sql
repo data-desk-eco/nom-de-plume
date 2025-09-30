@@ -1,5 +1,9 @@
--- Texas RRC P-4 Database Schema
+-- Texas RRC Database Schema
 -- Faithful representation of EBCDIC file structure
+
+-- Install and load spatial extension for geometry types
+INSTALL spatial;
+LOAD spatial;
 
 CREATE SCHEMA p4;
 
@@ -14,9 +18,9 @@ CREATE TABLE p4.root (
   -- SCHEDULE-INDEX
   field_number INTEGER,
   on_off_schedule_indicator VARCHAR(1),    -- 'Y' = off schedule, 'N' = on schedule
-  operator_number INTEGER,
+  operator_number INTEGER
 
-  PRIMARY KEY (oil_gas_code, district, lease_rrcid)
+  -- Note: Primary keys removed due to duplicate records in source data
 );
 
 -- Record Type 02: P-4 General Information (P4INFO segment)
@@ -58,11 +62,9 @@ CREATE TABLE p4.info (
   type_record VARCHAR(1),                  -- 'O'=original, 'R'=regular, etc.
   info_field_number INTEGER,
   info_operator_number INTEGER,
-  p5_number_filing_on_tape INTEGER,
+  p5_number_filing_on_tape INTEGER
 
-  PRIMARY KEY (oil_gas_code, district, lease_rrcid, sequence_date_key),
-  FOREIGN KEY (oil_gas_code, district, lease_rrcid)
-    REFERENCES p4.root(oil_gas_code, district, lease_rrcid)
+  -- Note: Primary keys removed due to duplicate records in source data
 );
 
 -- Record Type 03: P-4 Gatherer/Purchaser/Nominator (P4GPN segment)
@@ -83,10 +85,7 @@ CREATE TABLE p4.gpn (
   current_p4_filing VARCHAR(1),
   actual_percent DECIMAL(5,4),
   inter_flag VARCHAR(1),                   -- Interstate market
-  intra_flag VARCHAR(1),                   -- Intrastate market
-
-  FOREIGN KEY (oil_gas_code, district, lease_rrcid, sequence_date_key)
-    REFERENCES p4.info(oil_gas_code, district, lease_rrcid, sequence_date_key)
+  intra_flag VARCHAR(1)                    -- Intrastate market
 );
 
 -- Record Type 07: P-4 Lease Name (P4LSENM segment)
@@ -100,9 +99,103 @@ CREATE TABLE p4.lease_name (
   -- LEASE-NAME-INDEX
   sequence_date_key INTEGER NOT NULL,      -- Matches sequence_date_key in info
   effect_date_key INTEGER,
-  lease_name VARCHAR(32),
+  lease_name VARCHAR(32)
 
-  PRIMARY KEY (oil_gas_code, district, lease_rrcid, sequence_date_key),
-  FOREIGN KEY (oil_gas_code, district, lease_rrcid, sequence_date_key)
-    REFERENCES p4.info(oil_gas_code, district, lease_rrcid, sequence_date_key)
+  -- Note: Foreign keys removed due to data quality issues in source files
+);
+
+
+-- ============================================================================
+-- Texas RRC Well Bore Database Schema
+-- ============================================================================
+
+CREATE SCHEMA wellbore;
+
+-- Record Type 01: Well Bore Root (WBROOT segment)
+-- One record per well bore - API number is unique well identifier
+CREATE TABLE wellbore.root (
+  -- API Number (unique well identifier)
+  api_county INTEGER NOT NULL,
+  api_unique INTEGER NOT NULL,
+
+  -- Location
+  field_district INTEGER,
+  res_county_code INTEGER,
+
+  -- Completion date
+  orig_compl_century INTEGER,
+  orig_compl_year INTEGER,
+  orig_compl_month INTEGER,
+  orig_compl_day INTEGER,
+
+  -- Well data
+  total_depth INTEGER,
+  newest_drill_permit_nbr INTEGER,
+
+  -- Status flags
+  fresh_water_flag VARCHAR(1),             -- 'Y' = fresh water well
+  plug_flag VARCHAR(1),                    -- 'Y' = plugged
+  completion_data_ind VARCHAR(1)           -- 'Y' = completion data on file
+
+  -- Note: Primary keys removed due to duplicate records in source data
+);
+
+-- Record Type 13: Well Bore New Location (WBNEWLOC segment)
+-- One record per well bore - contains WGS84 coordinates
+CREATE TABLE wellbore.location (
+  -- Foreign key to root
+  api_county INTEGER NOT NULL,
+  api_unique INTEGER NOT NULL,
+
+  -- Location identifiers
+  loc_county INTEGER,
+  abstract VARCHAR,
+  survey VARCHAR(55),
+  block_number VARCHAR(10),
+  section VARCHAR(8),
+  alt_section VARCHAR(4),
+  alt_abstract VARCHAR(6),
+
+  -- Distance from survey lines
+  feet_from_sur_sect_1 INTEGER,
+  direc_from_sur_sect_1 VARCHAR(13),
+  feet_from_sur_sect_2 INTEGER,
+  direc_from_sur_sect_2 VARCHAR(13),
+
+  -- WGS84 Coordinates
+  wgs84_latitude DOUBLE,
+  wgs84_longitude DOUBLE,
+  geom GEOMETRY,                           -- Point geometry derived from lat/lon
+
+  -- Texas State Plane Coordinates
+  plane_zone INTEGER,
+  plane_coordinate_east DOUBLE,
+  plane_coordinate_north DOUBLE,
+
+  -- Verification status
+  verification_flag VARCHAR(1)             -- 'Y' = verified, 'N' = not verified, 'C' = verified with change
+
+  -- Note: Foreign keys removed due to data quality issues in source files
+);
+
+-- Record Type 21: Well Bore Well-ID (WBWELLID segment)
+-- Multiple records per well bore - links API number to RRC lease identifiers
+-- This is THE BRIDGE that connects wellbore data to P4 lease data
+CREATE TABLE wellbore.wellid (
+  -- Foreign key to root
+  api_county INTEGER NOT NULL,
+  api_unique INTEGER NOT NULL,
+
+  -- RRC Lease identifiers (links to p4.root)
+  oil_gas_code VARCHAR(1) NOT NULL,        -- 'O' = oil, 'G' = gas
+  district INTEGER NOT NULL,
+
+  -- For oil wells: lease_number + well_number
+  lease_number INTEGER,                    -- 5 digits - links to p4.root.lease_rrcid
+  well_number VARCHAR(6),                  -- 6 character well number
+
+  -- For gas wells: gas_rrcid (6 digits)
+  gas_rrcid INTEGER                        -- Links to p4.root.lease_rrcid for gas wells
+
+  -- Note: Foreign keys removed due to data quality issues in source files
 );

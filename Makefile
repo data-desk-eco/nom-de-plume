@@ -16,6 +16,7 @@ data/wellbore_root.csv data/wellbore_location.csv data/wellbore_wellid.csv: data
 # Create DuckDB database from CSVs
 data/data.duckdb: data/root.csv data/info.csv data/gpn.csv data/lease_name.csv data/wellbore_root.csv data/wellbore_location.csv data/wellbore_wellid.csv queries/load_db.sql queries/load_wellbore.sql queries/schema.sql
 	rm -f data/data.duckdb
+	duckdb data/data.duckdb < queries/schema.sql
 	duckdb data/data.duckdb < queries/load_db.sql
 	duckdb data/data.duckdb < queries/load_wellbore.sql
 
