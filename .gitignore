@@ -1,0 +1,7 @@
+*.csv
+*.duckdb
+*.duckdb.wal
+__pycache__/
+.venv/
+debug_bytes.py
+main.py
