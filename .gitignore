@@ -1,12 +1,7 @@
-# Generated CSV files
-root.csv
-info.csv
-gpn.csv
-lease_name.csv
-
-# Generated database
-data.duckdb
-*.duckdb.wal
+# Generated CSV files and database
+data/*.csv
+data/*.duckdb
+data/*.duckdb.wal
 
 # Python
 __pycache__/

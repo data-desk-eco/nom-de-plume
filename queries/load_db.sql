@@ -5,19 +5,19 @@ CREATE SCHEMA IF NOT EXISTS p4;
 
 -- Load Record Type 01: P-4 Root (current schedule state)
 CREATE TABLE p4.root AS
-SELECT * FROM read_csv_auto('root.csv');
+SELECT * FROM read_csv_auto('data/root.csv');
 
 -- Load Record Type 02: P-4 Info (temporal P-4 filings)
 CREATE TABLE p4.info AS
-SELECT * FROM read_csv_auto('info.csv');
+SELECT * FROM read_csv_auto('data/info.csv');
 
 -- Load Record Type 03: P-4 GPN (gatherer/purchaser/nominator)
 CREATE TABLE p4.gpn AS
-SELECT * FROM read_csv_auto('gpn.csv');
+SELECT * FROM read_csv_auto('data/gpn.csv');
 
 -- Load Record Type 07: P-4 Lease Name
 CREATE TABLE p4.lease_name AS
-SELECT * FROM read_csv_auto('lease_name.csv');
+SELECT * FROM read_csv_auto('data/lease_name.csv');
 
 -- Show summary
 SELECT 'Root records (leases)' as metric, COUNT(*) as count FROM p4.root

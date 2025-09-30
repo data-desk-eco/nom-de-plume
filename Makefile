@@ -1,17 +1,17 @@
 .PHONY: all clean csvs db
 
-all: data.duckdb
+all: data/data.duckdb
 
 # Generate CSV files from EBCDIC data
-csvs: root.csv info.csv gpn.csv lease_name.csv
+csvs: data/root.csv data/info.csv data/gpn.csv data/lease_name.csv
 
-root.csv info.csv gpn.csv lease_name.csv: data/p4f606.ebc.gz create_db.py parse_p4.py
-	uv run create_db.py
+data/root.csv data/info.csv data/gpn.csv data/lease_name.csv: data/p4f606.ebc.gz scripts/create_db.py scripts/parse_p4.py
+	uv run scripts/create_db.py
 
 # Create DuckDB database from CSVs
-data.duckdb: root.csv info.csv gpn.csv lease_name.csv load_db.sql schema.sql
-	rm -f data.duckdb
-	duckdb data.duckdb < load_db.sql
+data/data.duckdb: data/root.csv data/info.csv data/gpn.csv data/lease_name.csv queries/load_db.sql queries/schema.sql
+	rm -f data/data.duckdb
+	duckdb data/data.duckdb < queries/load_db.sql
 
 clean:
-	rm -f root.csv info.csv gpn.csv lease_name.csv data.duckdb
+	rm -f data/root.csv data/info.csv data/gpn.csv data/lease_name.csv data/data.duckdb
