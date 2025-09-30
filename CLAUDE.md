@@ -10,9 +10,12 @@ Attribute methane plumes observed by satellites to specific owners, operators, a
 
 The database is **complete and production-ready** with full attribution capability:
 
-- **351,145 wells** with coordinates linked to gathering companies
+- **1,005,281 wells** with corrected WGS84 coordinates and spatial geometry
+- **10,443 emission sources** from Carbon Mapper satellite observations (CH4 and CO2)
+- **P5 organization data** linking operator/gatherer numbers to company names
 - Spatial queries enabled via DuckDB spatial extension
-- Complete chain: Plume location → Well → Lease → Gatherer/Purchaser
+- Complete chain: Plume location → Well → Lease → Operator/Gatherer → Company name
+- **Verified attribution**: Successfully matched emissions to operators (e.g., Ineos wells)
 
 ## Architecture
 
@@ -39,10 +42,21 @@ Build with: `make` or `make data/data.duckdb`
 - `wellbore.location` - 1M wells with WGS84 coordinates and **GEOMETRY column**
 - `wellbore.wellid` - 661K well-to-lease linkages (THE BRIDGE between systems)
 
+**P5 Schema** (organization data):
+- `p5.org` - 77,625 organizations with names and addresses
+- `p5.officer` - 182K officer records
+- `p5.specialty` - 7,845 specialty codes
+- `p5.activity` - 9,905 activity indicators
+
+**Emissions Schema** (satellite observations):
+- `emissions.sources` - 10,443 emission sources with **GEOMETRY column**
+- Includes CH4 and CO2 plumes from Carbon Mapper
+- Fields: emission rate, plume count, persistence, timestamps
+
 ### Attribution Chain
 
 ```
-Satellite Plume (lat/lon)
+Satellite Plume (emissions.sources.geom)
     ↓ ST_Distance() / spatial query
 Well Location (wellbore.location.geom)
     ↓ api_county, api_unique
@@ -50,8 +64,10 @@ Well-ID Bridge (wellbore.wellid)
     ↓ oil_gas_code, district, lease_number/gas_rrcid
 P4 Lease (p4.root)
     ↓ oil_gas_code, district, lease_rrcid
-Gatherers/Purchasers (p4.gpn)
-    → gpn_number, actual_percent, type_code
+    ├→ operator_number → p5.org (operator name)
+    └→ Gatherers/Purchasers (p4.gpn)
+        → gpn_number → p5.org (gatherer/purchaser name)
+        → actual_percent, type_code
 ```
 
 ## Key Design Decisions
@@ -69,6 +85,8 @@ Gatherers/Purchasers (p4.gpn)
 data/
   p4f606.ebc.gz           # P4 EBCDIC source (203 MB)
   dbf900.ebc.gz           # Wellbore EBCDIC source (487 MB)
+  orf850.ebc.gz           # P5 organization EBCDIC source (20 MB)
+  sources_*.json          # Carbon Mapper emissions JSON
   *.csv                   # Generated CSVs (gitignored)
   data.duckdb             # Final database (gitignored)
 
@@ -77,16 +95,21 @@ scripts/
   parse_p4.py             # P4 data structures
   create_wellbore_db.py   # Wellbore EBCDIC → CSV parser
   parse_wellbore.py       # Wellbore data structures
+  create_p5_db.py         # P5 EBCDIC → CSV parser
+  parse_p5.py             # P5 data structures
+  fetch_emissions.py      # Fetch emissions from Carbon Mapper API
 
 queries/
   schema.sql              # Database schema (loads spatial extension)
   load_db.sql             # Load P4 data
-  load_wellbore.sql       # Load wellbore data (creates geometry)
+  load_wellbore.sql       # Load wellbore data (creates geometry with longitude fix)
+  load_p5.sql             # Load P5 organization data
+  load_emissions.sql      # Load emissions data (creates geometry)
 
 docs/
-  p4-user-manual_p4a002_feb2015.txt
-  wba091_well-bore-database.txt
-  wla001k.txt
+  p4-user-manual_p4a002_feb2015.txt    # P4 field documentation
+  wba091_well-bore-database.txt        # Wellbore field documentation
+  wla001k.txt                           # P5 field documentation
 ```
 
 ## Important Implementation Details
@@ -106,53 +129,121 @@ docs/
 ### Wellbore Structure
 - Record 01 (root) = well identification (API number)
 - Record 13 (location) = WGS84 coordinates (NON-RECURRING)
+  - **Longitude sign issue**: RRC data stores Texas longitudes as positive values
+  - Fixed in `load_wellbore.sql` with `-ABS(longitude)` to ensure western hemisphere
 - Record 21 (wellid) = THE BRIDGE to RRC lease IDs (RECURRING)
   - Oil wells: district + lease_number → p4.root.lease_rrcid
   - Gas wells: gas_rrcid → p4.root.lease_rrcid
 
-### Geometry Column
+### Geometry Columns
+Both wells and emissions use PostGIS-style GEOMETRY columns for spatial queries:
+
 ```sql
--- Created in load_wellbore.sql
+-- Well geometry (created in load_wellbore.sql with longitude sign correction)
+ST_Point(-ABS(wgs84_longitude), wgs84_latitude) AS geom
+
+-- Emission geometry (created in load_emissions.sql)
 ST_Point(longitude, latitude) AS geom
 
--- Usage for nearest well query:
-SELECT api_county, api_unique,
-       ST_Distance(geom, ST_Point(-96.5, 32.0)) as distance
-FROM wellbore.location
-WHERE geom IS NOT NULL
-ORDER BY distance
+-- Example: Find nearest well to an emission
+SELECT
+    e.id as emission_id,
+    w.api_county || '-' || w.api_unique as well_api,
+    ST_Distance(e.geom, w.geom) * 111 as distance_km
+FROM emissions.sources e
+CROSS JOIN wellbore.location w
+WHERE w.geom IS NOT NULL
+ORDER BY ST_Distance(e.geom, w.geom)
 LIMIT 1;
 ```
 
 ## Common Queries
 
-Find wells with gatherers near a plume:
+### Find emissions near wells operated by a specific company
+
+```sql
+-- Install and load spatial extension first
+INSTALL spatial;
+LOAD spatial;
+
+-- Find emissions within 5km of company's wells
+WITH company_wells AS (
+    SELECT loc.geom, loc.api_county, loc.api_unique, p4.operator_number, org.organization_name
+    FROM wellbore.location loc
+    JOIN wellbore.wellid wb ON loc.api_county = wb.api_county
+                            AND loc.api_unique = wb.api_unique
+    JOIN p4.root p4 ON wb.oil_gas_code = p4.oil_gas_code
+                    AND wb.district = p4.district
+                    AND (wb.lease_number = p4.lease_rrcid OR wb.gas_rrcid = p4.lease_rrcid)
+    LEFT JOIN p5.org org ON p4.operator_number = org.operator_number
+    WHERE UPPER(org.organization_name) LIKE '%COMPANY_NAME%'
+      AND loc.geom IS NOT NULL
+)
+SELECT
+    e.id,
+    e.emission_auto as kg_per_hr,
+    e.plume_count,
+    ST_Y(e.geom) as lat,
+    ST_X(e.geom) as lon,
+    w.api_county || '-' || w.api_unique as well_api,
+    w.organization_name,
+    ROUND(ST_Distance(e.geom, w.geom) * 111, 2) as distance_km
+FROM emissions.sources e
+JOIN company_wells w ON ST_Distance(e.geom, w.geom) < 0.05  -- ~5km
+WHERE e.gas = 'CH4'
+ORDER BY e.emission_auto DESC, distance_km;
+```
+
+### Find all operators and gatherers for wells near a plume
+
 ```sql
 SELECT
-    wb.api_county, wb.api_unique,
-    loc.wgs84_latitude, loc.wgs84_longitude,
-    gpn.gpn_number, gpn.actual_percent, gpn.type_code
-FROM wellbore.location loc
+    loc.api_county || '-' || loc.api_unique as well_api,
+    ST_Distance(e.geom, loc.geom) * 111 as distance_km,
+    op_org.organization_name as operator_name,
+    gpn.type_code,
+    gpn_org.organization_name as gatherer_name,
+    gpn.actual_percent
+FROM emissions.sources e
+JOIN wellbore.location loc ON ST_Distance(e.geom, loc.geom) < 0.01  -- ~1km
 JOIN wellbore.wellid wb ON loc.api_county = wb.api_county
                         AND loc.api_unique = wb.api_unique
 JOIN p4.root p4 ON wb.oil_gas_code = p4.oil_gas_code
                 AND wb.district = p4.district
                 AND (wb.lease_number = p4.lease_rrcid OR wb.gas_rrcid = p4.lease_rrcid)
-JOIN p4.gpn gpn ON p4.oil_gas_code = gpn.oil_gas_code
-                AND p4.district = gpn.district
-                AND p4.lease_rrcid = gpn.lease_rrcid
-WHERE loc.geom IS NOT NULL
-  AND ST_Distance(loc.geom, ST_Point(-96.5, 32.0)) < 0.01  -- ~1km
-ORDER BY ST_Distance(loc.geom, ST_Point(-96.5, 32.0));
+LEFT JOIN p5.org op_org ON p4.operator_number = op_org.operator_number
+LEFT JOIN p4.gpn gpn ON p4.oil_gas_code = gpn.oil_gas_code
+                     AND p4.district = gpn.district
+                     AND p4.lease_rrcid = gpn.lease_rrcid
+LEFT JOIN p5.org gpn_org ON gpn.gpn_number = gpn_org.operator_number
+WHERE e.id = 'CH4_1B2_250m_-99.45098_28.43460'
+  AND loc.geom IS NOT NULL
+ORDER BY distance_km;
+```
+
+## Database Schema Reference
+
+Full schema definitions with field descriptions are in:
+- `queries/schema.sql` - Complete DDL with all tables and columns
+- `docs/p4-user-manual_p4a002_feb2015.txt` - P4 field documentation
+- `docs/wba091_well-bore-database.txt` - Wellbore field documentation
+- `docs/wla001k.txt` - P5 organization field documentation
+
+To explore the schema interactively:
+```bash
+duckdb data/data.duckdb
+D DESCRIBE p4.root;        # Show P4 root table structure
+D DESCRIBE wellbore.location;  # Show wellbore location table
+D DESCRIBE emissions.sources;  # Show emissions table
 ```
 
 ## Future Work
 
-- Parse additional EBCDIC datasets (pipelines, compressor stations)
-- Integrate satellite plume observations
-- Build spatial indexing for faster queries
+- Build spatial indexes for faster queries (R-tree on geometry columns)
 - Add temporal analysis (track ownership/gathering changes over time)
+- Parse additional EBCDIC datasets (pipelines, compressor stations)
 - Export to GeoJSON/Shapefile for GIS tools
+- Add regular emissions data updates from Carbon Mapper API
 
 ## Development Guidelines
 

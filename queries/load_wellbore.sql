@@ -27,9 +27,10 @@ SELECT
     CAST(wgs84_latitude AS DOUBLE) as wgs84_latitude,
     CAST(wgs84_longitude AS DOUBLE) as wgs84_longitude,
     -- Create geometry from lat/lon (only for non-zero coordinates)
+    -- Fix longitude sign: Texas longitudes should be negative (western hemisphere)
     CASE
         WHEN CAST(wgs84_latitude AS DOUBLE) != 0 AND CAST(wgs84_longitude AS DOUBLE) != 0
-        THEN ST_Point(CAST(wgs84_longitude AS DOUBLE), CAST(wgs84_latitude AS DOUBLE))
+        THEN ST_Point(-ABS(CAST(wgs84_longitude AS DOUBLE)), CAST(wgs84_latitude AS DOUBLE))
         ELSE NULL
     END as geom,
     CAST(plane_zone AS INTEGER) as plane_zone,
