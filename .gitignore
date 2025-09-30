@@ -1,7 +1,14 @@
-*.csv
-*.duckdb
+# Generated CSV files
+root.csv
+info.csv
+gpn.csv
+lease_name.csv
+
+# Generated database
+data.duckdb
 *.duckdb.wal
+
+# Python
 __pycache__/
+*.pyc
 .venv/
-debug_bytes.py
-main.py

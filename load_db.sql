@@ -1,28 +1,33 @@
--- Load P4 data into DuckDB
+-- Load P4 data into DuckDB with faithful schema
 
--- Create leases table (deduplicate by keeping last occurrence)
-CREATE TABLE leases AS
-SELECT DISTINCT ON (oil_gas_code, district, lease_rrcid) *
-FROM read_csv_auto('leases.csv')
-ORDER BY oil_gas_code, district, lease_rrcid;
+-- Create p4 schema
+CREATE SCHEMA IF NOT EXISTS p4;
 
--- Create gatherers_purchasers table
-CREATE TABLE gatherers_purchasers AS
-SELECT * FROM read_csv_auto('gatherers_purchasers.csv');
+-- Load Record Type 01: P-4 Root (current schedule state)
+CREATE TABLE p4.root AS
+SELECT * FROM read_csv_auto('root.csv');
 
--- Create lease_names table (deduplicate by keeping last occurrence)
-CREATE TABLE lease_names AS
-SELECT DISTINCT ON (oil_gas_code, district, lease_rrcid) *
-FROM read_csv_auto('lease_names.csv')
-ORDER BY oil_gas_code, district, lease_rrcid;
+-- Load Record Type 02: P-4 Info (temporal P-4 filings)
+CREATE TABLE p4.info AS
+SELECT * FROM read_csv_auto('info.csv');
+
+-- Load Record Type 03: P-4 GPN (gatherer/purchaser/nominator)
+CREATE TABLE p4.gpn AS
+SELECT * FROM read_csv_auto('gpn.csv');
+
+-- Load Record Type 07: P-4 Lease Name
+CREATE TABLE p4.lease_name AS
+SELECT * FROM read_csv_auto('lease_name.csv');
 
 -- Show summary
-SELECT 'Total leases' as metric, COUNT(*) as count FROM leases
+SELECT 'Root records (leases)' as metric, COUNT(*) as count FROM p4.root
 UNION ALL
-SELECT 'Total gatherer/purchaser records', COUNT(*) FROM gatherers_purchasers
+SELECT 'Info records (P-4 filings)', COUNT(*) FROM p4.info
 UNION ALL
-SELECT 'Total lease names', COUNT(*) FROM lease_names
+SELECT 'GPN records (gatherers/purchasers/nominators)', COUNT(*) FROM p4.gpn
 UNION ALL
-SELECT 'Unique operators', COUNT(DISTINCT operator_number) FROM leases
+SELECT 'Lease name records', COUNT(*) FROM p4.lease_name
 UNION ALL
-SELECT 'Unique gatherers/purchasers', COUNT(DISTINCT gpn_number) FROM gatherers_purchasers;
+SELECT 'Unique operators', COUNT(DISTINCT info_operator_number) FROM p4.info
+UNION ALL
+SELECT 'Unique gatherers/purchasers', COUNT(DISTINCT gpn_number) FROM p4.gpn;
