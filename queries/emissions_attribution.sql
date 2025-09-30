@@ -100,6 +100,21 @@ SELECT
     ROUND(pwd.distance_km, 2) as distance_to_nearest_well_km,
     twc.total_wells_within_radius as total_wells_within_500m,
     owc.operator_well_count as operator_wells_within_500m,
+    -- Confidence score (0-90): combines operator dominance, distance, and well density
+    ROUND(
+        -- Operator Dominance (0-40): % of nearby wells belonging to matched operator
+        (owc.operator_well_count::FLOAT / NULLIF(twc.total_wells_within_radius, 0)) * 40 +
+        -- Distance (0-30): closer wells = higher confidence
+        GREATEST(0, 30 - (pwd.distance_km * 60)) +
+        -- Well Density (0-20): fewer wells = higher confidence (less ambiguity)
+        CASE
+            WHEN twc.total_wells_within_radius = 1 THEN 20
+            WHEN twc.total_wells_within_radius BETWEEN 2 AND 5 THEN 15
+            WHEN twc.total_wells_within_radius BETWEEN 6 AND 10 THEN 10
+            ELSE 5
+        END,
+        1
+    ) as confidence_score,
     pi.purchaser_names
 FROM nearest_wells_only pwd
 LEFT JOIN total_well_counts twc ON pwd.id = twc.id
