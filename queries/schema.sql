@@ -202,6 +202,100 @@ CREATE TABLE wellbore.wellid (
 
 
 -- ============================================================================
+-- P-5 Organization Report (operator/gatherer names and info)
+-- ============================================================================
+
+CREATE SCHEMA p5;
+
+-- Record Type 'A ': Organization information
+-- One record per organization - master organization data
+CREATE TABLE p5.org (
+  operator_number INTEGER NOT NULL,
+
+  -- Organization details
+  organization_name VARCHAR(32) NOT NULL,
+  refiling_required_flag VARCHAR(1),       -- Y/N
+  p5_status VARCHAR(1),                    -- A=active, I=inactive, D=delinquent, S=see remarks
+  hold_mail_code VARCHAR(1),               -- H=hold mail, N=normal
+  renewal_letter_code VARCHAR(1),          -- P=property, N=non-property
+  organization_code VARCHAR(1),            -- A=corp, B=lim.partnership, C=sole prop, D=partnership, E=trust, F=joint venture, G=other
+  organ_other_comment VARCHAR(20),
+  gatherer_code VARCHAR(5),
+
+  -- Mailing address
+  org_addr_line1 VARCHAR(31),
+  org_addr_line2 VARCHAR(31),
+  org_addr_city VARCHAR(13),
+  org_addr_state VARCHAR(2),
+  org_addr_zip VARCHAR(5),
+  org_addr_zip_suffix VARCHAR(4),
+
+  -- Physical location address
+  location_addr_line1 VARCHAR(31),
+  location_addr_line2 VARCHAR(31),
+  location_addr_city VARCHAR(13),
+  location_addr_state VARCHAR(2),
+  location_addr_zip VARCHAR(5),
+  location_addr_zip_suffix VARCHAR(4),
+
+  -- Dates
+  date_built VARCHAR(8),                   -- CCYYMMDD
+  date_inactive VARCHAR(8),                -- CCYYMMDD
+  phone_number VARCHAR(10)
+
+  -- Note: Primary keys removed due to duplicate records in source data
+);
+
+-- Record Type 'F ': Specialty codes (special mailing addresses)
+CREATE TABLE p5.specialty (
+  operator_number INTEGER NOT NULL,
+  organization_name VARCHAR(32),
+  specialty_code VARCHAR(6),               -- See P-5 manual for codes (CONTRL, GATHER, OPRATR, etc.)
+
+  -- Specialty-specific mailing address
+  spec_addr_line1 VARCHAR(31),
+  spec_addr_line2 VARCHAR(31),
+  spec_addr_city VARCHAR(13),
+  spec_addr_state VARCHAR(2),
+  spec_addr_zip VARCHAR(5),
+  spec_addr_zip_suffix VARCHAR(4)
+);
+
+-- Record Type 'K ': Officer information
+CREATE TABLE p5.officer (
+  operator_number INTEGER NOT NULL,
+  organization_name VARCHAR(32),
+
+  -- Officer details
+  officer_name VARCHAR(32),
+  officer_title VARCHAR(32),
+
+  -- Officer mailing address
+  officer_addr_line1 VARCHAR(31),
+  officer_addr_line2 VARCHAR(31),
+  officer_addr_city VARCHAR(13),
+  officer_addr_state VARCHAR(2),
+  officer_addr_zip VARCHAR(5),
+  officer_addr_zip_suffix VARCHAR(4),
+
+  -- Identification
+  officer_type_id VARCHAR(1),              -- L=driver's license, I=state ID
+  officer_id_state VARCHAR(2),
+  officer_id_number VARCHAR(20),
+  officer_agent VARCHAR(1)                 -- A=agent, O=officer
+);
+
+-- Record Type 'U ': Activity indicators
+-- Shows which activities and districts an organization is involved in
+CREATE TABLE p5.activity (
+  operator_number INTEGER NOT NULL,
+  organization_name VARCHAR(32),
+  act_ind_code VARCHAR(6),                 -- CSGD/G, G/NOM, G/PUR, GTHS/G, GTHS/O, OPRS/G, OPRS/O, GTHS/C, etc.
+  act_ind_flag_districts VARCHAR(14)       -- 14 digits, one per district (0=inactive, 1=active)
+);
+
+
+-- ============================================================================
 -- Emissions (Carbon Mapper satellite observations)
 -- ============================================================================
 
