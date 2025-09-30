@@ -76,13 +76,13 @@ purchaser_info AS (
                 ELSE '[' || gpn.gpn_number || ']'
             END,
             '; '
-        ) as purchaser_gatherer_names
+        ) as purchaser_names
     FROM nearest_wells_only pwd
     JOIN p4.gpn gpn ON pwd.oil_gas_code = gpn.oil_gas_code
                     AND pwd.district = gpn.district
                     AND pwd.lease_rrcid = gpn.lease_rrcid
     LEFT JOIN p5.org gpn_org ON gpn.gpn_number = gpn_org.operator_number
-    WHERE gpn.type_code IN ('G', 'P')  -- Gatherers and Purchasers
+    WHERE gpn.type_code = 'H'  -- H=Purchasers only
       AND gpn.gpn_number IS NOT NULL
     GROUP BY pwd.id
 )
@@ -100,7 +100,7 @@ SELECT
     ROUND(pwd.distance_km, 2) as distance_to_nearest_well_km,
     twc.total_wells_within_radius as total_wells_within_500m,
     owc.operator_well_count as operator_wells_within_500m,
-    pi.purchaser_gatherer_names
+    pi.purchaser_names
 FROM nearest_wells_only pwd
 LEFT JOIN total_well_counts twc ON pwd.id = twc.id
 LEFT JOIN operator_well_counts owc ON pwd.id = owc.id
