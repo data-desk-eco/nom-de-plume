@@ -6,8 +6,8 @@ all: data/data.duckdb
 csvs: data/root.csv data/info.csv data/gpn.csv data/lease_name.csv data/wellbore_root.csv data/wellbore_location.csv
 
 # P4 (lease/producer) data
-data/root.csv data/info.csv data/gpn.csv data/lease_name.csv: data/p4f606.ebc.gz scripts/create_db.py scripts/parse_p4.py
-	uv run scripts/create_db.py
+data/root.csv data/info.csv data/gpn.csv data/lease_name.csv: data/p4f606.ebc.gz scripts/create_p4_db.py scripts/parse_p4.py
+	uv run scripts/create_p4_db.py
 
 # Well bore data
 data/wellbore_root.csv data/wellbore_location.csv: data/dbf900.ebc.gz scripts/create_wellbore_db.py scripts/parse_wellbore.py
