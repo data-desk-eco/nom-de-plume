@@ -1,0 +1,3468 @@
+RAILROAD COMMISSION OF TEXAS
+
+OIL AND GAS WELL BORE SYSTEM
+
+ MAGNETIC TAPE USER'S GUIDE
+
+
+
+    Last updated May 20, 2019
+                                       PUBLISHED BY THE
+                                RAILROAD COMMISSION OF TEXAS
+                                P.O. BOX 12967 - CAPITOL STATION
+                                     AUSTIN, TEXAS 78711-2967
+
+
+
+This publication was developed for the general public in response to inquiries concerning the availability
+of oil and gas well bore information on magnetic tape. If you request assistance in using the manual, your
+request will be given every consideration.
+
+
+      First Edition:    May 1, 1984
+      Revised:          October 26, 1994
+      Revised:          December 1997
+      Revised:          October 1998
+      Revised:          December 1999
+      Revised:          January 2003
+      Revised:          October 2014
+      Revised:          September 2017
+      Revised:          May 2019
+
+
+
+
+The Railroad Commission does not discriminate on the basis of race, color, national origin, sex, religion,
+age or disability. Information is available upon request by calling (512)463-7288 or
+(TDD) 1-800-735-2989 if special assistance is required.
+
+
+Publication Number: WBA091
+
+
+
+
+                                                     i
+                                                   TABLE OF CONTENTS
+
+
+1.   GENERAL INFORMATION ............................................................................................................ 1-1
+     Identification ...................................................................................................................................... 1-1
+     System Description ............................................................................................................................ 1-1
+     Physical Tape Characteristics ............................................................................................................ 1-2
+     Well Bore Database Hierarchy........................................................................................................... 1-3
+2.   FILE INFORMATION ...................................................................................................................... 2-1
+     Well Bore Technical Data Root ......................................................................................................... 2-1
+     Well Bore Completion Information ................................................................................................... 2-8
+     Well Bore Technical Data Forms File Date ..................................................................................... 2-12
+     Well Bore Remarks .......................................................................................................................... 2-16
+     Well Bore Tubing............................................................................................................................. 2-18
+     Well Bore Casing ............................................................................................................................. 2-20
+     Well Bore Perforations..................................................................................................................... 2-23
+     Well Bore Liner ............................................................................................................................... 2-25
+     Well Bore Formation........................................................................................................................ 2-27
+     Well Bore Squeeze ........................................................................................................................... 2-29
+     Well Bore Usable Quality Water Protection .................................................................................... 2-31
+     Well Bore Old Location ................................................................................................................... 2-33
+     Well Bore New Location ................................................................................................................. 2-35
+     Well Bore Plugging Data ................................................................................................................. 2-39
+     Well Bore Plugging Remarks........................................................................................................... 2-44
+     Well Bore Plugging Record ............................................................................................................. 2-46
+     Well Bore Plugging Data Casing-Tubing ........................................................................................ 2-48
+     Well Bore Plugging Perfs................................................................................................................. 2-51
+     Well Bore Plugging Data Nomenclature .......................................................................................... 2-53
+     Well Bore Drilling Permit Number .................................................................................................. 2-55
+     Well Bore Well-ID ........................................................................................................................... 2-57
+     Well Bore 14B2 Well ....................................................................................................................... 2-59
+     Well Bore H-15 Report .................................................................................................................... 2-67
+     Well Bore H-15 Remarks ................................................................................................................. 2-73
+     Well Bore Senate Bill 126 (2-Yr Inactive Program) ........................................................................ 2-75
+     Well Bore Drilling Permit Status ..................................................................................................... 2-78
+
+
+                                                                             ii
+Well Bore W3C ................................................................................................................................ 2-80
+Well Bore 14B2 Remarks ................................................................................................................ 2-83
+
+
+
+
+                                                                    iii
+1. GENERAL INFORMATION
+
+
+Identification
+
+           Developed For:        Users of Oil and Gas Well Bore Information
+
+           By:                   Railroad Commission of Texas
+
+           System Name:          Well Bore
+
+           Computer:             IBM 2003-116
+
+
+System Description
+
+                 The Well Bore tape file is set up in a hierarchical structure with the Well Bore Root (API
+                 Number) being the root of the file (see page 1.3). The Well Bore Root is a segment of
+                 the data base that contains API Numbers in numerical order. An API number is a unique
+                 number assigned to every well bore in the state. The key is the first two bytes of each
+                 record that identifies the segment (see page 1.2). For each specific well bore (key=01)
+                 there may be information from each segment pertaining to that well bore (e.g.
+                 Completion, key=02; Date, key=03; etc.).
+
+                 To proceed to the next well bore on the tape, look for the next key=01 record.
+
+                 Some segments may be recurring which means there can be more than one. For example,
+                 there may be more than one completion, plug, drilling permit, etc., for one well bore.
+
+
+
+
+                                                    1-1
+Physical Tape Characteristics
+
+      1600 BPI, Channel Phase Encoded
+
+       IBM Standard Labels
+       (One 80-character volume label, Two 80-character header labels and Two 80-character trailer
+       labels)
+
+       Dataset Name: T.DBF900
+
+       Record Length:            247
+
+       Blocking Factor:          132
+
+       Blocksize:       32,604
+
+
+       The keys to the Well Bore Data Base segments can be found in the first two bytes of each record.
+       The key representation is as follows:
+       Record       Segment        Description                                        Recurring
+         Key         Name
+         01      WBROOT            Well Bore Technical Data Root Segment
+         02      WBCOMPL           Well Bore Completion Information Segment               Y
+         03      WBDATE            Well Bore Technical Data Forms File Date               Y
+         04      WBRMKS            Well Bore Remarks Segment                              Y
+         05      WBTUBE            Well Bore Tubing Segment                               Y
+         06      WBCASE            Well Bore Casing Segment                               Y
+         07      WBPERF            Well Bore Perforations Segment                         Y
+         08      WBLINE            Well Bore Liner Segment                                Y
+         09      WBFORM            Well Bore Formation Segment                            Y
+         10      WBSQEZE           Well Bore Squeeze Segment                              Y
+         11      WBFRESH           Well Bore Usable Quality Water Protection              Y
+         12      WBOLDLOC Well Bore Old Location Segment
+         13      WBNEWLOC Well Bore New Location Segment
+         14      WBPLUG            Well Bore Plugging Data Segment                        Y
+         15      WBPLRMKS Well Bore Plugging Remarks Segment                              Y
+         16      WBPLREC           Well Bore Plugging Record Segment
+         17      WBPLCASE          Well Bore Plugging Data Casing-Tubing Segment          Y
+         18      WBPLPERF          Well Bore Plugging Perfs Segment                       Y
+         19      WBPLNAME Well Bore Plugging Data Nomenclature Segment
+         20      WBDRILL           Well Bore Drilling Permit Number                       Y
+         21      WBWELLID Well Bore Well-ID Segment                                       Y
+         22      WB14B2            14B2 Well Segment
+         23      WBH15             H-15 Report Segment                                    Y
+         24      WBH15RMK H-15 Remarks Segment                                            Y
+         25      WBSB126           Senate Bill 126 (2-Yr Inactive Program) Segment
+         26      WBDASTAT Well Bore Drilling Permit Status Segment                        Y
+         27      WBW3C             Well Bore W3C Data                                     Y
+         28      WB14B2RM          Well Bore 14B2 Remarks                                 Y
+
+
+
+                                                 1-2
+Well Bore Database Hierarchy
+
+
+
+
+                               1-3
+2. FILE INFORMATION
+
+Well Bore Technical Data Root
+  *****************************************************************************
+  * WBW700A(2)                            WELL BORE                                            *
+  *                                                                                            *
+  *                    WELL BORE TECHNICAL DATA ROOT SEGMENT                                   *
+  *                                                                                            *
+  *    SEGMENT NAME: WBROOT                                                                    *
+  *    SEGMENT LENGTH: 165                                                                     *
+  *                                                                                            *
+  *    FUNCTION             | SOURCE                          | SSA NAME           | OPTION *
+  *    ---------------      |-------------------------        |----------------     |--------- *
+  *    SEGMENT KEY          | WB-API-NUMBER                   | WBAPINUM | UNIQUE *
+  *    SECONDARY KEY | WB-NEWEST-DRL-PMT-NBR | XNEWDRL                             |           *
+  *    SEARCH FIELDS        | WB-RES-CNTY-CODE                | WBRESCTY |                     *
+  *    SEARCH FIELDS        | WB-NEWEST-DRL-PMT-NBR | WBNEWDRL |                               *
+  *                         |                                 |                    |           *
+  *****************************************************************************
+   01 RAILROAD-COMMISSION-TAPE-REC.                                                            POS.
+     02 RRC-TAPE-RECORD-ID                                                      PIC X(02).     1
+     02 WELL-BORE-API-ROOT.
+        03 WB-API-NUMBER                               VALUE ZEROS.
+           05 WB-API-CNTY                                                       PIC 9(03).     3
+           05 WB-API-UNIQUE                                                     PIC 9(05).     6
+        03 WB-NXT-AVAIL-SUFFIX                         VALUE ZEROS              PIC 9(02).     11
+        03 WB-NXT-AVAIL-HOLE-CHGE-NBR                  VALUE ZEROS              PIC 9(02).     13
+        03 WB-FIELD-DISTRICT                           VALUE ZEROS              PIC 9(02).     15
+        03 WB-RES-CNTY-CODE                            VALUE ZEROS              PIC 9(03).     17
+        03 WB-ORIG-COMPL-CC                            VALUE SPACE              PIC X(01).     20
+           88 WB-ZEROS-FOR-DATE                        VALUE '0'.
+           88 WB-19TH-CENTURY                          VALUE '1'.
+           88 WB-20TH-CENTURY                          VALUE '2'.
+           88 WB-21ST-CENTURY                          VALUE '3'.
+        03 WB-ORIG-COMPL-DATE.
+           05 WB-ORIG-COMPL-CENT                       VALUE ZEROS              PIC 9(02).     21
+           05 WB-ORIG-COMPL-YY                         VALUE ZEROS              PIC 9(02).     23
+           05 WB-ORIG-COMPL-MM                         VALUE ZEROS              PIC 9(02).     25
+           05 WB-ORIG-COMPL-DD                         VALUE ZEROS              PIC 9(02).     27
+        03 WB-TOTAL-DEPTH                              VALUE ZEROS              PIC 9(05).     29
+        03 WB-VALID-FLUID-LEVEL                        VALUE ZEROS              PIC 9(05).     34
+        03 WB-CERTIFICATION-REVOKED-DATE.
+           05 WB-CERT-REVOKED-CC                       VALUE ZEROS              PIC 9(02).     39
+           05 WB-CERT-REVOKED-YY                       VALUE ZEROS              PIC 9(02).     41
+           05 WB-CERT-REVOKED-MM                       VALUE ZEROS              PIC 9(02).     43
+           05 WB-CERT-REVOKED-DD                       VALUE ZEROS              PIC 9(02).     45
+        03 WB-CERTIFICATION-DENIAL-DATE.
+           05 WB-CERTIFICATION-DENIAL-CC               VALUE ZEROS              PIC 9(02).     47
+           05 WB-CERTIFICATION-DENIAL-YY               VALUE ZEROS              PIC 9(02).     49
+
+
+
+                                                2-1
+  05 WB-CERTIFICATION-DENIAL-MM VALUE ZEROS      PIC 9(02).   51
+  05 WB-CERTIFICATION-DENIAL-DD   VALUE ZEROS    PIC 9(02).   53
+03 WB-DENIAL-REASON-FLAG          VALUE SPACES   PIC X(01).   55
+  88 WB-DENIED-AUTOMATICALLY      VALUE 'A'.
+  88 WB-DENIED-MANUALLY           VALUE 'M'.
+03 WB-ERROR-API-ASSIGN-CODE       VALUE SPACE    PIC X(01).   56
+03 WB-REFER-CORRECT-API-NBR       VALUE ZEROS    PIC 9(08).   57
+03 WB-DUMMY-API-NUMBER            VALUE ZEROS    PIC 9(08).   65
+03 WB-DATE-DUMMY-REPLACED         VALUE ZEROS    PIC 9(08).   73
+03 WB-NEWEST-DRL-PMT-NBR          VALUE ZEROS    PIC 9(06).   81
+03 WB-CANCEL-EXPIRE-CODE          VALUE SPACE    PIC X(01).   87
+03 FILLER                         VALUE SPACE    PIC X(01).   88
+03 WB-EXCEPT-13-A                 VALUE 'N'      PIC X(01).   89
+  88 WB-EXCEPT-13A-FILED          VALUE 'Y'.
+  88 WB-EXCEPT-13A-NOT-FILED      VALUE 'N'.
+03 WB-FRESH-WATER-FLAG            VALUE 'N'      PIC X(01).   90
+  88 WB-FRESH-WATER               VALUE 'Y'.
+03 WB-PLUG-FLAG                   VALUE 'N'      PIC X(01).   91
+  88 WB-BORE-PLUGGED              VALUE 'Y'.
+03 WB-PREVIOUS-API-NBR            VALUE ZEROS    PIC 9(08).   92
+03 WB-COMPLETION-DATA-IND         VALUE 'N'      PIC X(01).   100
+  88 WB-DATA-ON-FILE              VALUE 'Y'.
+  88 WB-DATA-NOT-ON-FILE          VALUE 'N'.
+03 WB-HIST-DATE-SOURCE-FLAG       VALUE ZERO     PIC 9(01).   101
+  88 WB-DATE-FROM-P-I-TAPE        VALUE 1.
+  88 WB-DATE-FROM-OTHER           VALUE 2.
+03 FILLER                         VALUE SPACES   PIC X(01).   102
+03 WB-EX14B2-COUNT                VALUE ZEROS    PIC 9(02).   103
+03 WB-DESIGNATION-HB-1975-FLAG    VALUE ZEROS    PIC X(01).   105
+  88 WB-AUTO-DESIGNATED-HB-1975 VALUE 'A'.
+  88 WB-MANUAL-DESIGNATED-HB-1975 VALUE 'M'.
+03 WB-DESIGNATION-EFFECTIVE-DATE.
+  05 WB-DESIGNATION-EFFEC-CC      VALUE ZEROS    PIC 9(02).   106
+  05 WB-DESIGNATION-EFFEC-YY      VALUE ZEROS    PIC 9(02).   108
+  05 WB-DESIGNATION-EFFEC-MM      VALUE ZEROS    PIC 9(02).   110
+03 WB-DESIGNATION-REVISED-DATE.
+  05 WB-DESIGNATION-REVISED-CC    VALUE ZEROS    PIC 9(02).   112
+  05 WB-DESIGNATION-REVISED-YY    VALUE ZEROS    PIC 9(02).   114
+  05 WB-DESIGNATION-REVISED-MM    VALUE ZEROS    PIC 9(02).   116
+03 WB-DESIGNATION-LETTER-DATE.
+  05 WB-DESIGNATION-LETTER-CC     VALUE ZEROS    PIC 9(02).   118
+  05 WB-DESIGNATION-LETTER-YY     VALUE ZEROS    PIC 9(02).   120
+  05 WB-DESIGNATION-LETTER-MM     VALUE ZEROS    PIC 9(02).   122
+  05 WB-DESIGNATION-LETTER-DD     VALUE ZEROS    PIC 9(02).   124
+03 WB-CERTIFICATION-EFFECT-DATE.
+  05 WB-CERTIFICATION-EFFEC-CC    VALUE ZEROS    PIC 9(02).   126
+  05 WB-CERTIFICATION-EFFEC-YY    VALUE ZEROS    PIC 9(02).   128
+  05 WB-CERTIFICATION-EFFEC-MM    VALUE ZEROS    PIC 9(02).   130
+03 WB-WATER-LAND-CODE             VALUE SPACES   PIC X(01).   132
+  88 WB-INLAND-WATERWAY           VALUE 'I'.
+  88 WB-BAY-ESTUARY               VALUE 'B'.
+
+
+                             2-2
+    88 WB-OFFSHORE                  VALUE 'O'.
+    88 WB-LAND                      VALUE 'L'.
+  03 WB-TOTAL-BONDED-DEPTH          VALUE ZEROS   PIC 9(06).     133
+  03 WB-OVERRIDE-EST-PLUG-COST      VALUE ZEROS   PIC 9(07).     139
+  03 WB-SHUT-IN-DATE                VALUE ZEROS   PIC 9(06).     146
+  03 FILLER REDEFINES WB-SHUT-IN-DATE.
+    05 WB-SHUT-IN-YEAR                            PIC 9(04).
+    05 WB-SHUT-IN-MONTH                           PIC 9(02).
+  03 WB-OVERRIDE-BONDED-DEPTH       VALUE ZEROS   PIC 9(06).     152
+  03 WB-SUBJ-TO-14B2-FLAG           VALUE ZEROS   PIC X(01).     158
+    88 WB-SUBJ-TO-14B2              VALUE 'Y'.
+  03 WB-PEND-REMOVAL-14B2-FLAG      VALUE ZEROS   PIC X(01).     159
+    88 WB-PEND-REMOVAL-14B2         VALUE 'Y'.
+  03 WB-ORPHAN-WELL-HOLD-FLAG       VALUE ZEROS   PIC X(01).     160
+    88 WB-ORPHAN-WELL-HOLD          VALUE 'Y'.
+  03 WB-W3X-WELL-FLAG               VALUE ZEROS   PIC X(01).     160
+    88 WB-W3X-WELL                  VALUE 'Y'.
+  03 FILLER                         VALUE ZEROS   PIC X(06).     161
+02 RRC-TAPE-FILLER                                PIC X(0080).   168
+
+
+
+
+                               2-3
+****************************************************************************
+*                                     WELL BORE                                                 *
+*                    WELL BORE TECHNICAL DATA ROOT SEGMENT                                      *
+****************************************************************************
+WELL-BORE-API-ROOT.
+-------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  01   Wellbore Root Segment
+
+WB-API-NUMBER
+ WB-API-CNTY
+    INDICATES COUNTY IN WHICH BORE IS LOCATED. FOR OFF-SHORE WELLS
+
+    COUNTY CODE WILL REFLECT NEAREST ON-SHORE COUNTY.
+  WB-API-UNIQUE
+    NUMBER ASSIGNED TO WELL BORE WHICH, IN COMBINATION WITH COUNTY
+    CODE, IS UNIQUE TO THE BORE.
+
+WB-NXT-AVAIL-SUFFIX
+    TWO DIGIT NUMBER, WHEN ADDED TO THE API NUMBER IDENTIFIES
+    SIDETRACK WELLS. CURRENTLY NOT IN USE.
+
+WB-NXT-AVAIL-HOLE-CHGE-NBR
+    CURRENTLY NOT IN USE.
+
+WB-FIELD-DISTRICT
+     DISTRICT IN WHICH FIELD IS LOCATED.
+
+WB-RES-CNTY-CODE
+     IF THE WB-API-CNTY IS AN OFFSHORE COUNTY, THE ASSOCIATED ONSHORE
+     COUNTY CODE IS STORED IN THIS DATA FIELD.
+
+WB-ORIG-COMPL-CC
+     CENTURY CODE FOR THE FOLLOWING ITEM, WB-ORIG-COMPL-DATE.
+ WB-ZEROS-FOR-DATE         VALUE '0'.
+ WB-19TH-CENTURY           VALUE '1'.
+ WB-20TH-CENTURY           VALUE '2'.
+ WB-21ST-CENTURY           VALUE '3'.
+
+WB-ORIG-COMPL-DATE
+    DATE REPORTED ON W-2 OR G-1 WHEN WELL WAS ORIGINALLY
+    COMPLETED. FORMAT: CCYYMMDD
+
+WB-TOTAL-DEPTH
+
+
+                                                 2-4
+     MAXIMUM DEPTH OF WELL BORE.
+
+WB-VALID-FLUID-LEVEL
+    IN H-15 TESTING, A VALID DISTANCE IN FEET DETERMINED BY THE
+    COMMISSION BETWEEN THE BOTTOM OF USABLE WATER IN THE AREA AND
+    TOP OF FLUID IN WELLBORE IF THAT DISTANCE IS DIFFERENT THAN THE
+    STANDARD 250'.
+
+WB-CERTIFICATION-REVOKED-DATE
+     DATE THE HOUSE BILL 1975 CERTIFICATION WAS REVOKED. FORMAT:
+     CCYYMMDD
+
+WB-CERTIFICATION-DENIAL-DATE
+     DATE THE HOUSE BILL 1975 CERTIFICATION WAS DENIED. FORMAT:
+     CCYYMMDD
+
+WB-DENIAL-REASON-FLAG
+     THIS FLAG WILL BE SET TO 'A' IF IT WAS AUTOMATICALLY DENIED
+     CERTIFICATION FOR HOUSE BILL 1975. THIS FLAG WILL BE SET TO 'M'
+     IF IT WAS MANUALLY (ONLINE) DENIED CERTIFICATION FOR HOUSE BILL
+     1975. THIS FLAG WILL BE SET TO ZERO OR SPACE IF IT HAS NOT BEEN
+     DENIED CERTIFICATION FOR HOUSE BILL 1975.
+ WB-DENIED-AUTOMATICALLY              VALUE 'A'.
+ WB-DENIED-MANUALLY                   VALUE 'M'.
+
+WB-ERROR-API-ASSIGN-CODE
+     INDICATES THAT API PREVIOUSLY ASSIGNED HAS CHANGED.
+
+WB-REFER-CORRECT-API-NBR
+     INDICATES MOST RECENT RESOLUTION OF API OR CORRECT ASSIGNMENT.
+
+WB-DUMMY-API-NUMBER
+     80,000-RANGE NUMBERS ASSIGNED TO BORES WITHOUT API NUMBERS AS OF
+     DECEMBER 1983 AND TO BORES WHICH ARE IDENTIFIED LATER AS HAVING
+     BEEN DRILLED BEFORE 1966 AND HAVING NO API.
+
+WB-DATE-DUMMY-REPLACED
+     DATE THAT API IS REPLACED BY ANOTHER API NUMBER. NOT IN USE AS
+     OF JANUARY, 1984. FORMAT: CCYYMMDD
+
+WB-NEWEST-DRL-PMT-NBR
+     INDICATES DATE OF PERMIT TO DRILL ISSUED MOST RECENTLY IN A
+     PARTICULAR BORE.
+
+WB-CANCEL-EXPIRE-CODE
+     INDICATES WHETHER NEWEST DRILLING PERMIT WAS CANCELLED OR
+     EXPIRED, AS OPPOSED TO HAVING BEEN USED.
+
+WB-EXCEPT-13-A
+    INDICATES WHETHER OR NOT OPERATOR WAS GRANTED AN EXCEPTION TO
+    SWR 13A.
+
+
+                                   2-5
+ WB-EXCEPT-13A-FILED             VALUE 'Y'.
+ WB-EXCEPT-13A-NOT-FILED         VALUE 'N'.
+
+WB-PLUG-FLAG
+    INDICATES WHETHER OR NOT WELL BORE HAS BEEN PLUGGED.
+ WB-BORE-PLUGGED               VALUE 'Y'.
+
+WB-FRESH-WATER-FLAG
+    INDICATES WHETHER OR NOT WELL HAS BEEN CONVERTED TO
+    A FRESH WATER WELL.
+ WB-FRESH-WATER                VALUE 'Y'.
+
+WB-PREVIOUS-API-NBR
+    INDICATES THE API NUMBER PREVIOUSLY ASSIGNED TO THE BORE, WHICH
+    WAS LATER FOUND TO BE AN INCORRECT ASSIGNMENT.
+
+WB-COMPLETION-DATA-IND
+    INDICATES WHETHER OR NOT WELL BORE COMPLETION INFORMATION IS ON
+    FILE FOR A PARTICULAR WELL.
+ WB-DATA-ON-FILE                VALUE 'Y'.
+ WB-DATA-NOT-ON-FILE            VALUE 'N'.
+
+WB-HIST-DATE-SOURCE-FLAG
+    INDICATES WHERE ORIGINAL WELL BORE COMPLETION DATE CAME FROM A
+    NON-RRC SOURCE.
+
+WB-EX14B2-COUNT
+    NUMBER OF W-1X 14B2 EXTENSIONS GRANTED FOR THE WELLBORE.
+
+WB-CERTIFIED-FOR-HB-1975-FLAG
+    'A' - THE WELLBORE WAS AUTOMATICALLY CERTIFIED FOR HOUSE BILL
+         1975 BY THE MONTHLY COMPUTER RUN
+    'M' - THE WELLBORE WAS MANUALLY CERTIFIED FOR HOUSE BILL 1975 BY
+        THE OPERATOR FILING AN ST2 FORM
+    ZEROS OR SPACES - THE WELLBORE IS NOT CERTIFIED FOR HOUSE BILL
+         1975.
+
+WB-DESIGNATION-EFFECTIVE-DATE
+    THIS DATA ITEM IS A SIX CHARACTER DATE REPRESENTING THE FIRST
+    DATE THE WELL BECOMES ELIGIBLE FOR CERTIFICATION FOR TAX
+    EXEMPTION. FORMAT: CCYYMM
+
+WB-DESIGNATION-REVISED-DATE
+    THIS IS A MANUAL MODIFICATION FOR THE AUTOMATICALLY GENERATED
+    WB-DESIGNATION-EFFECTIVE-DATE. FORMAT: CCYYMM
+
+WB-DESIGNATION-LETTER-DATE
+    THIS IS A THE DATE THAT A LETTER WAS SENT TO NOTIFY THE OPERATOR
+    THAT THIS WELLBORE IS A CANDIDATE FOR HOUSE BILL 1975
+    CERTIFICATION. FORMAT: CCYYMMDD
+
+
+
+                                   2-6
+WB-CERTIFICATION-EFFECT-DATE
+    THIS DATA ITEM IS THE DATE THE WELLBORE WAS CERTIFIED TO RECEIVE
+    A TAX CREDIT FOR HOUSE BILL 1975. FORMAT: CCYYMM
+
+WB-WATER-LAND-CODE
+    THIS DATA ITEM HOLDS A 1 BYTE CODE DETAILING THE WATER OR
+    LAND LOCATION OF THE WELLBORE.
+                     OFFSHORE - 'O'
+                      BAY/ESTUARY - 'B'
+                      INLAND WATERWAY - 'I'
+                      LAND - 'L'
+
+WB-OVERRIDE-EST-PLUG-COST
+    THIS DATA ITEM HOLDS THE AMOUNT THAT IS REQUIRED
+    TO PLUG A WELLBORE. THIS AMOUNT TAKES PRECEDENCE OVER
+    ANY OF THE COMPUTED DEPTH AMOUNTS. THIS DATA IS USED
+    IN THE 14B2 SYSTEM AS THE AMOUNT REQUIRED FOR AN
+    INDIVIDUAL WELL BOND WHEN A WELL HAS BEEN INACTIVE FOR
+    MORE THAN 36 MONTHS.
+
+WB-SHUT-IN-DATE
+    THIS DATA ITEM REFLECTS THE DATE THAT ALL WELLS IN
+    A WELLBORE HAVE BEEN INACTIVE.
+
+WB-OVERRIDE-BONDED-DEPTH
+   THIS DATA ITEM IS USED TO COMPUTE THE REQUIRED BOND
+    AMOUNT FOR PLUGGING THE WELLBORE. THIS DATA ITEM
+    WHEN PRESENT IS USED INSTEAD OF THE TOTAL DEPTH OR
+    TOTAL BONDED DEPTH.
+
+WB-SUBJ-TO-14B2-FLAG
+    THIS DATA ITEM IS SET WHEN ALL THE WELLS IN THE WELLBORE
+    HAVE BEEN SHUT-IN FOR ONE YEAR AND ONE WELL IS SUBJECT
+    TO RULE 14B2.
+
+WB-PENDING-REMOVAL-FLAG
+    THIS DATA ITEM IS USED FOR WELLBORES SUBJECT TO 14B2
+    THAT ARE BECOMING ACTIVE BY PRODUCING FOR THREE
+    CONSECUTIVE MONTHS.
+
+
+
+
+                                   2-7
+Well Bore Completion Information
+*****************************************************************************
+*                                            WELL BORE                                                      *
+*                        COMPLETION INFORMATION SEGMENT                                                     *
+*                                              169 BYTES                                                    *
+*    SEGMENT NAME: WBCOMPL                                   (RECURRING)                                    *
+*                                                                                                           *
+*    FUNCTION                      | SOURCE                                  | SSA NAME | OPTION *
+*    -----------------------------|------------------------------------------|-------------------|--------- *
+*    SEGMENT KEY                   | WB-OIL-KEY (WB-GAS-KEY) | WBCPLKEY | UNIQUE *
+*    SECONDARY KEY | WB-OIL-KEY (WB-GAS-KEY) | XCPLKEY                                            |         *
+*    SEARCH KEY                    | WB-OIL-KEY (WB-GAS-KEY) | WBCPLKEY |                                   *
+*    SEARCH FIELDS                 | WB-RULE-37-NBR                          | WBRULE37 |                   *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                                           POS.
+   02 RRC-TAPE-RECORD-ID                                                                      PIC X(02).    1
+   02 WELL-BORE-COMPLETION-SEG.
+      03 WB-OIL-KEY.
+         05 WB-OIL-CODE                                                                       PIC X(01).    3
+         05 WB-OIL-DIST                                                                       PIC 9(02).    4
+         05 WB-OIL-LSE-NBR                                                                    PIC 9(05).    6
+         05 WB-OIL-WELL-NBR                                                                   PIC X(06).    11
+      03 WB-GAS-KEY REDEFINES WB-OIL-KEY.
+         05 WB-GAS-CODE                                                                       PIC X(01).
+         05 WB-GAS-RRC-ID                                                                     PIC 9(06).
+         05 WB-GAS-FILLER                                                                     PIC X(07).
+      03 WB-GAS-DIST                                            VALUE ZEROS                   PIC 9(02).    17
+      03 WB-GAS-WELL-NO                                         VALUE SPACES                  PIC X(06).    19
+      03 WB-MULTI-WELL-REC-NBR                                  VALUE SPACE                   PIC X(01).    25
+      03 WB-API-SUFFIX                                          VALUE ZEROS                   PIC 9(02).    26
+      03 FILLER                                                 VALUE ZEROS                   PIC X(18).    28
+      03 WB-ACTIVE-INACTIVE-CODE                                VALUE SPACE                   PIC X(01).    46
+      03 FILLER                                                 VALUE SPACES                  PIC X(40).    47
+      03 WB-DWN-HOLE-COMMINGLE-CODE VALUE SPACE                                               PIC X(01).    87
+      03 FILLER                                                 VALUE ZEROS                   PIC X(34).    88
+      03 WB-CREATED-FROM-PI-FLAG                                VALUE SPACE                   PIC X(01).    122
+         88 WB-CREATED-FROM-PI                                  VALUE 'Y'.
+         88 WB-NOT-CREATED-FROM-PI                              VALUE 'N'.
+      03 WB-RULE-37-NBR                                         VALUE ZEROS                   PIC 9(07).    123
+      03 FILLER                                                 VALUE SPACES                  PIC X(05).    130
+      03 FILLER                                                 VALUE ZEROS                   PIC X(05).    135
+      03 FILLER                                                 VALUE SPACES                  PIC X(10).    140
+      03 FILLER                                                 VALUE ZEROS                   PIC X(04).    150
+      03 FILLER                                                 VALUE SPACES                  PIC X(02).    154
+      03 WB-P-15                                                VALUE 'N'                     PIC X(01).    156
+         88 WB-P-15-FILED                                       VALUE 'Y'.
+         88 WB-P-15-NOT-FILED                                   VALUE 'N'.
+      03 WB-P-12                                                VALUE 'N'                     PIC X(01).    157
+         88 WB-P-12-FILED                                       VALUE 'Y'.
+         88 WB-P-12-NOT-FILED                                   VALUE 'N'.
+*==> 9(6) TO 9(8).
+
+
+                                                      2-8
+    03 WB-PLUG-DATE-POINTER         VALUE ZEROS    PIC 9(08).     158
+*==* X(8) TO X(6).
+     03 FILLER                      VALUE SPACES   PIC X(06).     166
+*==* EXPANDED ZERO BYTES.
+  02 RRC-TAPE-FILLER                               PIC X(0076).   172
+
+
+
+
+                              2-9
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                            COMPLETION INFORMATION SEGMENT                                      *
+*****************************************************************************
+WELL-BORE-COMPLETION-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 02    Well Bore Completion Information
+
+WB-OIL-KEY.
+ WB-OIL-CODE
+    INDICATES THAT WELL IS CARRIED ON OIL SCHEDULE.
+
+ WB-OIL-DIST
+   DISTRICT IN WHICH OIL WELL IS LOCATED.
+ WB-OIL-LSE-NBR
+   LEASE NUMBER OF COMPLETED OIL WELL.
+ WB-OIL-WELL-NBR
+   WELL NUMBER OF COMPLETED OIL WELL.
+
+ WB-GAS-KEY REDEFINES WB-OIL-KEY.
+
+ WB-GAS-CODE
+   INDICATES THAT WELL IS CARRIED ON GAS SCHEDULE.
+ WB-GAS-RRC-ID
+   UNIQUE GAS WELL ID NUMBER.
+ WB-GAS-FILLER
+
+WB-GAS-DIST
+    DISTRICT IN WHICH GAS WELL IS LOCATED.
+
+WB-GAS-WELL-NO
+    WELL NUMBER OF COMPLETED GAS WELL.
+
+WB-MULTI-WELL-REC-NBR
+    INDICATES THE UNIT OR GROUP OF WELLS WITHIN THE LEASE THAT THE
+    COMPLETED OIL WELL IS IN.
+
+WB-API-SUFFIX
+    NOT IN USE AS OF MARCH, 1992.
+
+WB-ACTIVE-INACTIVE-CODE
+    INDICATES WHETHER WELL IS ON OR OFF SCHEDULE. NOT IN USE AS OF
+    DECEMBER, 1983.
+
+
+                                                 2-10
+WB-DWN-HOLE-COMMINGLE-CODE
+    INDICATES WHETHER WELL IS DOWNHOLE COMMINGLED. NOT IN USE AS OF
+    DECEMBER, 1983.
+
+WB-CREATED-FROM-PI-FLAG
+    INDICATES WHETHER PI FILES ARE THE SOLE SOURCE OF INFORMATION ON A
+    WELL BEING ADDED TO THE WELL BORE FILES. SHOWN ON SUSPENSE CARDS
+    CREATED FOR CENTRAL RECORDS.
+ WB-CREATED-FROM-PI         VALUE 'Y'.
+ WB-NOT-CREATED-FROM-PI     VALUE 'N'.
+
+WB-RULE-37-NBR
+    DOCKET NUMBER ASSIGNED TO WELL COMPLETED UNDER RULE 37 EXCEPTION.
+
+WB-P-15
+    INDICATES WHETHER OR NOT STATEMENT OF PRODUCTIVITY OF ACREAGE WAS
+    FILED.
+ WB-P-15-FILED            VALUE 'Y'.
+ WB-P-15-NOT-FILED        VALUE 'N'.
+
+WB-P-12                   VALUE 'N'
+    INDICATES WHETHER OR NOT CERTIFICATE OF POOLING AUTHORITY WAS
+    FILED.
+ WB-P-12-FILED            VALUE 'Y'.
+ WB-P-12-NOT-FILED        VALUE 'N'.
+
+WB-PLUG-DATE-POINTER
+    INDICATES DATE THAT PLUGGING REPORT WAS FILED ON COMPLETED WELL.
+    FORMAT: CCYYMMDD
+
+
+
+
+                                  2-11
+Well Bore Technical Data Forms File Date
+*****************************************************************************
+*                                 WELL BORE                                              *
+*                                                                                        *
+*                    WELL BORE TECHNICAL DATA FORMS FILE DATE                            *
+*                                                                                        *
+*    SEGMENT NAME: WBDATE                    RECURRING                 (115 BYTES)       *
+*                                                                                        *
+*    FUNCTION                     | SOURCE                   | SSA NAME | OPTION         *
+*    ---------------              |------------------------- |----------      |--------- *
+*    SEGMENT KEY                  | WB-FILE-KEY              | WBFILKEY | UNIQUE         *
+*                                 |                          |                |          *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                        POS.
+   02 RRC-TAPE-RECORD-ID                              PIC X(02).                         1
+   02 WELL-BORE-FILE-DATE.
+      03 WB-FILE-KEY                                  PIC 9(08)        VALUE ZEROS.      3
+      03 WB-FILE-DATE                                 PIC 9(08)        VALUE ZEROS.      11
+      03 FILLER                                       PIC X(08)        VALUE SPACES.     19
+      03 WB-EXCEPT-RULE-11                            PIC X(01)        VALUE 'N'.        27
+         88 WB-EXCEPT-11-FILED                                         VALUE 'Y'.
+         88 WB-EXCEPT-11-NOT-FILED                                     VALUE 'N'.
+      03 WB-CEMENT-AFFIDAVIT                          PIC X(01)        VALUE 'N'.        28
+         88 WB-CMT-AFF-NOT-FILED                                       VALUE 'N'.
+         88 WB-CMT-AFF-FILED                                           VALUE 'Y'.
+         88 WB-CMT-AFF-NOT-FOUND                                       VALUE 'B'.
+         88 WB-CMT-AFF-AVAIL                                           VALUE 'A'.
+         88 WB-CMT-AFF-NOT-REQ                                         VALUE 'R'.
+      03 WB-G-5                                       PIC X(01)        VALUE 'N'.        29
+         88 WB-G-5-FILED                                               VALUE 'Y'.
+         88 WB-G-5-NOT-FILED                                           VALUE 'N'.
+      03 WB-W-12                                      PIC X(01)        VALUE 'N'.        30
+         88 WB-W-12-FILED                                              VALUE 'Y'.
+         88 WB-W-12-NOT-FILED                                          VALUE 'N'.
+      03 WB-DIR-SURVEY                                PIC X(01)        VALUE 'N'.        31
+         88 WB-DIR-SURVEY-FILED                                        VALUE 'Y'.
+         88 WB-DIR-SURVEY-NOT-FILED                                    VALUE 'N'.
+      03 WB-W2-G1-DATE                                PIC 9(08)        VALUE ZEROS.      32
+      03 WB-COMPL-DATE.
+         05 WB-COMPL-CENTURY                          PIC 9(02)        VALUE ZEROS.      40
+         05 WB-COMPL-YEAR                             PIC 9(02)        VALUE ZEROS.      42
+         05 WB-COMPL-MONTH                            PIC 9(02)        VALUE ZEROS.      44
+         05 WB-COMPL-DAY                              PIC 9(02)        VALUE ZEROS.      46
+      03 WB-DRL-COMPL-DATE                            PIC 9(08)        VALUE ZEROS.      48
+      03 WB-PLUGB-DEPTH1                              PIC 9(05)        VALUE ZEROS.      56
+      03 WB-PLUGB-DEPTH2                              PIC 9(05)        VALUE ZEROS.      61
+      03 WB-WATER-INJECTION-NBR                       PIC X(06)        VALUE SPACES.     66
+      03 WB-SALT-WTR-NBR                              PIC 9(05)        VALUE ZEROS.      72
+      03 FILLER                                       PIC X(08)        VALUE SPACES.     77
+      03 WB-REMARKS-IND                               PIC X(01)        VALUE 'N'.        85
+         88 WB-REMARKS-ON-FILE                                         VALUE 'Y'.
+
+
+                                            2-12
+     88 WB-REMARKS-DATA-NOT-ON-FILE                VALUE 'N'.
+  03 WB-ELEVATION                   PIC 9(04)      VALUE ZEROS.    86
+  03 WB-ELEVATION-CODE              PIC X(02)      VALUE SPACES.   90
+    88 WB-GROUND-LEVEL                             VALUE 'GL'.
+    88 WB-DERRICK-FLOOR                            VALUE 'DF'.
+    88 WB-KELLY-BUSHING                            VALUE 'KB'.
+    88 WB-ROTARY-TABLE                             VALUE 'RT'.
+    88 WB-GROUND                                   VALUE 'GR'.
+  03 WB-LOG-FILE-RBA                PIC 9(08)      VALUE ZEROS.    92
+  03 WB-DOCKET-NBR                  PIC X(10)      VALUE SPACES.   100
+  03 WB-PSA-WELL-FLAG               PIC X(01)      VALUE SPACES.   110
+  03 WB-ALLOCATION-WELL-FLAG        PIC X(01)      VALUE SPACES.   111
+  03 FILLER                         PIC X(06)      VALUE SPACES.   112
+02 RRC-TAPE-FILLER                  PIC X(0130).                   118
+
+
+
+
+                                 2-13
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                  WELL BORE TECHNICAL DATA FORMS FILE DATE                                      *
+*****************************************************************************
+WELL-BORE-FILE-DATE.
+-------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 03    Well Bore Technical Data Forms File
+
+WB-FILE-KEY
+ DERIVED BY SUBTRACTING FILE DATE (IN CCYYMMDD FORMAT) FROM 99999999.
+
+WB-FILE-DATE
+ DATE THE COMPLETION IS BUILT. FORMAT: CCYYMMDD
+
+WB-EXCEPT-RULE-11
+ INDICATES WHETHER OR NOT OPERATOR WAS GRANTED AN EXCEPTION TO SWR 11.
+   WB-EXCEPT-11-FILED     VALUE 'Y'.
+   WB-EXCEPT-11-NOT-FILED VALUE 'N'.
+
+WB-CEMENT-AFFIDAVIT       VALUE 'N'
+ INDICATES WHETHER OR NOT A CEMENTING REPORT (FORM W-15) WAS FILED.
+   WB-CMT-AFF-NOT-FILED   VALUE 'N'.
+   WB-CMT-AFF-FILED       VALUE 'Y'.
+   WB-CMT-AFF-NOT-FOUND VALUE 'B'.
+   WB-CMT-AFF-AVAIL       VALUE 'A'.
+   WB-CMT-AFF-NOT-REQ     VALUE 'R'.
+
+WB-G-5                    VALUE 'N'
+ INDICATES WHETHER OR NOT GAS WELL CLASSIFICATION REPORT WAS FILED.
+   WB-G-5-FILED           VALUE 'Y'.
+   WB-G-5-NOT-FILED       VALUE 'N'.
+
+WB-W-12                   VALUE 'N'
+ INDICATES WHETHER OR NOT INCLINATION REPORT WAS FILED.
+   WB-W-12-FILED          VALUE 'Y'.
+   WB-W-12-NOT-FILED      VALUE 'N'.
+
+WB-DIR-SURVEY              VALUE 'N'
+ INDICATES WHETHER OR NOT A DIRECTIONAL SURVEY HAS BEEN FILED.
+   WB-DIR-SURVEY-FILED     VALUE 'Y'.
+   WB-DIR-SURVEY-NOT-FILED VALUE 'N'.
+WB-W2-G1-DATE
+ DATE FORM WAS RECEIVED BY DISTRICT OFFICE. FORMAT: CCYYMMDD
+
+
+                                                 2-14
+WB-COMPL-DATE.
+ DATE IN SHICH THE WELL WAS COMPLETED. FORMAT: CCYYMMDD
+
+WB-DRL-COMPL-DATE
+ DATE THAT DRILLING WAS COMPLETED. FORMAT: CCYYMMDD
+
+WB-PLUGB-DEPTH1
+ DEPTH TO WHICH WELL BORE WAS PLUGGED BACK.
+
+WB-PLUGB-DEPTH2
+ DEPTH TO WHICH WELL BORE WAS PLUGGED BACK.
+
+WB-WATER-INJECTION-NBR
+ PERMIT NUMBER ISSUED BY UIC TO WATER INJECTION WELL.
+
+WB-SALT-WTR-NBR
+ PERMIT NUMBER ISSUED BY UIC TO SALT WATER DISPOSAL WELL.
+
+WB-DOCKET-NBR
+ ANY DOCKET NUMBER ASSIGNED TO WELL REQUIRING A HEARING.
+
+WB-REMARKS-IND
+ INDICATES WHETHER OR NOT THERE ARE REMARKS ON FILE FOR A PARTICULAR
+ WELL.
+   WB-REMARKS-ON-FILE     VALUE 'Y'.
+   WB-REMARKS-DATA-NOT-ON-FILE VALUE 'N'.
+
+WB-ELEVATION
+ MEASUREMENT OF FEET ABOVE MEAN SEA LEVEL OF WELL.
+
+WB-ELEVATION-CODE
+ POINT FROM WHICH ELEVATION READING WAS MEASURED.
+ WB-GROUND-LEVEL          VALUE 'GL'.
+ WB-DERRICK-FLOOR         VALUE 'DF'.
+ WB-KELLY-BUSHING         VALUE 'KB'.
+ WB-ROTARY-TABLE          VALUE 'RT'.
+ WB-GROUND                VALUE 'GR'.
+
+WB-LOG-FILE-RBA
+ POINTS TO WELL BORE LOG RECORD IN A FILE SEPARATE FROM THE DATABASE.
+
+WB-PSA-WELL-FLAG
+ PERTAINS TO HORIZONTAL WELLS (PRODUCTION SHARING AGREEMENT).
+ 'Y' = WELL HAS A PSA
+ 'N' OR SPACES = WELL DOES NOT HAVE A PSA
+
+WB-ALLOCATION-WELL-FLAG
+ PERTAINS TO HORIZONTAL WELLS.
+ 'Y' = WELL IS AN ALLOCATION WELL
+ 'N' OR SPACES = WELL IS NOT AN ALLOCATION WELL
+
+
+
+                                    2-15
+Well Bore Remarks
+*****************************************************************************
+*                              WELL BORE                                            *
+*                          REMARKS SEGMENT                                          *
+*                                                                                   *
+*    SEGMENT NAME: WBRMKS                    (RECURRING)                            *
+*                                                                                   *
+*    FUNCTION                 | SOURCE                       | SSA NAME |           *
+*    ---------------          |-------------------------     |----------      |     *
+*    SEARCH FIELD             | WB-RMK-LNE-CNT               | WBREMKEY|            *
+*                                                                                   *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                   POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).   1
+   02 WELL-BORE-COMPL-RMKS-SEG.
+      03 WB-RMK-LNE-CNT                           VALUE ZEROS          PIC 9(03).   3
+      03 WB-RMK-TYPE-CODE                         VALUE SPACE          PIC X(01).   6
+      03 WB-REMARKS                               VALUE SPACES         PIC X(70).   7
+   02 RRC-TAPE-FILLER                                                  PIC X(0171). 77
+
+
+
+
+                                          2-16
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                 REMARKS SEGMENT                                                *
+*****************************************************************************
+WELL-BORE-COMPL-RMKS-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 04    Well Bore Remarks
+
+WB-RMK-LNE-CNT
+    UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+    REMARKS UNDER A DATE SEGMENT.
+
+WB-RMK-TYPE-CODE
+    NOT IN USE AS OF DECEMBER, 1983.
+
+WB-REMARKS
+    ADDITIONAL COMPLETION DATA WHICH MAY BE EITHER FREE- FORM OR
+    FORMATTED.
+
+
+
+
+                                                 2-17
+Well Bore Tubing
+*****************************************************************************
+*                               WELL BORE                                           *
+*                     COMPLETION TUBING SEGMENT                                     *
+*                                                                                   *
+*    SEGMENT NAME: WBTUBE                   (RECURRING)                             *
+*                                                                                   *
+*    FUNCTION                 | SOURCE                       | SSA NAME|            *
+*    ---------------          |-------------------------     |-----------------|    *
+*    SEARCH FIELD             | WB-SEGMENT-COUNTER |WBSEGCNT |                      *
+*                                                                                   *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                   POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).   1
+   02 WELL-BORE-TUBING-SEG.
+      03 WB-SEGMENT-COUNTER                       VALUE ZEROS          PIC 9(03).   3
+      03 WB-TUBING-SIZE.
+         05 WB-TUBING-INCHES                      VALUE ZEROS          PIC 9(02).   6
+         05 WB-TUBING-FRACTION.
+            10 WB-FR-NUMERATOR                    VALUE ZEROS          PIC 9(02).   8
+            10 WB-FR-DENOMINATOR                  VALUE ZEROS          PIC 9(02).   10
+      03 WB-DEPTH-SET                             VALUE ZEROS          PIC 9(05).   12
+      03 WB-PACKER-SET                            VALUE ZEROS          PIC 9(05).   17
+      03 FILLER                                   VALUE ZEROS          PIC 9(10).   22
+      03 FILLER                                   VALUE ZEROS          PIC X(16).   32
+   02 RRC-TAPE-FILLER                                                  PIC X(0200). 48
+
+
+
+
+                                          2-18
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                             COMPLETION TUBING SEGMENT                                          *
+*****************************************************************************
+WELL-BORE-TUBING-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 05    Well Bore Tubing
+
+WB-SEGMENT-COUNTER
+    UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+    TUBING DATA HANGING UNDER DATE SEGMENT.
+
+WB-TUBING-SIZE.
+ WB-TUBING-INCHES
+    SIZE OF TUBING IN INCHES.
+ WB-TUBING-FRACTION.
+  WB-FR-NUMERATOR
+    SIZE OF TUBING IN FRACTION OF INCHES (NUMERATOR).
+  WB-FR-DENOMINATOR
+    SIZE OF TUBING IN FRACTION OF INCHES (DENOMINATOR).
+
+WB-DEPTH-SET
+    DEPTH AT WHICH TUBING IS SET.
+
+WB-PACKER-SET
+    DEPTH AT WHICH THE SEALING DEVICE, USED TO BLOCK FLOW OF FLUIDS
+    THROUGH ANNULAR SPACE BETWEEN TUBING AND WALL OF WELLBORE, IS
+    SET.
+
+
+
+
+                                                 2-19
+Well Bore Casing
+*****************************************************************************
+*                                   WELL BORE                                            *
+*                                CASING SEGMENT                                          *
+*                                                                                        *
+*    SEGMENT NAME: WBCASE                        (RECURRING)                             *
+*                                                                                        *
+*    FUNCTION                      | SOURCE                       | SSA NAME|            *
+*    ---------------               |-------------------------     |-----------------|    *
+*    SEARCH FIELD                  | WB-CASING-COUNT              |WBCASKEY |            *
+*                                                                                        *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                        POS.
+   02 RRC-TAPE-RECORD-ID                                                    PIC X(02).   1
+   02 WELL-BORE-CASING-SEG.
+      03 WB-CASING-COUNT                               VALUE ZEROS          PIC 9(03).   3
+      03 WB-CASING-SIZE-DATA.
+         05 WB-CAS-INCH                                VALUE ZEROS          PIC 9(02).   6
+         05 WB-CAS-FRACTION.
+            10 WB-CAS-FRAC-NUM                         VALUE ZEROS          PIC 9(02).   8
+            10 WB-CAS-FRAC-DENOM                       VALUE ZEROS          PIC 9(02).   10
+      03 WB-CAS-WT-TABLE                               VALUE ZEROS          PIC 9(08).   12
+      03 WB-CASING-WEIGHT-LBS-FT REDEFINES WB-CAS-WT-TABLE
+                     OCCURS 2 TIMES.
+         05 WB-WGT-WHOLE                                                    PIC 9(03).
+         05 WB-WGT-TENTHS                                                   PIC 9(01).
+      03 WB-CASING-DEPTH-SET                           VALUE ZEROS          PIC 9(05).   20
+      03 WB-MLTI-STG-TOOL-DPTH                         VALUE ZEROS          PIC 9(05).   25
+      03 WB-AMOUNT-OF-CEMENT                           VALUE ZEROS          PIC 9(05).   30
+      03 WB-CEMENT-MEASUREMENT                         VALUE 'S'            PIC X(01).   35
+         88 WB-SACKS                                   VALUE 'S'.
+         88 WB-CUBIC-YARDS                             VALUE 'Y'.
+         88 WB-CUBIC-FEET                              VALUE 'F'.
+      03 WB-CASING-HOLE-SIZE.
+         05 WB-HOLE-INCH                               VALUE ZEROS          PIC 9(02).   36
+         05 WB-HOLE-FRACTION.
+            10 WB-HOLE-FRAC-NUM                        VALUE ZEROS          PIC 9(02).   38
+            10 WB-HOLE-FRAC-DENOM                      VALUE ZEROS          PIC 9(02).   40
+      03 FILLER                                        VALUE SPACE          PIC X(01).   42
+      03 WB-TOP-OF-CEMENT-CASING                       VALUE SPACES         PIC X(07).   43
+      03 WB-AMOUNT-CASING-LEFT                         VALUE ZEROS          PIC 9(05).   50
+      03 FILLER                                        VALUE ZEROS          PIC X(50).   55
+   02 RRC-TAPE-FILLER                                                       PIC X(0143). 105
+
+
+
+
+                                            2-20
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                  CASING SEGMENT                                                *
+*****************************************************************************
+WELL-BORE-CASING-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 06    Well Bore Casing
+
+WB-CASING-COUNT
+   UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+   CASING UNDER A DATE SEGMENT.
+
+WB-CASING-SIZE-DATA.
+ WB-CAS-INCH
+    INDICATES SIZE OF CASING IN INCHES.
+
+WB-CAS-FRACTION.
+ WB-CAS-FRAC-NUM
+    INDICATES SIZE OF CASING IN FRACTION OF INCHES (NUMERATOR).
+ WB-CAS-FRAC-DENOM
+    INDICATES SIZE OF CASING IN FRACTION OF INCHES (DENOMINATOR).
+
+WB-CAS-WT-TABLE
+
+WB-CASING-WEIGHT-LBS-FT REDEFINES WB-CAS-WT-TABLE
+           OCCURS 2 TIMES.
+ WB-WGT-WHOLE
+    INDICATES WEIGHT OF CASING IN POUNDS PER FEET.
+ WB-WGT-TENTHS
+    INDICATES WEIGHT OF CASING IN TENTHS OF A POUND PER FEET
+
+WB-CASING-DEPTH-SET
+    INDICATES DEPTH AT WHICH CASING IS SET.
+
+WB-MLTI-STG-TOOL-DPTH
+    DEPTH AT WHICH THE DEVICE USED TO RE-CIRCULATE CEMENT OUTSIDE OF
+    CASING IS SET.
+
+WB-AMOUNT-OF-CEMENT
+    INDICATES THE QUANTITY OF CEMENT USED TO SECURE CASING.
+
+
+
+
+                                                 2-21
+WB-CEMENT-MEASUREMENT
+ WB-SACKS         VALUE 'S'.
+     INDICATES AMOUNT OF CEMENT MEASURED IN SACKS.
+
+WB-CUBIC-YARDS     VALUE 'Y'.
+     INDICATES AMOUNT OF CEMENT MEASURED IN YARDS.
+
+WB-CUBIC-FEET     VALUE 'F'.
+     INDICATES AMOUNT OF CEMENT MEASURED IN FEET.
+
+ WB-CASING-HOLE-SIZE.
+  WB-HOLE-INCH
+     INDICATES SIZE OF CASING HOLE IN INCHES.
+
+ WB-HOLE-FRACTION.
+  WB-HOLE-FRAC-NUM
+     INDICATES SIZE OF CASING HOLE IN FRACTION OF INCHES (NUMERATOR).
+  WB-HOLE-FRAC-DENOM
+     INDICATES SIZE OF CASING HOLE IN FRACTION OF INCHES (DENOMINATOR).
+
+ WB-TOP-OF-CEMENT-CASING
+     MINIMUM DEPTH UP TO WHICH CEMENT WAS CIRCULATED.
+
+ WB-AMOUNT-CASING-LEFT
+     TOTAL NUMBER OF FEET OF CASING LEFT IN WELL WHEN PLUGGED.
+
+
+
+
+                                     2-22
+Well Bore Perforations
+*****************************************************************************
+*                               WELL BORE                                             *
+*                             PERF SEGMENT                                            *
+*                                                                                     *
+*    SEGMENT NAME: WBPERF                                 (RECURRING)                 *
+*                                                                                     *
+*    FUNCTION                  | SOURCE                        | SSA NAME|            *
+*    ---------------           |-------------------------      |-----------------|    *
+*    SEARCH FIELD              | WB-PERF-COUNT                 |WBPRFKEY |            *
+*                                                                                     *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                     POS.
+   02 RRC-TAPE-RECORD-ID                                                 PIC X(02).   1
+   02 WELL-BORE-PERF-SEG.
+      03 WB-PERF-COUNT                             VALUE ZEROS           PIC 9(03).   3
+      03 WB-FROM-PERF                              VALUE ZEROS           PIC 9(05).   6
+      03 WB-TO-PERF                                VALUE ZEROS           PIC 9(05).   11
+      03 WB-OPEN-HOLE-CODE                         VALUE SPACES          PIC X(02).   16
+         88 WB-OPEN-HOLE                           VALUE 'OH'.
+      03 FILLER                                    VALUE SPACES          PIC X(10).   18
+   02 RRC-TAPE-FILLER                                                    PIC X(0220). 28
+
+
+
+
+                                           2-23
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                    PERF SEGMENT                                                *
+*****************************************************************************
+WELL-BORE-PERF-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 07    Well Bore Perforations
+
+WB-PERF-COUNT
+   UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+   PERFS UNDER A DATE SEGMENT.
+
+WB-FROM-PERF
+    INDICATES DEPTH AT TOP OF PERFORATED INTERVAL.
+
+WB-TO-PERF
+    INDICATES DEPTH AT BOTTOM OF PERFORATED INTERVAL.
+
+WB-OPEN-HOLE-CODE
+    INDICATES THAT WELL IS PRDUCING FROM UNCASED HOLE BELOW PRODUCTION
+    CASING.
+      WB-OPEN-HOLE      VALUE 'OH'.
+
+
+
+
+                                                 2-24
+Well Bore Liner
+*****************************************************************************
+*                               WELL BORE                                             *
+*                             LINER SEGMENT                                           *
+*                                                                                     *
+*    SEGMENT NAME: WBLINE                                 (RECURRING)                 *
+*                                                                                     *
+*    FUNCTION                  | SOURCE                        | SSA NAME|            *
+*    ---------------           |-------------------------      |-----------------|    *
+*    SEARCH FIELD              | WB-LINE-COUNT                 |WBLINKEY |            *
+*                                                                                     *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                     POS.
+   02 RRC-TAPE-RECORD-ID                                                 PIC X(02).   1
+   02 WELL-BORE-LINER-SEG.
+      03 WB-LINE-COUNT                             VALUE ZEROS           PIC 9(03).   3
+      03 WB-LINER-SIZE-DATA.
+         05 WB-LIN-INCH                            VALUE ZEROS           PIC 9(02).   6
+         05 WB-LIN-FRACTION.
+            10 WB-LIN-FRAC-NUM                     VALUE ZEROS           PIC 9(02).   8
+            10 WB-LIN-FRAC-DENOM                   VALUE ZEROS           PIC 9(02).   10
+      03 WB-SACKS-OF-CEMENT                        VALUE ZEROS           PIC 9(05).   12
+      03 WB-TOP-OF-LINER                           VALUE ZEROS           PIC 9(05).   17
+      03 WB-BOTTOM-OF-LINER                        VALUE ZEROS           PIC 9(05).   22
+      03 FILLER                                    VALUE ZEROS           PIC X(20).   27
+   02 RRC-TAPE-FILLER                                                    PIC X(0201). 47
+
+
+
+
+                                           2-25
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                    LINER SEGMENT                                               *
+*****************************************************************************
+WELL-BORE-LINER-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  08   Well Bore Lining
+
+WB-LINE-COUNT
+  UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+  LINER DATA HANGING UNDER DATE SEGMENT.
+
+WB-LINER-SIZE-DATA.
+ WB-LIN-INCH
+    INDICATES SIZE OF LINER IN INCHES.
+ WB-LIN-FRACTION.
+  WB-LIN-FRAC-NUM
+    INDICATES SIZE OF LINER IN FRACTION OF INCHES (NUMERATOR).
+  WB-LIN-FRAC-DENOM
+    INDICATES SIZE OF LINER IN FRACTION OF INCHES (DENOMINATOR).
+
+WB-SACKS-OF-CEMENT
+    INDICATES NUMBER OF SACKS OF CEMENT USED IN COMPLETION LINER.
+
+WB-TOP-OF-LINER
+    INDICATES DEPTH OF TOP OF LINER.
+
+WB-BOTTOM-OF-LINER
+   INDICATES DEPTH OF BOTTOM OF LINER.
+
+
+
+
+                                                 2-26
+Well Bore Formation
+*****************************************************************************
+*                              WELL BORE                                           *
+*                      FORMATION DATA SEGMENT                                      *
+*                                                                                  *
+*    SEGMENT NAME: WBFORM                    (RECURRING)                           *
+*                                                                                  *
+*    FUNCTION                 | SOURCE                      | SSA NAME|            *
+*    ---------------          |-------------------------    |----------|           *
+*    SEARCH FIELD             | WB-FORMATION-CNTR           | WBFRMKEY|            *
+*    SEARCH FIELD             | WB-FORMATION-NAME | WBFORMNM|                      *
+*                                                                                  *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                  POS.
+   02 RRC-TAPE-RECORD-ID                                              PIC X(02).   1
+   02 WELL-FORMATION-DATA-SEG.
+      03 WB-FORMATION-CNTR                        VALUE ZEROS         PIC 9(03).   3
+      03 WB-FORMATION-NAME                        VALUE SPACES        PIC X(32).   6
+      03 WB-FORMATION-DEPTH                       VALUE ZEROS         PIC 9(05).   38
+      03 FILLER                                   VALUE ZEROS         PIC X(05).   43
+   02 RRC-TAPE-FILLER                                                 PIC X(0200). 48
+
+
+
+
+                                         2-27
+*****************************************************************************
+*                                       WELL BORE                                                *
+*                                FORMATION DATA SEGMENT                                          *
+*****************************************************************************
+WELL-FORMATION-DATA-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  09   Well Bore Formation Data
+
+WB-FORMATION-CNTR
+    UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+    FORMATION DATA UNDER A DATE SEGMENT.
+
+WB-FORMATION-NAME
+     NAME ASSIGNED TO ANY ROCK OR SEDIMENTARY BED SUFFICIENTLY
+     DISTINCTIVE TO BE A UNIT.
+
+WB-FORMATION-DEPTH
+     DEPTH OF FORMATION IN WHICH WELL IS COMPLETED.
+
+
+
+
+                                                 2-28
+Well Bore Squeeze
+*****************************************************************************
+*                             WELL BORE                                             *
+*                         SQUEEZE SEGMENT                                           *
+*                                                                                   *
+*    SEGMENT NAME: WBSQEZE                                   (RECURRING)            *
+*                                                                                   *
+*    FUNCTION                 | SOURCE                       | SSA NAME|            *
+*    ---------------          |-------------------------     |-----------------|    *
+*    SEARCH FIELD             | WB-SQUEEZE-CNTR              | WBSQZKEY |           *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                   POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).   1
+   02 WELL-SQUEEZE-DATA-SEG.
+      03 WB-SQUEEZE-CNTR                          VALUE ZEROS          PIC 9(03).   3
+      03 WB-SQUEEZE-UPPER-DEPTH                   VALUE ZEROS          PIC 9(05).   6
+      03 WB-SQUEEZE-LOWER-DEPTH                   VALUE ZEROS          PIC 9(05).   11
+      03 WB-SQUEEZE-KIND-AMOUNT                   VALUE SPACES         PIC X(50).   16
+      03 FILLER                                   VALUE ZEROS          PIC X(07).   66
+   02 RRC-TAPE-FILLER                                                  PIC X(0175). 73
+
+
+
+
+                                          2-29
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                 SQUEEZE SEGMENT                                                *
+*****************************************************************************
+WELL-SQUEEZE-DATA-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 10    Well Bore Squeeze data
+
+WB-SQUEEZE-CNTR
+    UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+    SQUEEZE DATA UNDER A DATE SEGMENT.
+
+WB-SQUEEZE-UPPER-DEPTH
+    DEPTH OF UPPER REGION OF WELL INTO WHICH CEMENT IS PUMPED.
+
+WB-SQUEEZE-LOWER-DEPTH
+    DEPTH OF LOWER REGION OF WELL INTO WHICH CEMENT IS PUMPED.
+
+WB-SQUEEZE-KIND-AMOUNT
+    INDICATES THE TYPE AND QUANTITY OF MATERIALS USED IN CEMENTING.
+
+
+
+
+                                                 2-30
+Well Bore Usable Quality Water Protection
+*****************************************************************************
+*                                   WELL BORE                                          *
+*                    USABLE QUALITY WATER PROTECTION                                   *
+*                                    (30 BYTES)                                        *
+*    SEGMENT NAME: WBFRESH                                         (RECURRING)         *
+*                                                                                      *
+*    FUNCTION            | SOURCE                        | SSA NAME | OPTION           *
+*    ---------------     |-------------------------      |----------    |------------- *
+*    SEGMENT KEY         WB-FRESH-WATER-CNTR WBH2OKEY UNIQUE                           *
+*                                                                                      *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                      POS.
+   02 RRC-TAPE-RECORD-ID                                                PIC X(02).     1
+   02 WELL-BORE-TWDB-SEG.
+      03 WB-FRESH-WATER-CNTR                        VALUE ZEROS         PIC 9(03).     3
+*==> 9(6) TO 9(8).
+      03 WB-TWDB-DATE                               VALUE ZEROS         PIC 9(08).     6
+      03 WB-SURFACE-CASING-DETER-CODE                                   PIC X(01)      14
+                                                    VALUE 'N'.
+         88 WB-FIELD-RULE-CODE                      VALUE 'Y'.
+      03 WB-UQWP-DATA.
+         05 WB-UQWP-FROM                            VALUE ZEROS         PIC 9(04).     15
+         05 WB-UQWP-TO                              VALUE ZEROS         PIC 9(04).     19
+*==* X(12) TO X(10).
+      03 FILLER                                     VALUE SPACES        PIC X(10).     23
+*==* EXPANDED ZERO BYTES.
+   02 RRC-TAPE-FILLER                                                   PIC X(0215). 33
+
+
+
+
+                                           2-31
+*****************************************************************************
+*                                     WELL BORE                                                  *
+*                         USABLE QUALITY WATER PROTECTION                                        *
+*****************************************************************************
+WELL-BORE-TWDB-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+ 11    Well Bore Usable Water Quality Protection
+
+WB-FRESH-WATER-CNTR
+
+WB-TWDB-DATE
+ DATE OF LETTER FROM TEXAS DEPARTMENT OF WATER RESOURCES WHICH
+ INDICATES DEPTHS AT WHICH WATER NEEDS TO BE PROTECTED. FORMAT:
+ CCYYMMDD
+
+WB-SURFACE-CASING-DETER-CODE
+  INDICATES THAT FIELD RULES ARE IN EFFECT.
+ WB-FIELD-RULE-CODE VALUE 'Y'.
+
+WB-UQWP-DATA.
+  WB-UQWP-FROM
+    DEPTH AT TOP OF INTERVAL WHERE USABLE QUALITY WATER IS FOUND
+  WB-UQWP-TO
+    DEPTH OF BOTTOM OF INTERVAL IN SAME ZONE WHERE USABLE QUALITY
+    WATER IS FOUND.
+
+
+
+
+                                                 2-32
+Well Bore Old Location
+*****************************************************************************
+*                                  WELL BORE                                      *
+*                         OLD LOCATION SEGMENT                                    *
+*                                                                                 *
+*    SEGMENT NAME: WBOLDLOC                                    (NON-RECURRING) *
+*                                                                                 *
+*    FUNCTION           | SOURCE                   | SSA NAME | OPTION            *
+*    ---------------    |------------------------- |---------- |                  *
+*                       |                          |           |                  *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                 POS.
+   02 RRC-TAPE-RECORD-ID                                             PIC X(02).   1
+   02 WELL-BORE-OLD-LOCATION-SEG.
+      03 WB-LEASE-NAME                             VALUE SPACES      PIC X(32).   3
+      03 WB-SEC-BLK-SURVEY-LOC                     VALUE SPACES      PIC X(52).   35
+      03 WB-WELL-LOC-MILES                         VALUE ZEROS       PIC 9(04).   87
+      03 WB-WELL-LOC-DIRECTION                     VALUE SPACES      PIC X(06).   91
+      03 WB-WELL-LOC-NEAREST-TOWN                  VALUE SPACES      PIC X(13).   97
+      03 FILLER                                    VALUE SPACES      PIC X(28).   110
+      03 WB-DIST-FROM-SURVEY-LINES                 VALUE SPACES      PIC X(28).   138
+      03 WB-DIST-DIRECT-NEAR-WELL                  VALUE SPACES      PIC X(28).   166
+      03 FILLER                                    VALUE ZEROS       PIC X(28).   194
+   02 RRC-TAPE-FILLER                                                PIC X(0026). 222
+
+
+
+
+                                         2-33
+*****************************************************************************
+*                                     WELL BORE                                                  *
+*                                OLD LOCATION SEGMENT                                            *
+*****************************************************************************
+WELL-BORE-OLD-LOCATION-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  12   Well Bore Old Location Data
+
+WB-LEASE-NAME
+  NAME OF LEASE IN WHICH WELL IS LOCATED.
+
+WB-SEC-BLK-SURVEY-LOC
+   NAME OF SECTION, BLOCK, AND SURVEY IN WHICH WELL IS LOCATED.
+
+WB-WELL-LOC-MILES
+   NUMBER OF MILES FROM NEAREST TOWN TO WELL.
+
+WB-WELL-LOC-DIRECTION
+   DIRECTION FROM WHICH MEASUREMENT FROM TOWN WAS TAKEN.
+
+WB-WELL-LOC-NEAREST-TOWN
+   NAME OF TOWN NEAREST WELL.
+
+WB-DIST-FROM-SURVEY-LINES
+   DISTANCE FROM PARTICULAR SURVEY LINES FROM WHICH MEASUREMENTS
+   WERE TAKEN.
+
+WB-DIST-DIRECT-NEAR-WELL
+   DISTANCE FROM AND DIRECTION OF NEAREST WELL.
+
+
+
+
+                                                 2-34
+Well Bore New Location
+*****************************************************************************
+*                                  WELL BORE                                         *
+*                        NEW LOCATION SEGMENT                                        *
+*                                                                                    *
+*    SEGMENT NAME: WBNEWLOC                        (NON-RECURRING)                   *
+*                                                                                    *
+*    FUNCTION           | SOURCE                          | SSA NAME | OPTION        *
+*    ---------------    |-------------------------        |---------- |---------     *
+*    SEARCH FIELD       | WB-NEW-LOC-KEY                  |WBNLOCKY |                *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                    POS.
+   02 RRC-TAPE-RECORD-ID                                              PIC X(02).     1
+   02 WELL-BORE-NEW-LOC-SEG.
+    02 WELL-BORE-NEW-LOC-DATA.
+      03 WB-NEW-LOC-KEY.
+         05 WB-LOC-COUNTY                            VALUE ZEROS      PIC 9(03).     3
+         05 WB-ABSTRACT                              VALUE SPACES     PIC X(06).     6
+      03 WB-SURVEY                                   VALUE SPACES     PIC X(55).     12
+      03 WB-BLOCK-NUMBER                             VALUE SPACES     PIC X(10).     67
+      03 WB-SECTION                                  VALUE SPACES     PIC X(08).     77
+      03 WB-ALT-SECTION                              VALUE SPACES     PIC X(04).     85
+      03 WB-ALT-ABSTRACT                             VALUE SPACES     PIC X(06).     89
+      03 WB-DISTANCE-FROM-SURVEY-LINES.
+         05 WB-FEET-FROM-SUR-SECT-1                  VALUE ZEROS      PIC 9(06).     95
+         05 WB-DIREC-FROM-SUR-SECT-1                 VALUE SPACES     PIC X(13).     101
+         05 WB-FEET-FROM-SUR-SECT-2                  VALUE ZEROS      PIC 9(06).     114
+         05 WB-DIREC-FROM-SUR-SECT-2                 VALUE SPACES     PIC X(13).     120
+    02 WB-OTHER-NEW-LOC-DATA.
+      03 WB-WGS84-LATITUDE                           VALUE ZEROS      PIC S9(3)V9(7).133
+      03 WB-WGS84-LONGITUDE                          VALUE ZEROS      PIC S9(3)V9(7).143
+      03 FILLER                                      VALUE ZEROS      PIC X(05).     153
+      03 WB-PLANE-ZONE                               VALUE ZEROS      PIC 9(02).     158
+      03 WB-PLANE-COORDINATE-EAST                    VALUE ZEROS      PIC S9(8)V9(2).160
+      03 WB-PLANE-EAST-RE REDEFINES WB-PLANE-COORDINATE-EAST
+                                                                      PIC 9(10).
+      03 WB-PLANE-COORDINATE-NORTH                   VALUE ZEROS      PIC S9(8)V9(2).170
+      03 WB-PLANE-NORTH-RE REDEFINES WB-PLANE-COORDINATE-NORTH
+                                                                      PIC 9(10).
+    02 WB-VERIFICATION-FLAG                          VALUE 'N'        PIC X(1).      178
+       88 NEW-LOCATION-VERIFIED                      VALUE 'Y'.
+       88 NEW-LOCATION-NOT-VERIFIED                  VALUE 'N'.
+       88 NEW-LOCATION-VERIFIED-CHANGE VALUE 'C'.
+    02 FILLER                                        VALUE ZEROS      PIC X(01).     179
+   02 RRC-TAPE-FILLER                                                 PIC X(0066). 182
+
+
+
+
+                                          2-35
+*****************************************************************************
+*                              WELL BORE                                    *
+*                      NEW LOCATION SEGMENT                                 *
+*****************************************************************************
+*****************************************************************************
+*
+* DISCLAIMER
+*
+* THE DIGITAL MAPPING DATA DESCRIBED IN THIS MANUAL WERE GENERATED
+* BY THE GEOGRAPHIC INFORMATION SYSTEM OF THE RAILROAD COMMISSION
+* OF TEXAS AND ARE PROVIDED FOR INFORMATIONAL PURPOSES ONLY.
+*
+* BASE MAP INFORMATION WAS OBTAINED DIRECTLY FROM U.S. GEOLOGICAL
+* 7.5 MINUTE QUADRANGLE MAPS. PATENT SURVEY LINES FROM TEXAS
+* GENERAL LAND OFFICE MAPS WERE INTERPRETED AS ACCURATELY AS
+* POSSIBLE OVER THE U.S. GEOLOGICAL SURVEY BASE. OIL AND GAS WELL
+* INFORMATION WERE OBTAINED FROM PUBLIC RECORDS OF THE RAILROAD
+* COMMISSION. THE MAPPING SYSTEM FROM WHICH THIS DATA WERE
+* EXTRACTED IS CONTINUALLY BEING UPDATED AND REFINED. THESE DATA
+* ARE INTENDED SOLELY FOR THE INTERNAL USE OF THE RAILROAD COMM-
+* ISSION, WHICH MAKES NO CLAIM AS TO ITS ACCURACY OR COMPLETENESS.
+* USERS ARE RESPONSIBLE FOR CHECKING THE ACCURACY, COMPLETENESS,
+* CURRENCY, AND/OR SUITABILITYOF THIS DATA.
+*
+*****************************************************************************
+
+WELL-BORE-NEW-LOC-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  13   Well Bore New Location Data
+
+WELL-BORE-NEW-LOC-DATA.
+
+WB-NEW-LOC-KEY.
+ WB-LOC-COUNTY
+    INDICATES COUNTY IN WHICH WELL IS LOCATED.
+ WB-ABSTRACT
+    NUMBER ASSIGNED TO SUMMARY STATEMENT OF FACTS ON WHICH A
+    PERSON'S LAND TITLE RESTS.
+
+WB-SURVEY
+    NAME ASSOCIATED WITH THE BOUNDARIES TO A PORTION OF LAND.
+WB-BLOCK-NUMBER
+    IDENTIFYING NUMBER ASSOCIATED WITH A SQUARE PORTION OF LAND.
+
+
+                                                 2-36
+ WB-SECTION
+     NAME OF SUBDIVISION OF LAND THAT IS ONE MILE SQUARE, CONTAINING
+     APPROXIMATELY 640 ACRES.
+
+ WB-ALT-SECTION
+     WHEN MORE THAN ONE SECTION IS REPORTED.
+
+ WB-ALT-ABSTRACT
+     WHEN MORE THAN ONE ABSTRACT IS REPORTED.
+
+ WB-DISTANCE-FROM-SURVEY-LINES.
+
+ WB-FEET-FROM-SUR-SECT-1
+     DISTANCE OF WELL FROM DESIGNATED SURVEY OR SECTION L INE.
+
+ WB-DIREC-FROM-SUR-SECT-1
+     DIRECTION FROM WHICH MEASUREMENTS FROM DESIGNATED SU RVEY OR
+      SECTION LINE WERE TAKEN.
+
+ WB-FEET-FROM-SUR-SECT-2
+      DISTANCE OF WELL FROM SURVEY OR SECTION LINE INTERSECTING
+      LINE DESIGNATED ABOVE.
+
+ WB-DIREC-FROM-SUR-SECT-2
+      DIRECTION FROM WHICH MEASUREMENTS FROM DESIGNATED SURVEY OR
+      SECTION LINE INTERSECTING LINE DESIGNATED ABOVE WERE TAKEN.
+
+WB-OTHER-NEW-LOC-DATA.
+
+  WB-WGS84-LATITUDE
+     LOCATION OF WELL ACCORDING TO SYSTEM OF SPHERICAL COORDINATES
+     OF THE EARTH WHICH RUN EAST AND WEST.
+
+ WB-WGS84-LONGITUDE
+     LOCATION OF WELL ACCORDING TO SYSTEM OF SPHERICAL COORDINATES
+     OF THE EARTH WHICH RUN NORTH AND SOUTH.
+
+ WB-PLANE-ZONE
+     THE NAME DESIGNATED BY CARTESIAN COORDINATE SYSTEM FOR THE AREA
+     WHERE WELL IS LOCATED.
+
+ WB-PLANE-COORDINATE-EAST
+     LOCATION OF WELL ACCORDING TO EAST COORDINATE OF CARTESIAN
+     COORDINATE SYSTEM.
+
+ WB-PLANE-COORDINATE-NORTH
+     LOCATION OF WELL ACCORDING TO NORTH COORDINATE OF CARTESIAN
+   COORDINATE SYSTEM.
+
+
+
+
+                                  2-37
+WB-VERIFICATION-FLAG             VALUE 'N'.
+  NEW-LOCATION-VERIFIED          VALUE 'Y'.
+  NEW-LOCATION-NOT-VERIFIED      VALUE 'N'.
+  NEW-LOCATION-VERIFIED-CHANGE   VALUE 'C'.
+
+      FLAG WHICH INDICATES WHETHER THE DATA HAS BEEN VERIFIED BY THE
+      RRC. 'N' INDICATES IT HAS NOT BEEN VERIFIED, 'Y' INDICATES IT
+      HAS BEEN VERIFIED, AND 'C' INDICATES DATA THAT HAS BEEN
+      VERIFIED AND WILL BE CHANGED. THE CODE 'C' PROVIDES A MEANS
+      BY WHICH DATA THAT IS PROTECTED BY ITS VERIFIED STATUS
+      (INDICATED BY THE VALUE 'Y') CAN BE CHANGED.
+
+
+
+
+                                  2-38
+Well Bore Plugging Data
+*****************************************************************************
+*                                    WELL BORE                                           *
+*                          PLUGGING DATA SEGMENT                                         *
+*                                                                                        *
+*    SEGMENT NAME: WBPLUG                                            (RECURRING)         *
+*    COPYBOOK NAME: WBW700I1                                                             *
+*                                                                                        *
+*    FUNCTION          | SOURCE                                | SSA NAME | OPTION *
+*    ---------------   |--------------------------             |---------    |---------- *
+*    SEGMENT KEY | WB-DATE-W3-FILED                              WBFILEDT |NON-UNIQ *
+*    SEARCH FIELDS | WB-DATE-WELL-BORE-PLUGGED| WBPLUGDT|                                *
+*                                       (245 BYTES)                                      *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                        POS.
+   02 RRC-TAPE-RECORD-ID                                                  PIC X(02).     1
+   02 WELL-BORE-PLUGGING-SEG.
+*==> 9(6) TO 9(8).
+      03 WB-DATE-W3-FILED                           VALUE ZEROS           PIC 9(08).     3
+*==> 9(6) TO 9(8).
+      03 WB-DATE-WELL-BORE-PLUGGED                  VALUE ZEROS           PIC 9(08).     11
+      03 WB-PLUG-TOTAL-DEPTH                        VALUE ZEROS           PIC 9(05).     19
+      03 WB-PLUG-CEMENT-COMP                        VALUE SPACES          PIC X(32).     24
+      03 WB-PLUG-MUD-FILLED                         VALUE SPACE           PIC X(01).     56
+      03 WB-PLUG-MUD-DATA.
+         05 WB-PLUG-MUD-APPLIED                     VALUE SPACES          PIC X(12).     57
+         05 WB-PLUG-MUD-WEIGHT                      VALUE ZEROS           PIC 9(03).     69
+         05 FILLER                                  VALUE ZEROS           PIC X(04).     72
+*==> 9(6) TO 9(8).
+      03 WB-PLUG-DRIL-PERM-DATE                     VALUE ZEROS           PIC 9(08).     76
+      03 WB-PLUG-DRIL-PERM-NO                       VALUE ZEROS           PIC 9(06).     84
+*==> 9(6) TO 9(8).
+      03 WB-PLUG-DRIL-COMP-DATE                     VALUE ZEROS           PIC 9(08).     90
+      03 WB-PLUG-LOG-ATTACHED                       VALUE SPACE           PIC X(01).     98
+      03 WB-PLUG-LOG-RELEASED-TO                    VALUE SPACES          PIC X(32).     99
+      03 WB-PLUG-TYPE-LOG                           VALUE SPACE           PIC X(01).     131
+         88 TYPE-DRILLERS                           VALUE 'D'.
+         88 TYPE-ELECTRIC                           VALUE 'E'.
+         88 TYPE-RADIOACTIVITY                      VALUE 'R'.
+         88 TYPE-ACOUSTICAL-SONIC                   VALUE 'A'.
+         88 TYPE-DRIL-AND-ELEC                      VALUE 'F'.
+         88 TYPE-ELEC-AND-RADIO                     VALUE 'G'.
+         88 TYPE-RADIO-AND-ACOUS                    VALUE 'H'.
+         88 TYPE-DRIL-AND-RADIO                     VALUE 'I'.
+         88 TYPE-ELEC-AND-ACOUS                     VALUE 'J'.
+         88 TYPE-DRIL-AND-ACOUS                     VALUE 'K'.
+         88 TYPE-DRIL-ELEC-RADIO                    VALUE 'L'.
+         88 TYPE-ELEC-RADIO-ACOUS                   VALUE 'M'.
+         88 TYPE-DRIL-ELEC-ACOUS                    VALUE 'N'.
+         88 TYPE-DRIL-RADIO-ACOUS                   VALUE 'O'.
+         88 TYPE-DRIL-ELEC-RADIO-ACOUS              VALUE 'P'.
+
+
+                                            2-39
+     03 WB-PLUG-FRESH-WATER-DEPTH     VALUE ZEROS     PIC 9(05).   132
+     03 WB-PLUG-UWQP                  VALUE ZEROS     PIC X(40).   137
+     03 WB-PLUG-UWQP-RE REDEFINES WB-PLUG-UWQP.
+         10 WB-PLUG-FROM-UWQP OCCURS 4 TIMES          PIC 9(05).
+         10 WB-PLUG-TO-UWQP OCCURS 4 TIMES            PIC 9(05).
+     03 WB-PLUG-MATERIAL-LEFT         VALUE SPACE     PIC X(01).   177
+     03 WB-PLUG-OIL-KEY               VALUE SPACES.
+       05 WB-PLUG-OIL-CODE                            PIC X(01).   178
+       05 WB-PLUG-OIL-DIST                            PIC 9(02).   179
+       05 WB-PLUG-OIL-LSE-NBR                         PIC 9(05).   181
+       05 WB-PLUG-OIL-WELL-NBR                        PIC X(06).   186
+     03 WB-PLUG-GAS-KEY REDEFINES WB-PLUG-OIL-KEY.
+       05 WB-PLUG-GAS-CODE                            PIC X(01).
+       05 WB-PLUG-GAS-RRC-ID                          PIC 9(06).
+       05 WB-PLUG-GAS-FILLER                          PIC X(07).
+     03 WB-PLUG-GAS-DIST              VALUE ZEROS     PIC 9(02).   192
+     03 WB-PLUG-GAS-WELL-NO           VALUE SPACES    PIC X(06).   194
+     03 WB-PLUG-TYPE-WELL             VALUE SPACE     PIC X(01).   200
+       88 OIL-PLUG                    VALUE 'O'.
+       88 GAS-PLUG                    VALUE 'G'.
+       88 DRY-PLUG                    VALUE 'D'.
+       88 SERVICE-PLUG                VALUE 'S'.
+     03 WB-PLUG-MULTI-COMPL-FLAG      VALUE 'N'       PIC X(01).   201
+       88 WELL-WAS-MULTI-COMPLETION VALUE 'Y'.
+     03 WB-PLUG-CEM-AFF               VALUE 'N'       PIC X(01).   202
+       88 WB-PLUG-CA-FILED            VALUE 'Y'.
+       88 WB-PLUG-CA-NOT-FILED        VALUE 'N'.
+     03 WB-PLUG-13A                   VALUE 'N'       PIC X(01).   203
+       88 WB-PLUG-13A-FILED           VALUE 'Y'.
+       88 WB-PLUG-13A-NOT-FILED       VALUE 'N'.
+*==> X(6) TO 9(8).
+     03 WB-PLUG-LOG-RELEASED-DATE     VALUE ZEROS     PIC 9(08).   204
+     03 WB-PLUG-LOG-FILE-RBA          VALUE ZEROS     PIC 9(08).   212
+     03 WB-STATE-FUNDED-PLUG-NUMBER VALUE ZEROS       PIC 9(07).   220
+*==* X(38) TO X(28).
+*==* X(28) TO X(21).
+     03 FILLER                        VALUE ZEROS     PIC X(21).   227
+*==* EXPANDED ZERO BYTES.
+
+
+
+
+                                 2-40
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                PLUGGING DATA SEGMENT                                           *
+*****************************************************************************
+WELL-BORE-PLUGGING-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  14   Well Bore Plugging Data
+
+WB-DATE-W3-FILED
+   THE DATE STAMPED ON FORM WHEN IT IS RECEIVED IN THE RRC DISTRICT
+   OFFICE. FORMAT: CCYYMMDD
+
+WB-DATE-WELL-BORE-PLUGGED
+    THE DATE REPORTED ON W-3 FORM BY OPERATOR. FORMAT: CCYYMMDD
+
+WB-PLUG-TOTAL-DEPTH
+    THE MAXIMUM DEPTH OF THE PLUGGED BORE.
+
+WB-PLUG-CEMENT-COMP
+    THE NAME OF THE CEMENTING COMPANY HIRED BY THE OPERATOR TO PLUG
+    THE WELL.
+
+WB-PLUG-MUD-FILLED
+    OPERATOR INDICATES WHETHER OR NOT THE WELL WAS FILLED WITH
+    MUD-LADEN FLUID. FORMAT IS 'Y' = YES 'N' = NO
+
+WB-PLUG-MUD-DATA.
+
+WB-PLUG-MUD-APPLIED
+    OPERATOR INDICATES THE METHOD BY WHICH THE MUD WAS APPLIED.
+
+WB-PLUG-MUD-WEIGHT
+    OPERATOR INDICATES THE WEIGHT IN POUNDS PER GALLON OF THE MUD
+    APPLIED IN THE WELL.
+
+WB-PLUG-DRIL-PERM-DATE
+    THE DATE THE DRILLING PERMIT FOR THE PLUGGED WELL WAS ISSUED.
+    FORMAT: CCYYMMDD
+
+WB-PLUG-DRIL-PERM-NO
+    THE DRILLING PERMIT NUMBER OF THE PLUGGED WELL.
+
+
+
+
+                                                 2-41
+WB-PLUG-DRIL-COMP-DATE
+     THE DATE THE WELL WAS COMPLETED, AS PREVIOUSLY REPORTED ON A
+     W-2/G-1 FORM. FORMAT: CCYYMMDD
+
+ WB-PLUG-LOG-ATTACHED
+     INDICATES WHETHER OR NOT A RECORD OF CHARACTERISTICS OF DOWNHOLE
+     FORMATIONS WAS FILED WITH THE W-3 REPORT. FORMAT IS 'Y' = YES
+     'N' = NO
+
+ WB-PLUG-LOG-RELEASED-TO
+     INDICATES COMPANY TO WHOM COPY OF LOG WAS RELEASED.
+
+ WB-PLUG-TYPE-LOG
+     THE TYPE OF LOG (IF ATTACHED TO THE W-3 REPORT).
+     'D' = DRILLERS
+     'E' = ELECTRIC
+     'R' = RADIOACTIVITY
+     'A' = ACOUSITICAL-SONIC
+
+ WB-PLUG-FRESH-WATER-DEPTH
+     THE MAXIMUM DEPTH OF USABLE WATER IN THE BORE.
+
+ WB-PLUG-UWQP-RE.
+   WB-PLUG-FROM-UWQP OCCURS 4 TIMES
+       THE DEPTH OF THE TOP OF USABLE WATER ZONE.
+   WB-PLUG-TO-UWQP OCCURS 4 TIMES
+       THE DEPTH OF THE BOTTOM OF USABLE WATER ZONE.
+
+ WB-PLUG-MATERIAL-LEFT
+     OPERATOR INDICATES WHETHER OR NOT ANY NON-DRILLABLE MATERIAL WAS
+     LEFT IN HOLE. FORMAT IS 'Y' = YES 'N' = NO
+
+ WB-PLUG-OIL-KEY
+  WB-PLUG-OIL-CODE
+     'O' INDICATES THAT WELL PLUGGED WAS AN OIL WELL.
+  WB-PLUG-OIL-DIST
+     DISTRICT PLUGGED WELL IS LOCATED IN.
+  WB-PLUG-OIL-LSE-NBR
+     LEASE NUMBER OF PLUGGED WELL.
+  WB-PLUG-OIL-WELL-NBR
+     WELL NUMBER OF PLUGGED OIL WELL.
+
+ WB-PLUG-GAS-KEY REDEFINES WB-PLUG-OIL-KEY.
+  WB-PLUG-GAS-CODE
+     'G' INDICATES THAT PLUGGED WELL WAS A GAS WELL.
+  WB-PLUG-GAS-RRC-ID
+     UNIQUE GAS WELL ID NUMBER.
+  WB-PLUG-GAS-FILLER
+
+ WB-PLUG-GAS-DIST
+     DISTRICT PLUGGED GAS WELL IS LOCATED IN.
+
+
+                                    2-42
+WB-PLUG-GAS-WELL-NO
+    WELL NUMBER OF PLUGGED GAS WELL.
+
+WB-PLUG-TYPE-WELL
+    THE TYPE OF WELL AT TIME OF PLUGGING.
+    'O' = OIL
+    'G' = GAS
+    'D' = DRY HOLE
+    'S' = SERVICE
+
+WB-PLUG-MULTI-COMPL-FLAG
+    OPERATOR INDICATES WHETHER OR NOT THIS WELLBORE HAS MULTIPLE
+    COMPLETIONS. FORMAT IS 'Y' = YES 'N' = NO
+      WELL-WAS-MULTI-COMPLETION VALUE 'Y'.
+
+WB-PLUG-CEM-AFF       VALUE 'N'
+    INDICATES WHETHER OR NOT A CEMENTING REPORT (FORM W-15) WAS FILED
+    WITH THE PLUG REPORT (FORM W-3).
+       WB-PLUG-CA-FILED       VALUE 'Y'.
+       WB-PLUG-CA-NOT-FILED VALUE 'N'.
+
+WB-PLUG-13A        VALUE 'N'
+    INDICATES WHETHER OR NOT OPERATOR WAS GRANTED AN EXCEPTION TO SWR
+    13A.
+      WB-PLUG-13A-FILED    VALUE 'Y'.
+      WB-PLUG-13A-NOT-FILED VALUE 'N'.
+
+WB-PLUG-LOG-RELEASED-DATE
+    THE DATE ON WHICH OPERATOR RELEASED THE PLUG LOG. FORMAT:
+    CCYYMMDD
+
+WB-PLUG-LOG-FILE-RBA
+   POINTS TO WELL BORE LOG RECORD IN A FILE SEPARATE FROM THE DATABASE
+   (FOR DRY PLUGS ONLY).
+
+WB-STATE-FUNDED-PLUG-NUMBER
+   THIS 7 DIGIT NUMBER IS ASSIGNED TO EACH LEASE THAT IS PLUGGED WITH
+   STATE FUNDS. THE FIRST TWO DIGITS ARE THE DISTRICT AND THE OTHER
+   FIVE ARE UNIQUIE NUMBERS. THIS 7 DIGIT NUMBER IS USED TO TRACK
+   STATE FUNDED PLUGGING IN THE PLUG DATABASE. THIS NUMBER SHOULD ALSO
+   BE INCLUDED IN THE REMARKS SECTION OF EVERRY W-3 FILED FOR WELLS
+   PLUGGED WITH STATE FUNDS.
+
+
+
+
+                                  2-43
+Well Bore Plugging Remarks
+*****************************************************************************
+*                                 WELL BORE                                         *
+*                    PLUGGING REMARKS SEGMENT                                       *
+*                                                                                   *
+*    SEGMENT NAME: WBPLRMKS                                       (RECURRING)       *
+*                                                                                   *
+*    FUNCTION           | SOURCE                        | SSA NAME|                 *
+*    ---------------    |-------------------------      |----------|                *
+*    SEARCH FIELD       | WB-PLUG-RMK-LNE-CNT | WBPLREML|                           *
+*                                                                                   *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                   POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).   1
+   02 WELL-BORE-PLUG-RMKS-SEG.
+      03 WB-PLUG-RMK-LNE-CNT                       VALUE ZEROS         PIC 9(03).   3
+      03 WB-PLUG-RMK-TYPE-CODE                     VALUE SPACE         PIC X(01).   6
+      03 WB-PLUG-REMARKS                           VALUE SPACES        PIC X(70).   7
+   02 RRC-TAPE-FILLER                                                  PIC X(0171). 77
+
+
+
+
+                                          2-44
+*****************************************************************************
+*                                       WELL BORE                                                *
+*                                PLUGGING REMARKS SEGMENT                                        *
+*****************************************************************************
+WELL-BORE-PLUG-RMKS-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  15   Well Bore Plugging Remarks
+
+WB-PLUG-RMK-LNE-CNT
+   UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E. SEGMENT) OF
+   REMARKS UNDER A PLUGGING DATA SEGMENT.
+
+WB-PLUG-RMK-TYPE-CODE
+   NOT USED AT THIS TIME.
+
+WB-PLUG-REMARKS
+   A LINE OF FREE-FORM REMARKS.
+
+
+
+
+                                                 2-45
+Well Bore Plugging Record
+*****************************************************************************
+*                                 WELL BORE                                       *
+*                     PLUGGING RECORD SEGMENT                                     *
+*                                                                                 *
+*    SEGMENT NAME:      WBPLREC                         (NON-RECURRING)           *
+*                                                                                 *
+*    FUNCTION           | SOURCE                        | SSA NAME | OPTION       *
+*    ---------------    |-------------------------      |---------- |---------    *
+*    SEARCH FIELD       | WB-PLUG-NUMBER                |WBPLUGNO |               *
+*                                                                                 *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                 POS.
+   02 RRC-TAPE-RECORD-ID                                            PIC X(02).    1
+   02 WELL-BORE-PLUG-REC-SEG.
+      03 WB-PLUG-NUMBER                            VALUE ZEROS      PIC 9(03).    3
+      03 WB-NBR-OF-CEMENT-SACKS                    VALUE ZEROS      PIC 9(05).    6
+      03 WB-MEAS-TOP-OF-PLUG                       VALUE ZEROS      PIC 9(05).    11
+      03 WB-BOTTOM-TUBE-PIPE-DEPTH                 VALUE ZEROS      PIC 9(05).    16
+      03 WB-PLUG-CALC-TOP                          VALUE ZEROS      PIC 9(05).    21
+      03 WB-PLUG-TYPE-CEMENT                       VALUE SPACES     PIC X(06).    26
+      03 FILLER                                    VALUE ZEROS      PIC X(19).    32
+   02 RRC-TAPE-FILLER                                               PIC X(01947). 51
+
+
+
+
+                                         2-46
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                               PLUGGING RECORD SEGMENT                                          *
+*****************************************************************************
+WELL-BORE-PLUG-REC-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  16   Well Bore Plugging Record
+
+WB-PLUG-NUMBER
+ INDICATES THE NUMBER OF THE PLUG IN THE BORE.
+ NOTE: UP TO EIGHT PLUGS MAY BE RECORDED ON W-3.
+
+WB-NBR-OF-CEMENT-SACKS
+NUMBER OF SACKS OF CEMENT USED TO PLUG WELL.
+
+WB-MEAS-TOP-OF-PLUG
+MECHANICALLY-VERIFIED DEPTH TO WHICH TOP OF PLUG WAS SET.
+
+WB-BOTTOM-TUBE-PIPE-DEPTH
+DEPTH TO WHICH BOTTOM OF PLUG WAS SET INSIDE CASING.
+
+WB-PLUG-CALC-TOP
+ESTIMATED DEPTH TO WHICH TOP OF PLUG WAS SET (MAY BE REPORTED IN LIEU OF
+MEASURED TOP OF PLUG OR ALONG WITH TOP OF PLUG).
+
+WB-PLUG-TYPE-CEMENT
+MATERIAL USED TO PLUG WELL.
+
+
+
+
+                                                 2-47
+Well Bore Plugging Data Casing-Tubing
+  *****************************************************************************
+  *                                    WELL BORE                                         *
+  *                    PLUGGING DATA CASING-TUBING RECORD                                *
+  *                                                                                      *
+  *    SEGMENT NAME: WBPLCASE                                          (RECURRING)       *
+  *                                                                                      *
+  *    FUNCTION              | SOURCE                        | SSA NAME | OPTION         *
+  *    ---------------       |-------------------------      |----------    |----------  *
+  *    SEARCH FIELD          | WB-PLG-CAS-COUNTER | WBPLCASC |                           *
+  *****************************************************************************
+   01 RAILROAD-COMMISSION-TAPE-REC.                                                      POS.
+     02 RRC-TAPE-RECORD-ID                                                  PIC X(02).   1
+     02 WELL-BORE-PLUG-CAS-SEG.
+        03 WB-PLG-CAS-COUNTER                           VALUE ZEROS         PIC 9(06).   3
+        03 WB-PLUG-CASING-TUBING-DATA                   VALUE ZEROS.
+           05 WB-PLUG-CT-RECORD.
+              07 WB-PLUG-CAS-SIZE.
+                 09 WB-PLUG-CAS-INCH                                        PIC 9(02).   9
+                 09 WB-PLUG-CAS-FRAC-NUM                                    PIC 9(02).   11
+                 09 WB-PLUG-CAS-FRAC-DENOM                                  PIC 9(02).   13
+              07 WB-PLUG-CAS-LBS-FT.
+                 09 WB-PLUG-WGT-WHOLE                                       PIC 9(03).   15
+                 09 WB-PLUG-WGT-TENTHS                                      PIC 9(01).   18
+              07 WB-PLUG-AMT-PUT                                            PIC 9(05).   19
+              07 WB-PLUG-AMT-LEFT                                           PIC 9(05).   24
+              07 WB-PLUG-HOLE-SIZE.
+                 09 WB-PLUG-HOLE-INCH                                       PIC 9(02).   29
+                 09 WB-PLUG-HOLE-FRAC-NUM                                   PIC 9(02).   31
+                 09 WB-PLUG-HOLE-FRAC-DENOM                                 PIC 9(02).   33
+        03 FILLER                                       VALUE ZEROS         PIC X(20).   35
+     02 RRC-TAPE-FILLER                                                     PIC X(0193). 55
+
+
+
+
+                                             2-48
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                      PLUGGING DATA CASING-TUBING RECORD                                        *
+*****************************************************************************
+WELL-BORE-PLUG-CAS-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  17   Well Bore Plugging Casing-Tubing
+
+WB-PLG-CAS-COUNTER
+      UNIQUE NUMBER WHICH CORRESPONDS TO EACH LINE (I.E.
+      SEGMENT) OF PLUG CASING ASSOCIATED WITH W-3 FILE DATE.
+
+WB-PLUG-CASING-TUBING-DATA
+
+ WB-PLUG-CT-RECORD.
+
+   WB-PLUG-CAS-SIZE.
+    WB-PLUG-CAS-INCH
+       SIZE OF PLUGGED CASING IN INCHES, WHOLE NUMBER.
+    WB-PLUG-CAS-FRAC-NUM
+       SIZE OF PLUGGED CASING IN FRACTIONS OF INCHES,
+                         (NUMERATOR).
+    WB-PLUG-CAS-FRAC-DENOM
+       SIZE OF PLUGGED CASING IN FRACTIONS OF INCHES,
+                        (DENOMINATOR).
+   WB-PLUG-CAS-LBS-FT.
+    WB-PLUG-WGT-WHOLE
+       POUNDS-PER-FEET WEIGHT OF PLUG CASING IN WHOLE NUMBERS.
+    WB-PLUG-WGT-TENTHS
+       POUNDS-PER-FEET WEIGHT OF PLUG CASING IN TENTHS OF A
+       POUND.
+
+   WB-PLUG-AMT-PUT
+       NUMBER OF FEET OF CASING PIPE ORIGINALLY PUT IN WELL.
+
+   WB-PLUG-AMT-LEFT
+       NUMBER OF FEET OF CASING PIPE LEFT IN WELL WHEN
+       PLUGGED.
+
+   WB-PLUG-HOLE-SIZE.
+    WB-PLUG-HOLE-INCH
+       SIZE OF HOLE IN INCHES, WHOLE NUMBER.
+
+
+
+                                                 2-49
+WB-PLUG-HOLE-FRAC-NUM
+  HOLE SIZE IN FRACTIONS OF INCHES, NUMERATOR.
+
+WB-PLUG-HOLE-FRAC-DENOM
+  HOLE SIZE IN FRACTIONS OF INCHES, DENOMINATOR.
+
+
+
+
+                              2-50
+Well Bore Plugging Perfs
+*****************************************************************************
+*                                 WELL BORE                                          *
+*                      PLUGGING PERFS SEGMENT                                        *
+*                                                                                    *
+*    SEGMENT NAME: WBPLPERF                                   (RECURRING)            *
+*                                                                                    *
+*    FUNCTION           | SOURCE                              | SSA NAME |           *
+*    ---------------    |-------------------------            |----------      |     *
+*    SEARCH FIELD       | WB-PLUG-PERF-COUNTER                | WBPLPERC |           *
+*                                                                                    *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                    POS.
+   02 RRC-TAPE-RECORD-ID                                                PIC X(02).   1
+   02 WELL-BORE-PLUG-RECORD.
+      03 WB-PLUG-PERF-COUNTER                      VALUE ZEROS          PIC 9(03).   3
+      03 WB-PLUG-FROM-PERF                         VALUE ZEROS          PIC 9(05).   6
+      03 WB-PLUG-TO-PERF                           VALUE ZEROS          PIC 9(05).   11
+      03 WB-PLUG-OPEN-HOLE-INDICATOR               VALUE 'N'            PIC X(1).    16
+      03 FILLER                                    VALUE ZEROS          PIC X(19).   17
+   02 RRC-TAPE-FILLER                                                   PIC X(0212). 36
+
+
+
+
+                                          2-51
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                PLUGGING PERFS SEGMENT                                          *
+*****************************************************************************
+WELL-BORE-PLUG-RECORD.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  18   Well Bore Plugging Record
+
+WB-PLUG-PERF-COUNTER
+    UNIQUE NUMBER WHICH CORRESPONDS TO EACH OCCURRENCE OF
+    PERFORATIONS ON FILE. NOTE: 'FROM' AND 'TO' EQUALS ONE
+    OCCURRENCE, MAXIMUM OF TEN PERFS MAY BE REPORTED.
+
+WB-PLUG-FROM-PERF
+     DEPTH AT TOP OF ONE PERFORATED INTERVAL.
+
+WB-PLUG-TO-PERF
+     DEPTH AT BOTTOM OF ONE PERFORATED INTERVAL.
+
+WB-PLUG-OPEN-HOLE-INDICATOR
+     INDICATES IF PERFORATED INTERVAL WAS LEFT OPEN.
+                     'Y' = YES
+                     'N' = NO
+
+
+
+
+                                                 2-52
+Well Bore Plugging Data Nomenclature
+*****************************************************************************
+*                                     WELL BORE                                         *
+*                    PLUGGING DATA NOMENCLATURE SEGMENT                                 *
+*                                                                                       *
+*    SEGMENT NAME: WBPLNAME                                      NON-RECURRING          *
+*                                                                                       *
+*    FUNCTION               | SOURCE                   | SSA NAME          | OPTION     *
+*    ---------------        |------------------------- |----------         |----------  *
+*                           |                          |                   |            *
+*                                                                                       *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                       POS.
+   02 RRC-TAPE-RECORD-ID                                                   PIC X(02).   1
+   02 WELL-BORE-PLUG-NOMEN-SEG.
+      03 WB-PLUG-FIELD-NO                              VALUE ZEROS         PIC 9(08).   3
+      03 WB-PLUG-FIELD-NAME                            VALUE SPACES        PIC X(32).   11
+      03 WB-PLUG-OPER-NO                               VALUE ZEROS         PIC X(06).   43
+      03 WB-PLUG-OPER-NAME                             VALUE SPACES        PIC X(32).   49
+      03 WB-PLUG-LEASE-NAME                            VALUE SPACES        PIC X(32).   81
+   02 RRC-TAPE-FILLER                                                      PIC X(0135). 113
+
+
+
+
+                                            2-53
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                      PLUGGING DATA NOMENCLATURE SEGMENT                                        *
+*****************************************************************************
+WELL-BORE-PLUG-NOMEN-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  19   Well Bore Plugging Nomenclature
+
+WB-PLUG-FIELD-NO
+    FIELD NUMBER WHERE PLUGGED WELL IS LOCATED.
+
+WB-PLUG-FIELD-NAME
+     NAME OF FIELD IN WHICH PLUGGED WELL IS LOCATED.
+
+WB-PLUG-OPER-NO
+     RRC-ASSIGNED ID NUMBER FOR OPERATOR OF PLUGGED WELL.
+
+WB-PLUG-OPER-NAME
+     NAME OF OPERATOR OF PLUGGED WELL.
+
+WB-PLUG-LEASE-NAME
+     NAME OF LEASE IN WHICH PLUGGED WELL IS LOCATED.
+
+
+
+
+                                                 2-54
+Well Bore Drilling Permit Number
+*****************************************************************************
+*                                 WELL BORE                                         *
+*                       DRILLING PERMIT NUMBER                                      *
+*                                                                                   *
+*    SEGMENT NAME: WBDRILL                                        (RECURRING)       *
+*                                                                                   *
+*    FUNCTION           | SOURCE                        | SSA NAME | OPTION         *
+*    ---------------    |-------------------------      |----------    |----------  *
+*    SEGMENT KEY        | WB-PERMIT-NUMBER              | WBPMTNUM| UNIQUE          *
+*    SECONDARY INDX | WB-PERMIT-NUMBER                  | XPMTNUM |                 *
+*                                                                                   *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                   POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).   1
+   02 WELL-BORE-DRLG-PMT-SEG.
+      03 WB-PERMIT-NUMBER                          VALUE ZEROS         PIC 9(06).   3
+      03 FILLER                                    VALUE ZEROS         PIC X(14).   9
+   02 RRC-TAPE-FILLER                                                  PIC X(0225). 23
+
+
+
+
+                                          2-55
+*****************************************************************************
+*                                       WELL BORE                                                *
+*                                DRILLING PERMIT NUMBER                                          *
+*****************************************************************************
+WELL-BORE-DRLG-PMT-SEG.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  20   Well Bore Drilling Permit Number
+
+WB-PERMIT-NUMBER
+    IDENTIFYING NUMBER ASSIGNED TO PERMIT TO DRILL.
+
+
+
+
+                                                 2-56
+Well Bore Well-ID
+*****************************************************************************
+*                                  WELL BORE                                         *
+*                             WELL-ID SEGMENT                                        *
+*                                                                                    *
+*    SEGMENT NAME: WBWELLID                              (RECURRING)                 *
+*                                                                                    *
+*    FUNCTION            | SOURCE                          | SSA NAME | OPTION *
+*    ---------------     |-------------------------        |----------   |---------- *
+*    SEGMENT KEY         | WB-OIL-INFO(WB-GAS-INFO)| WBWELKEY | UNIQUE *
+*                                                                                    *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                    POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).    1
+   02 WELL-BORE-WELL-ID-SEG.
+      03 WB-OIL-INFO.
+         05 WB-OIL                                                     PIC X(01).    3
+         05 WB-OIL-DISTRICT                                            PIC 9(02).    4
+         05 WB-OIL-LSE-NUMBER                                          PIC 9(05).    6
+         05 WB-OIL-WELL-NUMBER                                         PIC X(06).    11
+      03 WB-GAS-INFO REDEFINES WB-OIL-INFO.
+         05 WB-GAS                                                     PIC X(01).
+         05 WB-GAS-RRCID                                               PIC 9(06).
+         05 WB-FILLER                                                  PIC X(07).
+      03 FILLER                                     VALUE ZEROS        PIC X(11).    17
+   02 RRC-TAPE-FILLER                                                  PIC X(0220). 28
+
+
+
+
+                                          2-57
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                  WELL-ID SEGMENT                                               *
+*****************************************************************************
+WELL-BORE-WELL-ID-SEG.
+ --------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  21   Well Bore Well Identification
+
+WB-OIL-INFO.
+  WB-OIL
+     INDICATES THAT WELL IS CARRIED ON OIL SCHEDULE.
+
+   WB-OIL-DISTRICT
+     INDICATES DISTRICT IN WHICH WELL IS LOCATED.
+   WB-OIL-LSE-NUMBER
+     INDICATES NUMBER ASSIGNED TO LEASE IN WHICH WELL IS LOCATED.
+   WB-OIL-WELL-NUMBER
+     INDICATES NUMBER ASSIGNED TO IDENTIFY WELL.
+
+WB-GAS-INFO REDEFINES WB-OIL-INFO.
+  WB-GAS
+     INDICATES THAT WELL IS CARRIED ON GAS SCHEDULE.
+  WB-GAS-RRCID
+     UNIQUE NUMBER WHICH IDENTIFIES GAS WELL.
+
+
+
+
+                                                 2-58
+Well Bore 14B2 Well
+*****************************************************************************
+* WBW700Z7              14(B)(2) EXTENSION/PLUG SYSTEM                      *
+*                                                                           *
+*                               14B2 WELL SEGMENT                           *
+*                                                                           *
+*    NOTE: EXCEPTION AND EXTENSION ARE USED SYNONYMOUSLY.                   *
+*                                                                           *
+*    SEGMENT NAME: WB14B2                   NON-RECURRING                   *
+*                         --------                                          *
+*    SEARCH FIELD: WELL OIL KEY (WELL GAS KEY)         WB14B2KY             *
+*    SECONDARY KEY: APPLICATION NUMBER + WELL KEY XAPPNUM                   *
+*    SEGMENT CONTAINS: 200 CHARACTERS                                       *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                           POS.
+   02 RRC-TAPE-RECORD-ID                                       PIC X(02).   1
+   02 WB14B2-WELL-SEGMENT.
+     05 WB14B2-OIL-KEY.
+       10 WB14B2-OIL-CODE                   VALUE SPACE        PIC X(01).   3
+       10 WB14B2-OIL-DISTRICT               VALUE ZEROS        PIC 9(02).   4
+       10 WB14B2-OIL-LEASE-NUMBER           VALUE ZEROS        PIC 9(05).   6
+       10 WB14B2-OIL-WELL-NUMBER            VALUE SPACES       PIC X(06).   11
+     05 WB14B2-GAS-KEY REDEFINES WB14B2-OIL-KEY.
+       10 WB14B2-GAS-CODE                                      PIC X(01).
+       10 WB14B2-GAS-RRC-ID                                    PIC 9(06).
+       10 WB14B2-GAS-FILLER                                    PIC X(07).
+     05 WB14B2-APPLICATION-NUMBER           VALUE ZEROS        PIC 9(06).   17
+     05 WB14B2-GAS-DISTRICT                 VALUE ZEROS        PIC 9(02).   23
+     05 WB14B2-EXT-STATUS-FLAG                                 PIC X(01).   25
+       88 WB14B2-EXT-APPROVED               VALUE 'A'.
+       88 WB14B2-EXT-CANCELLED              VALUE 'C'.
+       88 WB14B2-EXT-DENIED                 VALUE 'D'.
+       88 WB14B2-EXT-EXPIRED                VALUE 'E'.
+     05 WB14B2-EXT-CANCELLED-REASON                            PIC X(01).   26
+       88 WB14B2-EXT-INJECTION-WELL         VALUE 'I'.
+       88 WB14B2-EXT-PRODUCING-WELL         VALUE 'P'.
+       88 WB14B2-EXT-PLUGGED-WELL           VALUE 'G'.
+       88 WB14B2-EXT-SERVICE-WELL           VALUE 'S'.
+       88 WB14B2-EXT-CANCELLED-OTHER VALUE 'O'.
+     05 WB14B2-EXT-APPROVED-DATE.
+       10 WB14B2-EXT-APPROVED-CENT          VALUE ZEROS        PIC 9(02).   27
+       10 WB14B2-EXT-APPROVED-YEAR          VALUE ZEROS        PIC 9(02).   29
+       10 WB14B2-EXT-APPROVED-MONTH VALUE ZEROS                PIC 9(02).   31
+       10 WB14B2-EXT-APPROVED-DAY           VALUE ZEROS        PIC 9(02).   33
+     05 WB14B2-EXT-EXP-DATE.
+       10 WB14B2-EXT-EXP-CENT               VALUE ZEROS        PIC 9(02).   35
+       10 WB14B2-EXT-EXP-YEAR               VALUE ZEROS        PIC 9(02).   37
+       10 WB14B2-EXT-EXP-MONTH              VALUE ZEROS        PIC 9(02).   39
+       10 WB14B2-EXT-EXP-DAY                VALUE ZEROS        PIC 9(02).   41
+     05 WB14B2-EXT-DENIED-DATE.
+       10 WB14B2-EXT-DENIED-CENT            VALUE ZEROS        PIC 9(02).   43
+
+
+                                      2-59
+  10 WB14B2-EXT-DENIED-YEAR        VALUE ZEROS     PIC 9(02).   45
+  10 WB14B2-EXT-DENIED-MONTH       VALUE ZEROS     PIC 9(02).   47
+  10 WB14B2-EXT-DENIED-DAY         VALUE ZEROS     PIC 9(02).   49
+05 WB14B2-EXT-HIST-DATE.
+  10 WB14B2-EXT-HIST-CENT          VALUE ZEROS     PIC 9(02).   51
+  10 WB14B2-EXT-HIST-YEAR          VALUE ZEROS     PIC 9(02).   53
+  10 WB14B2-EXT-HIST-MONTH         VALUE ZEROS     PIC 9(02).   55
+  10 WB14B2-EXT-HIST-DAY           VALUE ZEROS     PIC 9(02).   57
+05 WB14B2-WELL-VIOLATIONS.
+  10 WB14B2-MECH-INTEG-VIOL-FLAG                   PIC X(01).   59
+    88 WB14B2-MECH-INTEG-VIOL      VALUE 'H'.
+  10 WB14B2-PLUG-ORDER-SF-HOLD-FLAG                PIC X(01).   60
+    88 WB14B2-PLUG-ORDER-SF-HOLD VALUE 'E'.
+  10 WB14B2-POLLUTION-VIOL-FLAG                    PIC X(01).   61
+    88 WB14B2-POLLUTION-VIOL       VALUE 'P'.
+  10 WB14B2-FIELD-OPS-HOLD-FLAG                    PIC X(01).   62
+    88 WB14B2-FIELD-OPS-HOLD       VALUE 'F'.
+  10 WB14B2-H15-PROBLEM-FLAG                       PIC X(01).   63
+    88 WB14B2-H15-PROBLEM          VALUE 'V'.
+  10 WB14B2-H15-NOT-FILED-FLAG                     PIC X(01).   64
+    88 WB14B2-H15-NOT-FILED        VALUE 'X'.
+  10 WB14B2-OPER-DELQ-FLAG                         PIC X(01).   65
+    88 WB14B2-OPER-DELQ            VALUE 'O'.
+  10 WB14B2-DISTRICT-HOLD-SFP-FLAG                 PIC X(01).   66
+    88 WB14B2-DISTRICT-HOLD-SFP    VALUE 'T'.
+  10 WB14B2-DIST-SF-CLEAN-UP-FLAG                  PIC X(01).   67
+    88 WB14B2-DIST-SF-CLEAN-UP     VALUE 'M'.
+  10 WB14B2-DIST-STATE-PLUG-FLAG                   PIC X(01).   68
+    88 WB14B2-DIST-STATE-PLUG      VALUE 'K'.
+  10 WB14B2-GOOD-FAITH-VIOL-FLAG                   PIC X(01).   69
+    88 WB14B2-GOOD-FAITH-VIOL      VALUE 'R'.
+  10 WB14B2-WELL-OTHER-VIOL-FLAG                   PIC X(01).   70
+    88 WB14B2-WELL-OTHER-VIOL      VALUE 'Q'.
+  10 WB14B2-W3C-SURF-EQP-VIOL-FLAG                 PIC X(01).   71
+    88 WB14B2-W3C-SURF-EQUIP-VIOL VALUE 'S'.
+  10 WB14B2-W3X-VIOL-FLAG                          PIC X(01).   72
+    88 WB14B2-W3X-VIOL             VALUE 'W'.
+  10 FILLER                                        PIC X(07).   73
+05 WB14B2-HB2259-W3X-OPTIONS.
+  07 WB14B2-HB2259-W3X-PUB-ENT     VALUE SPACES    PIC X(01).   80
+  07 WB14B2-HB2259-W3X-10PCT       VALUE SPACES    PIC X(01).   81
+  07 WB14B2-HB2259-W3X-BONDING     VALUE SPACES    PIC X(01).   82
+  07 WB14B2-HB2259-W3X-H13-EOR     VALUE SPACES    PIC X(01).   83
+    88 WB14B2-HB2259-EOR-REJECTED VALUE 'R'.
+  07 WB14B2-HB2259-W3X-AOP         VALUE SPACES    PIC X(01).   84
+    88 WB14B2-HB2259-AOP-REJECTED VALUE 'R'.
+  07 WB14B2-HB2259-W3X-MIT         VALUE SPACES    PIC X(01).   85
+    88 WB14B2-HB2259-MIT-REJECTED VALUE 'R'.
+  07 WB14B2-HB2259-W3X-ESCROW      VALUE SPACES    PIC X(01).   86
+     88 WB14B2-HB2259-ESCROW-REJECTED VALUE 'R'.
+05 WB14B2-W3X-FILING-KEY           VALUE ZEROS     PIC 9(08).   87
+
+
+                              2-60
+  05 WB14B2-W3X-AOP-RECEIVED-DATE VALUE ZEROS      PIC 9(08).    95
+  05 WB14B2-W3X-AOP-FEE-RCVD-DATE VALUE ZEROS      PIC 9(08).    103
+  05 WB14B2-W3X-H15-FEE-RCVD-DATE VALUE ZEROS      PIC 9(08).    111
+  05 WB14B2-W3X-ESCROW-FUNDS        VALUE ZEROS    PIC 9(05)V99. 119
+  05 WB14B2-W3X-ESCROW-FUND-SPLIT REDEFINES
+              WB14B2-W3X-ESCROW-FUNDS.
+    07 WB14B2-W3X-ESCROW-FUND-WHOLE                PIC 9(05).
+    07 WB14B2-W3X-ESCROW-FUND-DECIMAL              PIC 9(02).
+  05 WB14B2-60-DAY-LETTER-SENT-FLAG VALUE SPACES   PIC X(01).     126
+    88 WB14B2-60-DAY-LETTER-SENT    VALUE 'Y'.
+  05 WB14B2-W1X-36-NEEDS-BOND-FLAG VALUE SPACES    PIC X(01).     127
+    88 WB14B2-W1X-36-NEEDS-BOND     VALUE 'Y'.
+  05 WB14B2-W1X-36-TYPE-COVERAGE    VALUE ZEROS    PIC X(01).     128
+    88 WB14B2-W1X-36-BOND           VALUE 'B'.
+    88 WB14B2-W1X-36-LOC            VALUE 'L'.
+  05 WB14B2-W1X-36-AMT-FILED        VALUE ZEROS    PIC 9(09).     129
+  05 WB14B2-W1X-36-SURETY           VALUE ZEROS    PIC 9(05).     138
+  05 WB14B2-W1X-36-EXP-DATE.
+    10 WB14B2-W1X-36-EXP-CENT       VALUE ZEROS    PIC 9(02).     143
+    10 WB14B2-W1X-36-EXP-YEAR       VALUE ZEROS    PIC 9(02).     145
+    10 WB14B2-W1X-36-EXP-MON        VALUE ZEROS    PIC 9(02).     147
+    10 WB14B2-W1X-36-EXP-DAY        VALUE ZEROS    PIC 9(02).     149
+  05 WB14B2-W1X-36-BOND-NUMBER      VALUE ZEROS    PIC X(20).     151
+  05 FILLER                         VALUE ZEROS    PIC X(32).     171
+02 RRC-TAPE-FILLER                                 PIC X(0120).   128
+
+
+
+
+                               2-61
+*****************************************************************************
+*                                      WELLBORE DATABASE                                         *
+*                                         WB14B2 SEGMENT                                         *
+*****************************************************************************
+WB14B2-WELL-SEGMENT
+THIS SEGMENT IS NON-RECURRING. THIS SEGMENT EXISTS ONLY WHEN A WELL
+IS SUBJECT TO RULE 14B2 AND HAS AN EXTENSION ON FILE. IF A WELL IS
+NO LONGER SUBJECT TO 14B2, IF AN EXTENSION HAS NOT BEEN APPLIED FOR, OR IF
+THE EXTENSION HAS EXPIRED THIS WB14B2 SEGMENT IS MOVED TO THE EX
+DATABASE AS THE EX14B2HS SEGMENT.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  22   Well Bore Rule 14b2 Extension
+
+WB14B2-OIL-KEY
+ A COMBINATION OF OIL CODE, DISTRICT, LEASE NUMBER AND WELL NUMBER; THE
+ LAST THREE UNIQUELY IDENTIFY THE OIL WELL.
+
+WB14B2-OIL-CODE
+ THE ONE-CHARACTER CODE "O" INDICATES THE CLASSIFICATION OF THE WELL AS
+ AN OIL WELL.
+
+WB14B2-OIL-DISTRICT
+ THIS DATA ITEM INDICATES THE DISTRICT IN WHICH THE 14(B)(2) OIL WELLS
+ RESIDE. THERE ARE 14 DISTRICTS: 01, 02, 03, 04, 05, 06, 6E, 7B, 7C, 08,
+ 8A, 8B, 09, AND 10. THE IDENTIFICATION VALUES, HOWEVER, ARE NOT
+ INDICATED ON THE 14(B)(2) TAPE AS THEY ARE LISTED ABOVE. THE TABLE
+ BELOW INDICATES THE CONVERTED VALUES.
+   14B2 TAPE DISTRICT
+    VALUE         VALUE
+        01     - 01
+        02     - 02
+        03     - 03
+        04     - 04
+        05     - 05
+        06     - 06
+        07     - 6E
+        08     - 7B
+        09     - 7C
+        10     - 08
+        11     - 8A
+        12     - 8B (RESERVED FOR FUTURE USE.)
+        13     - 09
+        14     - 10
+
+
+                                                2-62
+WB14B2-OIL-LEASE-NUMBER
+ THIS DATA ITEM CONTAINS A FIVE-DIGIT OIL LEASE NUMBER ASSIGNED BY THE
+ RRC TO EACH OIL LEASE.
+
+WB14B2-OIL-WB14B2-NUMBER
+ THIS DATA ITEM CONTAINS AN ALPHANUMERIC STRING OF UP TO SIX DIGITS
+ AND/OR CHARACTERS; IT IS ASSIGNED BY THE OPERATOR TO EACH OIL WELL.
+
+WB14B2-GAS-KEY
+ A ONE-CHARACTER GAS CODE AND SIX-DIGIT RRC GAS WELL ID WHICH UNIQUELY
+ IDENTIFY A GAS WELL.
+
+WB14B2-GAS-CODE
+  THE ONE-CHARACTER CODE "G" INDICATES THE CLASSIFICATION OF THE WELL AS
+  A GAS WELL.
+
+WB14B2-GAS-RRC-ID
+ A SIX-DIGIT NUMBER ASSIGNED BY THE RRC TO UNIQUELY IDENTIFY EACH GAS
+ WELL.
+
+WB14B2-APPLICATION-NUMBER
+ A UNIQUE NUMBER ASSIGNED TO EACH 14(B)(2) APPLICATION RECEIVED. IT IS
+ USED TO ASSOCIATE 14(B)(2) WELLS WITH AN APPLICATION.
+
+WB14B2-GAS-DISTRICT
+ THIS DATA ITEM INDICATES THE DISTRICT IN WHICH THE GAS WELL RESIDES.
+ THERE ARE 14 DISTRICTS: 01, 02, 03, 04, 05, 06, 6E, 7B, 7C, 08, 8A, 8B,
+ 09, AND 10. THE IDENTIFICATION VALUES, HOWEVER, ARE NOT INDICATED ON
+ THE 14(B)(2) TAPE AS THEY ARE LISTED ABOVE. THE TABLE BELOW INDICATES
+ THE CONVERTED VALUES. SEE WB14B2-OIL-DISTRICT ABOVE
+
+WB14B2-EXT-STATUS-FLAG
+  THIS IS THE CURRENT STATUS OF THE 14B2 EXTENSION APPLIED FOR
+    'A' - WB14B2-EXT-APPROVED
+    'C' - WB14B2-EXT-CANCELLED
+    'D' - WB14B2-EXT-DENIED
+    'E' - WB14B2-EXT-EXPIRED
+    STATUS CODES OF 'C' AND 'E' ARE USED WHEN THE WB14B2
+  IS SET TO BE MOVED TO WB14B2 SEGMENT.
+
+WB14B2-EXT-CANCELLED-REASON           PIC X(01).
+ THIS IS A REASON CODE WHY THE WB14B2 EXTENSION IS NO LONGER
+  APPLICABLE OR VALID.
+   'I' WB14B2-EXT-INJECTION-WELL      VALUE 'I'.
+   'P' WB14B2-EXT-PRODUCING-WELL      VALUE 'P'.
+   'G' WB14B2-EXT-PLUGGED-WELL        VALUE 'G'.
+   'S' WB14B2-EXT-SERVICE-WELL        VALUE 'S'.
+   'O' WB14B2-EXT-CANCELLED-OTHER     VALUE 'O'.
+
+ WB14B2-EXT-APPROVED-DATE
+  THIS DATA ITEM IS A 8 CHARACTER (CCYYMMDD) DATE REFLECTING
+
+
+                                    2-63
+  THE DATE THE WB14B2 EXTENSION WAS APPROVED. ONCE SET IT
+  REMAINS EVEN IF THE STATUS IS LATER CHANGED.
+
+WB14B2-EXT-EXP-DATE.
+ THIS DATA ITEM IS A 8 CHARACTER (CCYYMMDD) DATE REFLECTING
+ THE DATE THE WB14B2 EXTENSION IS SCHEDULED TO EXPIRE. FOR
+ BONDED OPERATORS THIS DATE IS THE DAY THEY ARE SCHEDULED
+ TO BECOME P5 DELINQUENT IF THEY DO NOT REFILE. FOR W1X
+ OPERATORS THIS DATA IS USUALLY ONE YEAR FROM THE LAST DAY
+ OF THE MONTH IN WHICH THEY HAVE FILED FORM W1X. THIS DATE
+ IS MODIFIABLE IN THE NEW 14B2 SYSTEM.
+
+WB14B2-EXT-DENIED-DATE.
+ THIS DATA ITEM IS A 8 CHARACTER (CCYYMMDD) DATE REFLECTING
+ THE DATE THE WB14B2 EXTENSION WAS APPROVED. ONCE SET IT
+ REMAINS EVEN IF THE STATUS IS LATER CHANGED.
+
+WB14B2-EXT-HIST-DATE.
+ THIS DATA ITEM IS A 8 CHARACTER (CCYYMMDD) DATE REFLECTING
+ THE DATE THE WB14B2 EXTENSION IS NO LONGER APPLICABLE
+ (EXPIRED, CANCELLED, ETC) AND THE WB14B2 SEGMENT IS MOVED
+ TO EX4B2HS SEGMENT.
+
+WB14B2-WELL-VIOLATIONS.
+ THESE DATA ITEMS ARE ONE BYTE VIOLATION CODES THAT WOULD
+ CAUSE AN 14B2 EXTENSION TO BE DENIED. WITH THE EXCEPTION OF
+ THE LACKING BOND VIOL ALL VIOLATIONS ARE APPLICABLE TO
+ BOTH W1X AND BONDED OPERATORS. EACH VIOLATION HAS THEIR
+ OWN ALPHA CODE AS FOLLOWS.
+
+   'H' - WB14B2-MECH-INTEG-VIOL-FLAG
+   'M' - WB14B2-PLUG-ORDER-SF-HOLD-FLAG
+   'P' - WB14B2-POLLUTION-VIOL-FLAG
+   'F' - WB14B2-FIELD-OPS-HOLD-FLAG
+   'V' - WB14B2-H15-PROBLEM-FLAG
+   'X' - WB14B2-H15-NOT-FILED-FLAG
+   'O' - WB14B2-OPER-DELQ-FLAG
+   'K' - WB14B2-DISTRICT-HOLD-SFP-FLAG
+   'T' - WB14B2-DIST-SF-CLEAN-UP-FLAG
+   'M' - WB14B2-DIST-STATE-PLUG-FLAG
+   'R' - WB14B2-GOOD-FAITH-VIOL-FLAG
+   'Q' - WB14B2-WELL-OTHER-VIOL-FLAG
+   'S' - WB14B2-W3C-SURF-EQP-VIOL-FLAG
+   'W' - WB14B2-W3X-VIOL-FLAG
+
+WB14B2-HB2259-W3X-OPTIONS.
+ THIS GROUP OF DATA ITEMS REFLECT THE OPTIONS, OF
+ WHICH THE OPERATOR MUST MEET AT LEAST ONE TO FULFILL
+ THE HB2259 REQUIREMENTS.
+
+
+
+
+                                 2-64
+WB14B2-HB2259-W3X-PTE - THE COMPANY HAS CLAIMED
+ IT IS A PUBLICLY TRADED ENTITY. SEC FORMS RECEIVED
+
+WB14B2-HB2259-W3X-10PCT - THE OPERATOR HAS PLUGGED 10% OF
+THE INACTIVE WELLS SINCE LAST P5 MAILOUT NOTICE
+
+WB14B2-HB2259-W3X-BONDING - A BOND WAS FILED FOR THIS WELL
+ COVERING THE PLUGGING COST CALCULATION.
+
+WB14B2-HB2259-W3X-H13-EOR - THE WELL IS IN A FIELD OR
+ LEASE DESIGNATED ENHANCED OIL RECOVERY PROJECT
+
+WB14B2-HB2259-W3X-AOP - THE WELL HAS A ABEYANCE OF PLUGGING
+ DOCUMENT ON FILE
+
+WB14B2-HB2259-W3X-MIT - A H15 MIT TEST, NOT OTHERWISE REQUIRED,
+ HAS BEEN CONDUCTED SUCCESSFULLY
+
+WB14B2-HB2259-W3X-ESCROW - AN ESCROW ACCOUNT HAS BEEN CREATED
+ TO COVER THE PLUGGING COST CALCULATION OF THIS WELL.
+
+WB14B2-W3X-FILING-KEY - AN INTERNAL KEY THAT POINTS TO THE P5
+ DATABASE CONTAINING W3X FINANCIAL ASSURANCE INFORMATION
+
+WB14B2-W3X-AOP-RECEIVED-DATE - THE RECEIVED DATA OF FORM AOP
+
+WB14B2-W3X-AOP-FEE-RCVD-DATE - THE RECEIVED DATE OF THE AOP
+ FEE. A FEE IS REQUIRED YEARLY, IF THIS W3X OPTION IS CHOSEN
+
+WB14B2-W3X-H15-FEE-RCVD-DATE - THE RECEIVED DATE OF THE H15
+ FEE. A FEE IS REQUIRED YEARLY, IF THIS W3X OPTION IS CHOSEN
+
+WB14B2-W3X-ESCROW-FUNDS - THE AMOUNT OF ESCROW FUNDS RECEIVED
+ IS THE ESCROW W3X OPTION HAS BEEN CHOSEN.
+
+WB14B2-60-DAY-LETTER-FLAG
+ THIS DATA ITEM IS SET TO 'Y' WHEN THE 60 DAY RENEWAL IS
+ SENT TO THE OPERATOR WHOSE 14B2 EXTENSION IS SCHEDULED
+ TO EXPIRE IN 60 DAYS.
+
+WB14B2-W1X-36-NEEDS-BOND-FLAG
+ APPLICABLE ONLY TO W1X FILERS REQUESTING AN EXTENSION FOR
+ WELLS SHUT IN FOR MORE THAN 36 MONTH.
+
+WB14B2-W1X-36-TYPE-COVERAGE
+ APPLICABLE ONLY TO W1X FILERS REQUESTING AN EXTENSION FOR
+ WELLS SHUT IN FOR MORE THAN 36 MONTH.
+ 'B' - BOND
+ 'L' - LETTER OF CREDIT
+
+
+
+
+                                  2-65
+WB14B2-W1X-36-AMT-FILED
+ APPLICABLE ONLY TO W1X FILERS REQUESTING AN EXTENSION FOR
+ WELLS SHUT IN FOR MORE THAN 36 MONTH.
+  AMOUNT OF BOND/LOC FILED TO COVER THE COST OF PLUGGING THE
+ WELLBORE. THE REQUIRED AMOUNT IS COMPUTED BASED ON WBROOT
+ DATA CONCERNING DEPTH AND/OR PLUGGING AMOUNTS.
+
+WB14B2-W1X-36-SURETY
+ APPLICABLE ONLY TO W1X FILERS REQUESTING AN EXTENSION FOR
+ WELLS SHUT IN FOR MORE THAN 36 MONTHS.
+ A FIVE DIGIT NUMBER IDENTIFYING THE BANK/SURETY NUMBER
+ BACKING THE BOND OR LETTER OF CREDIT.
+
+WB14B2-W1X-36-EXP-DATE
+ APPLICABLE ONLY TO W1X FILERS REQUESTING AN EXTENSION FOR
+ WELLS SHUT IN FOR MORE THAN 36 MONTH.
+  THIS DATA ITEM IS THE EXPIRATION DATE OF THE BOND OR
+  LOC. (REQUIRED DATA ITEM FOR L.O.C.)
+
+WB14B2-W1X-36-BOND-NUMBER
+ APPLICABLE ONLY TO W1X FILERS REQUESTING AN EXTENSION FOR
+ WELLS SHUT IN FOR MORE THAN 36 MONTH.
+  THE IDENTIFYING NUMBER OF THE BOND OR LOC USED.
+
+
+
+
+                                2-66
+Well Bore H-15 Report
+*****************************************************************************
+* WBW701A8                           WELL BORE                                        *
+*                         WELL BORE H-15 SEGMENT                                      *
+*                                                                                     *
+*    SEGMENT NAME: WBH15                                    SEGLENGTH: 150            *
+*                                                           RECCURING                 *
+*                                                                                     *
+*    FUNCTION             | SOURCE                          | SSA NAME | OPTION       *
+*    ---------------      |-------------------------        |----------    |--------- *
+*    SEGMENT KEY          | WB-H15-DATE-KEY                 | WBH15KEY | UNIQUE       *
+*    SEARCH               | WB-H15-OPERATOR                 | WBH15OPR |              *
+*    SEARCH               | WB-H15-STATUS                   | WBH15STA |              *
+*    SEARCH               | WB-H15-DIST                     | WBH15DST |              *
+*    SEARCH               | WB-H15-TYPE-TEST-FLAG | WBH15TST |                        *
+*    SEARCH               | WB-H15-NEXT-TEST-DUE-DATE WBH15NXT|                       *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                     POS.
+   02 RRC-TAPE-RECORD-ID                             PIC X(02).                       1
+   02 WELL-BORE-H15-RECORD.
+      03 WB-H15-DATE-KEY                             PIC 9(08)        VALUE ZEROS.    3
+      03 WB-H15-STATUS                               PIC X(01)        VALUE SPACE.    11
+         88 WB-H15-APPROVED                                           VALUE 'A'.
+         88 WB-H15-COMPLIANT                                          VALUE 'C'.
+         88 WB-H15-DELINQUENT                                         VALUE 'D'.
+         88 WB-H15-NOT-APPROVED                                       VALUE 'N'.
+         88 WB-H15-APPROVAL-PENDING                                   VALUE 'P'.
+         88 WB-H15-W3A-EXTENSION                                      VALUE 'W'.
+         88 WB-H15-UIC                                                VALUE 'U'.
+         88 WB-H15-NO-TEST-PROJ-EXT                                   VALUE 'E'.
+         88 WB-H15-W1X-DENIED                                         VALUE 'X'.
+      03 WB-H15-OPERATOR                             PIC 9(06)        VALUE ZEROS.    12
+      03 WB-H15-NEXT-TEST-DUE-DATE.
+         05 WB-NEXT-TEST-CCYY                        PIC 9(04)        VALUE ZEROS.    18
+         05 WB-NEXT-TEST-MM                          PIC 9(02)        VALUE ZEROS.    22
+      03 WB-H15-DISTRICT                             PIC 9(02)        VALUE ZEROS.    24
+      03 WB-H15-FIELD                                PIC 9(08)        VALUE ZEROS.    26
+      03 WB-H15-HIST-WELLBORE-FLAG                   PIC X(01)        VALUE SPACES.   34
+         88 WB-H15-HIST-DRILLING                                      VALUE 'D'.
+         88 WB-H15-HIST-EARLY-COMPL                                   VALUE 'C'.
+      03 WB-H15-HIST-WELL-CCYYMMDD.
+         05 WB-H15-HIST-WELL-CC                      PIC 9(02)        VALUE ZEROS.    35
+         05 WB-H15-HIST-WELL-DATE.
+            10 WB-H15-HIST-WELL-YY                   PIC 9(02)        VALUE ZEROS.    37
+            10 WB-H15-HIST-WELL-MM                   PIC 9(02)        VALUE ZEROS.    39
+            10 WB-H15-HIST-WELL-DD                   PIC 9(02)        VALUE ZEROS.    41
+      03 WB-H15-W1X-WELL                             PIC X(01)        VALUE SPACES.   43
+      03 WB-H15-OIL-GAS-CODE                         PIC X(01)        VALUE SPACES.   44
+         88 WB-H15-GAS-WELL                                           VALUE 'G'.
+         88 WB-H15-OIL-WELL                                           VALUE 'O'.
+      03 WB-H15-LEASE-NBR                            PIC 9(05)        VALUE ZEROS.    45
+
+
+                                           2-67
+03 WB-H15-WELL-NBR                 PIC X(06)   VALUE SPACES.   50
+03 WB-H15-GASID-NBR                PIC 9(06)   VALUE ZEROS.    56
+03 WB-H15-TEST-DATE.
+  05 WB-H15-TEST-YEAR.
+    10 WB-H15-TEST-CC              PIC 9(02)   VALUE ZEROS.    62
+    10 WB-H15-TEST-YY              PIC 9(02)   VALUE ZEROS.    64
+  05 WB-H15-TEST-MM                PIC 9(02)   VALUE ZEROS.    66
+  05 WB-H15-TEST-DD                PIC 9(02)   VALUE ZEROS.    68
+03 WB-H15-BASE-USABLE-WATER        PIC 9(06)   VALUE ZEROS.    70
+03 WB-H15-TYPE-TEST-FLAG           PIC X(01)   VALUE ZEROS.    76
+  88 WB-H15-FLUID-TEST                         VALUE 'F'.
+  88 WB-H15-MECH-INTEG-TEST                    VALUE 'M'.
+03 WB-H15-TOP-OF-FLUID             PIC 9(06)   VALUE ZEROS.    77
+03 WB-H15-FLUID-TEST-FLAG          PIC X(01)   VALUE SPACES.   83
+  88 WB-H15-FLUID-WIRE                         VALUE 'W'.
+  88 WB-H15-FLUID-SONIC                        VALUE 'S'.
+  88 WB-H15-FLUID-VISUAL                       VALUE 'V'.
+  88 WB-H15-FLUID-OTHER                        VALUE 'O'.
+03 WB-H15-MECH-INTEG-TEST-FLAG     PIC X(01)   VALUE SPACE.    84
+  88 WB-H15-MECH-HYDRAULIC                     VALUE 'H'.
+  88 WB-H15-MECH-INTEG-OTHER                   VALUE 'O'.
+03 WB-H15-MECH-TEST-REASON-FLAG    PIC X(01)   VALUE SPACE.    85
+  88 WB-H15-MECH-SUBSTITUTE                    VALUE 'A'.
+  88 WB-H15-MECH-14B2-REQUIRE                  VALUE 'B'.
+03 WB-H15-ALTERNATE-TEST-PERIOD    PIC 9(02)   VALUE ZEROS.    86
+03 WB-H15-OTHER-MIT-TEST-TYPE      PIC X(20)   VALUE SPACES.   88
+03 WB-H15-STATUS-DATE.
+  05 WB-H15-STATUS-CC              PIC 9(02)   VALUE ZEROS.    108
+  05 WB-H15-STATUS-YY              PIC 9(02)   VALUE ZEROS.    110
+  05 WB-H15-STATUS-MM              PIC 9(02)   VALUE ZEROS.    112
+  05 WB-H15-STATUS-DD              PIC 9(02)   VALUE ZEROS.    114
+03 WB-H15-NO-DATE-WELL-FLAG        PIC X(01)   VALUE SPACES.   116
+  88 WB-H15-NO-DATE-WELL                       VALUE 'Y'.
+03 WB-H15-RECORD-FROM-EDI-FLAG     PIC X(01)   VALUE SPACES.   117
+  88 WB-H15-RECORD-FROM-EDI                    VALUE 'Y'.
+03 WB-H15-KEYED-DATE.
+  05 WB-H15-KEYED-CC               PIC 9(02)   VALUE ZEROS.    118
+  05 WB-H15-KEYED-YY               PIC 9(02)   VALUE ZEROS.    120
+  05 WB-H15-KEYED-MM               PIC 9(02)   VALUE ZEROS.    122
+  05 WB-H15-KEYED-DD               PIC 9(02)   VALUE ZEROS.    124
+03 WB-H15-CHANGED-DATE.
+  05 WB-H15-CHANGED-CC             PIC 9(02)   VALUE ZEROS.    126
+  05 WB-H15-CHANGED-YY             PIC 9(02)   VALUE ZEROS.    128
+  05 WB-H15-CHANGED-MM             PIC 9(02)   VALUE ZEROS.    130
+  05 WB-H15-CHANGED-DD             PIC 9(02)   VALUE ZEROS.    132
+03 WB-H15-PREVIOUS-STATUS          PIC X(01)   VALUE SPACE.    134
+03 WB-H15-UIC-TEST-FLAG            PIC X(01)   VALUE SPACE.    135
+  88 WB-H15-UIC-H5-TEST                        VALUE 'U'.
+03 WB-H15-2YRS-APPROVED-FLAG       PIC X(01)   VALUE SPACE.    136
+  88 WB-H15-2YRS-APPROVED                      VALUE 'Y'.
+
+
+                            2-68
+  03 WB-H15-MAIL-HOLD-FLAG              PIC X(01)      VALUE SPACE.    137
+    88 WB-H15-MAIL-HOLD                                VALUE 'Y'.
+  03 WB-H15-10YR-INACTIVE-FLAG          PIC X(01)      VALUE SPACES.   138
+  03 WB-H15-W3X-WELL-FLAG               PIC X(01)      VALUE SPACE.    139
+    88 WB-H15-W3X-WELL                                 VALUE 'Y'.
+  03 FILLER                             PIC X(13)      VALUE ZEROS.    140
+02 RRC-TAPE-FILLER                      PIC X(0095).                   153
+
+
+
+
+                                 2-69
+*****************************************************************************
+*                                      WELL BORE                                                 *
+*                                WELL BORE H-15 SEGMENT                                          *
+*****************************************************************************
+WELL-BORE-H15-record.
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+ RRC ID
+ Value Tape Record Description
+   23   Well Bore H-15 Information most current segment in the first position encountered when
+        reading the data base.
+
+WB-H15-DATE-KEY
+Derived by subtracting the mailing date for the H-15 Listing from 999999999. This provides us with a
+date key placing the
+
+WB-H15-STATUS
+    This is a flag used to indicate the status of the 25+ year old inactive wellbore relative to H-15 test
+    requirements.
+    Valid conditions for WB-H15-STATUS:
+    A - H15 filed was APPROVED
+    C - Wellbore status has changed and bore is now COMPLIANT
+    D - H15 is DELINQUENT
+    N - H15 was filed but not APPROVED
+    P - H15 APPROVAL is PENDING
+    W - A W3A plugging extension was filed for the wellbore
+    U - UIC H5 Violation
+    E – H15 no test proj ext
+    X - Denied W1X application due to invalid H5 Test.
+
+WB-H15-OPERATOR
+    The operator that filed the original H-15.
+
+WB-H15-NEXT-TEST-DUE-DATE
+    The date the next H-15 is due for the wellbore.
+
+WB-H15-DISTRICT
+    The district the wellbore is located in.
+
+WB-H15-FIELD
+    The field the wellbore is located in.
+
+WB-H15-HIST-WELLBORE-FLAG
+    The source of the historical wellbore date:
+    D - Drilling Permit
+    C - Earliest Completion
+
+
+                                                  2-70
+WB-H15-HIST-WELL-CCYYMMDD
+    Oldest wellbore date on RRC files.
+
+WB-H15-W1X-WELL
+
+WB-H15-OIL-GAS-CODE
+    Type of lease filed on the H-15:
+    G - Gas Well
+    O - Oil Well
+
+WB-H15-LEASE-NBR
+    Lease number filed on the H-15 if oil lease.
+
+WB-H15-WELL-NBR
+    Well number filed on the H-15.
+
+WB-H15-GASID-NBR
+    Gas id filed on the H-15 if gas well.
+
+WB-H15-TEST-DATE
+    Date the test on the wellbore was conducted.
+
+WB-H15-BASE-USABLE-WATER
+    The bottom of the deepest usable water in the bore area. This is determined by the Texas Water
+    Commission.
+
+WB-H15-TYPE-TEST-FLAG
+    Type of test conducted on the wellbore:
+    F - Fluid Level Test
+    M - Mechanical Integrity Test
+
+WB-H15-TOP-OF-FLUID
+    Top of fluid in the wellbore if fluid level test conducted.
+
+WB-H15-FLUID-TEST-FLAG
+    Type of fluid level test conducted:
+    W - Wire Line Test
+    S - Sonic Survey
+    V - Visual Test
+    O - Other
+
+WB-H15-MECH-INTEG-TEST-FLAG
+    Type of mechanical integrity test conducted:
+    H - Hydraulic Pressure
+    O - Other
+
+WB-H15-MECH-TEST-REASON-FLAG
+    Reason mechanical integrity test conducted:
+    A - Substitute for fluid level test
+
+      B - Required by statewide rule 14(b)(2)
+
+
+                                                 2-71
+WB-H15-ALTERNATE-TEST-PERIOD
+    Number of years the mechanical integrity test is good for if different than the standard 5 years.
+
+WB-H15-OTHER-MIT-TEST-TYPE
+    Type of mechanical integrity test conducted if not hydraulic pressure.
+
+WB-H15-STATUS-DATE
+    Date the current status of the H-15 was assigned.
+
+WB-H15-NO-DATE-WELL-FLAG
+    Indicates that the wellbore has no historic date on RRC records and that the operator will have 2
+    years from the mail date to test the wellbore before the H-15 is due.
+
+WB-H15-RECORD-FROM-EDI-FLAG
+    Indicates that the H-15 record was filed electronically.
+
+WB-H15-KEYED-DATE
+    Indicates when the H-15 record was keyed into the system.
+    (CCYYMMDD format).
+
+WB-H15-CHANGED-DATE
+    Indicates when the H-15 record was modified.
+
+WB-H15-PREVIOUS-STATUS
+    Indicates previous status.
+
+WB-H15-UIC-TEST-FLAG
+    Indicates UIC Test.
+
+WB-H15-2YRS-APPROVED-FLAG
+
+WB-H15-MAIL-HOLD-FLAG.
+    If set to 'Y' then mail was held
+
+WB-H15-10YR-INACTIVE-FLAG
+    Indicates if the wellbore has been Inactive for 10 years or more when the Form H15 notice was
+    sent out.
+
+WB-H15-W3X-WELL-FLAG
+
+
+
+
+                                                 2-72
+Well Bore H-15 Remarks
+*****************************************************************************
+* WBW701B1                                                                                 *
+*                        THIS COPY IS USED FOR THE WELLBORE DATABASE'S                     *
+*                                        WBH15 REMARKS SEGMENT                             *
+*                                                                                          *
+*                                                                                          *
+*    SEGMENT NAME: WBH15RMK                                     RECORD LENGTH: 80 BYTES    *
+*                                                               RECURRING                  *
+*    ---------------------------------------------------------------                       *
+*    VARIABLE                                         |      TYPE      | SSA               *
+*    NAME                                             |                | NAME              *
+*    ---------------------------------------------------------------                       *
+*    WB-H15-REMARK-KEY                                | KEY            | WBH15RKY          *
+*    --------------------------------------------------------------                        *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                          POS.
+   02 RRC-TAPE-RECORD-ID                                        PIC X(02).                 1
+   02 WB-H15-REMARKS-SEGMENT.
+      03 WB-H15-REMARK-KEY                                      PIC 9(03)    VALUE ZEROS.  3
+      03 WB-H15-REMARK-TEXT                                     PIC X(70)    VALUE SPACES. 6
+      03 FILLER                                                 PIC X(07)    VALUE ZEROS.  76
+   02 RRC-TAPE-FILLER                                           PIC X(0165).               83
+
+
+
+
+                                             2-73
+ *****************************************************************************
+ *                                      WELL BORE                                                 *
+ *                                WBH15 REMARKS SEGMENT                                           *
+ *****************************************************************************
+ WB-H15-REMARKS-SEGMENT.
+ --------------------------------
+ RRC-TAPE-RECORD-ID
+ --------------------------------
+ This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+ Contained in the first two bytes of each record, this record ID tells what type of information will be
+ found in each record.
+
+ RRC ID
+ Value Tape Record Description
+   24   Well Bore H-15 Remarks
+
+ WELL-BORE-API-ROOT.
+
+ WB-H15-REMARK-KEY.
+     A unique number assigned to a remark segment for a given wellbore.
+
+WB-H15-REMARK-TEXT.
+     The actual text of the remark.
+
+
+
+
+                                                  2-74
+Well Bore Senate Bill 126 (2-Yr Inactive Program)
+*****************************************************************************
+* WBW701C1                                                                  *
+*                             WELL BORE                                     *
+*                       SENATE BILL 126 SEGMENT                             *
+*                                                                           *
+*    SEGMENT NAME: WBSB126                 RECORD LENGTH: 60 BYTES          *
+*                                                                           *
+*                       *NON-RECURRING SEGMENT*                             *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                           POS.
+   02 RRC-TAPE-RECORD-ID                                       PIC X(02).   1
+   02 WB-SB126-SEGMENT.
+     05 WB-SB126-DESIGNATION-FLAG          VALUE ZEROS         PIC X(1).    3
+       88 WB-SB126-AUTO-DESIGNATED         VALUE 'A'.
+       88 WB-SB126-MANUAL-DESIGNATED VALUE 'M'.
+     05 WB-SB126-DESIG-EFFECTIVE-DATE.
+       10 WB-SB126-DESIG-EFFEC-CCYY.
+         15 WB-SB126-DESIG-EFFEC-CC        VALUE ZEROS         PIC 9(2).    4
+         15 WB-SB126-DESIG-EFFEC-YY        VALUE ZEROS         PIC 9(2).    6
+       10 WB-SB126-DESIG-EFFEC-MM          VALUE ZEROS         PIC 9(2).    8
+     05 WB-SB126-DESIG-REVISED-DATE.
+       10 WB-SB126-DESIG-REVISED-CC        VALUE ZEROS         PIC 9(2).    10
+       10 WB-SB126-DESIG-REVISED-YY        VALUE ZEROS         PIC 9(2).    12
+       10 WB-SB126-DESIG-REVISED-MM        VALUE ZEROS         PIC 9(2).    14
+     05 WB-SB126-DESIG-LETTER-DATE.
+       10 WB-SB126-DESIG-LETTER-CC         VALUE ZEROS         PIC 9(2).    16
+       10 WB-SB126-DESIG-LETTER-YY         VALUE ZEROS         PIC 9(2).    18
+       10 WB-SB126-DESIG-LETTER-MM         VALUE ZEROS         PIC 9(2).    20
+       10 WB-SB126-DESIG-LETTER-DD         VALUE ZEROS         PIC 9(2).    22
+     05 WB-SB126-CERT-EFFECT-DATE.
+       10 WB-SB126-CERT-EFFEC-CC           VALUE ZEROS         PIC 9(2).    24
+       10 WB-SB126-CERT-EFFEC-YY           VALUE ZEROS         PIC 9(2).    26
+       10 WB-SB126-CERT-EFFEC-MM           VALUE ZEROS         PIC 9(2).    28
+     05 WB-SB126-CERT-REVOKED-DATE.
+       10 WB-SB126-CERT-REVOKED-CC         VALUE ZEROS         PIC 9(2).    30
+       10 WB-SB126-CERT-REVOKED-YY         VALUE ZEROS         PIC 9(2).    32
+       10 WB-SB126-CERT-REVOKED-MM         VALUE ZEROS         PIC 9(2).    34
+       10 WB-SB126-CERT-REVOKED-DD         VALUE ZEROS         PIC 9(2).    36
+     05 WB-SB126-CERT-DENIAL-DATE.
+       10 WB-SB126-CERT-DENIAL-CC          VALUE ZEROS         PIC 9(2).    38
+       10 WB-SB126-CERT-DENIAL-YY          VALUE ZEROS         PIC 9(2).    40
+       10 WB-SB126-CERT-DENIAL-MM          VALUE ZEROS         PIC 9(2).    42
+       10 WB-SB126-CERT-DENIAL-DD          VALUE ZEROS         PIC 9(2).    44
+     05 WB-SB126-DENIAL-REASON-FLAG        VALUE ZEROS         PIC X(1).    46
+       88 WB-SB126-DENIED-AUTO             VALUE 'A'.
+       88 WB-SB126-DENIED-MANUAL           VALUE 'M'.
+     05 FILLER                             VALUE ZEROS         PIC X(16).   47
+   02 RRC-TAPE-FILLER                                          PIC X(0185). 63
+
+
+
+                                        2-75
+ *****************************************************************************
+ *                                      WELL BORE                                                 *
+ *         WELL BORE SENATE BILL 126 (2-YR INACTIVE PROGRAM) SEGMENT                              *
+ *****************************************************************************
+ WB-SB126-SEGMENT.
+ --------------------------------
+ RRC-TAPE-RECORD-ID
+ --------------------------------
+ This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+ Contained in the first two bytes of each record, this record ID tells what type of information will be
+ found in each record.
+
+ RRC ID
+ Value Tape Record Description
+ 25 Well Bore SB126 - 2 Yr Inactive
+
+WB-SB126-DESIGNATION-FLAG
+    'A' - THE WELLBORE WAS AUTOMATICALLY DESIGNATED FOR SENATE BILL
+          126 BY THE MONTHLY COMPUTER RUN
+
+       'M' - THE WELLBORE WAS MANUALLY DESIGNATED FOR SENATE BILL 126
+           BY THE OPERATOR FILING AN ST-1 FORM.
+       ZEROS OR SPACES - THE WELLBORE IS NOT DESIGNATED FOR SENATE BILL
+           1975.
+
+WB-SB126-DESIG-EFFECTIVE-DATE
+     THIS DATA ITEM IS A SIX CHARACTER DATE REPRESENTING THE FIRST
+     DATE THE WELL BECOMES ELIGIBLE FOR CERTIFICATION FOR TAX
+     EXEMPTION. FORMAT: CCYYMM
+
+WB-SB126-DESIG-REVISED-DATE
+     THIS IS A MANUAL MODIFICATION FOR THE AUTOMATICALLY GENERATED
+     WB-SB126-DESIG-EFFECTIVE-DATE. FORMAT: CCYYMM
+
+WB-SB126-DESIG-LETTER-DATE
+     THIS IS A THE DATE THAT A LETTER WAS SENT TO NOTIFY THE OPERATOR
+     THAT THIS WELLBORE IS A CANDIDATE FOR SENATE BILL 126
+     CERTIFICATION. FORMAT: CCYYMMDD
+
+WB-SB126-CERT-EFFECT-DATE
+     THIS DATA ITEM IS THE DATE THE WELLBORE WAS CERTIFIED TO RECEIVE
+     A TAX CREDIT FOR SENATE BILL 126. FORMAT: CCYYMM
+
+WB-SB126-CERT-REVOKED-DATE
+     DATE THE SENATE BILL 126 CERTIFICATION WAS REVOKED. FORMAT:
+     CCYYMMDD
+
+WB-SB126-CERT-DENIAL-DATE
+     DATE THE SENATE BILL 126 CERTIFICATION WAS DENIED. FORMAT:
+     CCYYMMDD
+
+
+
+                                                  2-76
+WB-SB126-DENIAL-REASON-FLAG
+     THIS FLAG WILL BE SET TO 'A' IF IT WAS AUTOMATICALLY DENIED
+     CERTIFICATION FOR SENATE BILL 126. THIS FLAG WILL BE SET TO 'M'
+     IF IT WAS MANUALLY (ONLINE) DENIED CERTIFICATION FOR SENATE BILL
+     126. THIS FLAG WILL BE SET TO ZERO OR SPACE IF IT HAS NOT BEEN
+     DENIED CERTIFICATION FOR SENATE BILL 126.
+
+
+
+
+                                   2-77
+Well Bore Drilling Permit Status
+*****************************************************************************
+*                                 WELL BORE                                         *
+*                       DRILLING PERMIT STATUS NUMBER                               *
+*                                                                                   *
+* SEGMENT NAME: WBDASTAT                                          (RECURRING)       *
+*                                                                                   *
+* FUNCTION              | SOURCE                        | SSA NAME | OPTION         *
+*---------------        |-------------------------      |----------    |----------  *
+* SEGMENT KEY           | WBDASTAT-NUMBER               | WBSTATUS | UNIQUE         *
+* SECONDARY INDX        | WBDASTAT-NUMBER               | XDASTAT | UNIQUE          *
+*                                                                                   *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                                   POS.
+   02 RRC-TAPE-RECORD-ID                                               PIC X(02).   1
+   02 WBDASTAT-SEGMENT.
+      03 WBDASTAT-NUMBER.                                                           3
+         05 WBDASTAT-STAT-NUM                      VALUE ZEROS         PIC 9(07).   3
+         05 WBDASTAT-UNIQ-NUM                      VALUE ZEROS         PIC 9(02).   10
+      03 WBDASTAT-DELETED-FLAG                     VALUE 'N'           PIC X(01).   12
+         88 WBDASTAT-DELETED                       VALUE 'Y'.
+      03 FILLER                                    VALUE ZEROS         PIC X(10).   13
+   02 RRC-TAPE-FILLER                                                  PIC X(0225). 23
+
+
+
+
+                                          2-78
+ *****************************************************************************
+ *                                      WELL BORE                                                 *
+ *                         DRILLING APPLICATION STATUS NUMBER                                     *
+ *****************************************************************************
+  WBDASTAT-SEGMENT.
+   A WBDASTAT-SEGMENT RECORD OCCURS FOR EACH W-1 APPLICATION
+   FILED WITH THE RAILROAD COMMISSION (RRC) THAT HAS NOT RESULTED
+   IN THE ISSUANCE OF A PERMIT TO DRILL. THE REQUEST TO DRILL
+   COULD BE PENDING, DELETED, OR DENIED.
+ --------------------------------
+ RRC-TAPE-RECORD-ID
+ --------------------------------
+ This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+ Contained in the first two bytes of each record, this record ID tells what type of information will be
+ found in each record.
+
+ RRC ID
+ Value Tape Record Description
+   26   Well Bore Drilling Permit Status
+
+WBDASTAT-STAT-NUM.
+  THIS DATA ITEM CONTAINS A SEVEN-DIGIT NUMBER ASSIGNED TO EACH
+  W-1 APPLICATION RECEIVED AT THE RRC.
+
+WBDASTAT-UNIQ-NUM .
+  THIS DATA ITEM CONTAINS A TWO-DIGIT NUMBER ASSIGNED TO EACH
+  WBDASTAT-STAT-NUM (SEE ABOVE). THIS NUMBER, USED INTERNALLY,
+  IDENTIFIES EACH AMENDMENT TO AN APPLICATION AND MAKES THE
+  AMENDMENT UNIQUE.
+
+WBDASTAT-DELETED-FLAG.
+  THIS DATA ITEM CONTAINS A ONE DIGIT FLAG REPRESENTING IF THE
+  DRILLING APPLICATION HAS BEEN DELETED. A VALUE OF 'Y'
+  INDICATES THE DRILLING APPLICATION HAS BEEN DELETED.
+
+
+
+
+                                                  2-79
+Well Bore W3C
+*****************************************************************************
+* WBW700R(3)                   WELL BORE                                    *
+*                      WB FORM W3C SEGMENT                                  *
+*              (SURFACE EQUIPMENT REMOVAL FOR INACTIVE WELLS)               *
+*                                                                           *
+* SEGMENT NAME: WBW3C                (RECURRING)                            *
+* PARENT NAME: WBROOT                                                       *
+*                                                                           *
+* UNKEYED, NO SEARCH FIELDS           SEGMENT LENGTH: 100 BYTES             *
+*                                                                           *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                           POS.
+    02 RRC-TAPE-RECORD-ID                  PIC X(02).                       1
+    02 WELL-BORE-FORM-W3C-SEG.
+        03 WB-W3C-1YR-FLAG                 PIC X(01) VALUE SPACES.           3
+           88 WB-W3C-1YR-CERTIFY                      VALUE 'Y'.
+           88 WB-W3C-1YR-FALSE-CERT                   VALUE 'F'.
+        03 WB-W3C-1YR-FILED-DATE           PIC 9(08) VALUE ZEROS.            4
+        03 WB-W3C-1YR-FILING-OPER          PIC 9(06) VALUE ZEROS.            12
+        03 WB-W3C-5YR-FLAG                 PIC X(01) VALUE SPACES.           18
+           88 WB-W3C-5YR-REMOVED                      VALUE 'R'.
+           88 WB-W3C-5YR-OWNER                        VALUE 'O'.
+           88 WB-W3C-5YR-FALSE-CERT                   VALUE 'F'.
+        03 WB-W3C-5YR-FILED-DATE           PIC 9(08) VALUE ZEROS.            19
+        03 WB-W3C-5YR-FILING-OPER          PIC 9(06) VALUE ZEROS.            27
+        03 WB-W3C-10YR-FLAG                PIC X(01) VALUE SPACES.           33
+           88 WB-W3C-10YR-REMOVED                     VALUE 'R'.
+           88 WB-W3C-10YR-OWNER                       VALUE 'O'.
+           88 WB-W3C-10YR-EOR                         VALUE 'E'.
+           88 WB-W3C-10YR-REJ                         VALUE 'J'.
+           88 WB-W3C-10YR-FALSE-CERT                  VALUE 'F'.
+       03 WB-W3C-10YR-FILED-DATE          PIC 9(08) VALUE ZEROS.             34
+       03 WB-W3C-10YR-FILING-OPER         PIC 9(06) VALUE ZEROS.             42
+       03 WB-W3C-14B2-REMOVAL-DATE        PIC 9(08)   VALUE ZEROS.           48
+       03 WB-W3C-EXTENSION-FLAG           PIC X(01) VALUE 'N'.               56
+          88 WB-W3C-EXTENSION                         VALUE 'Y'.
+          88 WB-W3C-EXTENSION-FALSE-CERT              VALUE 'F'.
+      03 WB-W3C-EXTENSION-DATE.
+          05 WB-W3C-EXTENSION-YEAR        PIC 9(04) VALUE ZEROS.             57
+          05 WB-W3C-EXTENSION-MONTH PIC 9(02)         VALUE ZEROS.            61
+          05 WB-W3C-EXTENSION-DAY         PIC 9(02) VALUE ZEROS.              63
+     03 WB-W3C-5YR-FLAG-PREVIOUS          PIC X(01) VALUE SPACES.             65
+     03 WB-W3C-10YR-FLAG-PREVIOUS         PIC X(01) VALUE SPACES.            66
+     03 FILLER                            PIC X(36) VALUE SPACES.             67
+     03 RRC-TAPE-FILLER                   PIC X(145).                         103
+
+
+
+
+                                      2-80
+ ****************************************************************************
+ *                            WELL BORE                                     *
+ *                           W3C SEGMENT                                    *
+ ****************************************************************************
+ WELL-BORE-FORM-W3C-SEG
+
+ THIS SEGMENT IS RECURRING, AND NON-KEYED. THE MOST RECENT W3C DATA
+ IS THE FIRST W3C SEGMENT UNDER THE WBROOT. THIS SEGMENT CONTAINS
+ DATA FROM THE FILED FORM W3C DATA.
+  --------------------------------
+  RRC-TAPE-RECORD-ID
+  --------------------------------
+  This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+  Contained in the first two bytes of each record, this record ID tells what type of information will be
+  found in each record.
+
+ RRC ID
+ Value Tape Record Description
+   27   Well Bore W3C Segment
+
+WB-W3C-1YR-FLAG - ' ' = NO ACTION HAS BEEN TAKEN.
+                - 'Y' = 1 YEAR REQUIREMENTS HAVE BEEN MET.
+                - 'F' = OPERATOR HAS FALSELY CERTIFIED THAT 1
+                         YEAR REQUIREMNETS HAVE BEEN MET.
+
+ WB-W3C-1YR-FILED-DATE - DATE THE W3C 1YR DATA WAS ENTERED
+                       - FORMAT IS CCYYMMDD.
+
+WB-W3C-1YR-FILING-OPER - THE OPER WHO FILED FORM W3C FOR 1YR DATA.
+
+WB-W3C-5YR-FLAG - ' ' = NO ACTION HAS BEEN TAKEN.
+               - 'R' = 5 YEAR REQUIREMENTS HAVE BEEN MET.
+               - 'O' = THE OPERATOR OWNS THE LAND
+               - 'F' = OPERATOR HAS FALSELY CERTIFIED THAT 5
+                       YEAR REQUIREMNETS HAVE BEEN MET.
+
+WB-W3C-5YR-FILED-DATE - DATE THE W3C 5YR DATA WAS ENTERED
+                      - FORMAT IS CCYYMMDD.
+
+WB-W3C-5YR-FILING-OPER - THE OPER WHO FILED FORM W3C FOR 5YR DATA.
+
+WB-W3C-10YR-FLAG - ' ' NO ACTION HAS BEEN TAKEN.
+                 - 'R' 10 YEAR REQUIREMENTS HAVE BEEN MET.
+                 - 'O' OPERATOR OWNS THE LAND.
+                 - 'E' THE WELL IS PART OF EOR PROJECT
+                 - 'F' = OPERATOR HAS FALSELY CERTIFIED THAT 10
+                         YEAR REQUIREMNETS HAVE BEEN MET.
+
+WB-W3C-10YR-FILED-DATE - DATE THE W3C 10YR DATA WAS ENTERED
+                       - FORMAT IS CCYYMMDD.
+
+
+
+                                                   2-81
+WB-W3C-10YR-FILING-OPER - THE OPER WHO FILED FORM W3C FOR 10YR DATA
+
+WB-W3C-14B2-REMOVAL-DATE - THE DATE THE FORM W3C IS NO LONGER
+  RELEVANT. THIS DATA IS POPULATED WHEN THE WELLBORE IS NO
+  LONGER SUBJECT TO RULE 14/15. FORMAT IS CCYYMMDD.
+
+WB-W3C-EXTENSION-FLAG - ' ' = NO ACTION TAKEN.
+                     - 'Y' = A TEMPORARY EXCEPTION FOR THE
+                              REQUIREMENTS HAS BEEN GRANTED.
+                      - 'F' = OPERATOR HAS FALSELY FILED FOR AN
+                              EXCEPTION.
+
+WB-W3C-EXTENSION-DATE - THE DATE THE EXTENSION/EXEMPTION WAS
+  ENTERED. FORMAT IS CCYYMMDD.
+
+WB-W3C-5YR-FLAG-PREVIOUS - WHAT THE FLAG WAS SET TO PREVIOUS TO
+  THE NEW SETTING.
+
+WB-W3C-10YR-FLAG-PREVIOUS - WHAT THE FLAG WAS SET TO PREVIOUS TO
+  THE NEW SETTING.
+
+
+
+
+                                    2-82
+Well Bore 14B2 Remarks
+*****************************************************************************
+*                              WELL BORE                                     *
+*                     WB14B2 REMARKS SEGMENT                                 *
+*                                                                            *
+*     SEGMENT NAME: WB14B2RM            (RECURRING)                          *
+*     PARENT NAME: WB14B2                                                    *
+*****************************************************************************
+ 01 RAILROAD-COMMISSION-TAPE-REC.                                            POS.
+    02 RRC-TAPE-RECORD_ID              PIC X(02)                             1
+    02 WELL-BORE-14B2-RMKS-SEG.
+        03 WB-14B2-RMK-LNE-CNT         PIC 9(03) VALUE ZEROS.               3
+        03 WB-14B2-RMK-DATE            PIC 9(08) VALUE ZEROS.               6
+        03 WB-14B2-RMK-USERID          PIC X(08) VALUE SPACES.              14
+        03 WB-14B2-REMARKS             PIC X(66) VALUE SPACES.              22
+        03 FILLER                      PIC X(15) VALUE SPACES.              88
+    02 RRC-TAPE-FILLER                 PIC X(144) VALUE SPACES.            103
+
+
+
+
+                                      2-83
+****************************************************************************
+*                                    WELL BORE                                                  *
+*                                14B2 REMARKS SEGMENT                                           *
+****************************************************************************
+WELL-BORE-14B2-RMKS-SEG
+--------------------------------
+RRC-TAPE-RECORD-ID
+--------------------------------
+This two-digit number indicates the Railroad Commission (RRC) well database tape's record ID.
+Contained in the first two bytes of each record, this record ID tells what type of information will be
+found in each record.
+
+RRC ID
+Value Tape Record Description
+  28   Well Bore 14B2 Remarks Segment
+
+WB-14B2-RMK-LNE-CNT
+ REMARKS ARE INSERTED SEQUENTIALLY. THIS IS THE IDENTIFYING
+ LINE NUMBER OF THE REMARKS.
+
+WB-14B2-RMK-DATE
+ THE DATE (CCYYMMDD) WHEN THESE REMARKS WERE CREATED
+
+WB-14B2-RMK-USERID
+  THIS IS THE RRC PERSON OR PROGRAM THAT GENERATED THE REMARKS
+
+WB-14B2-REMARKS
+ REMARKS PERTAINING TO THIS 14B2 WELL
+
+
+
+
+                                                 2-84
+
