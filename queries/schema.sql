@@ -199,3 +199,41 @@ CREATE TABLE wellbore.wellid (
 
   -- Note: Foreign keys removed due to data quality issues in source files
 );
+
+
+-- ============================================================================
+-- Emissions (Carbon Mapper satellite observations)
+-- ============================================================================
+
+CREATE SCHEMA emissions;
+
+-- Emission sources detected by Carbon Mapper (CH4, CO2, etc.)
+CREATE TABLE emissions.sources (
+  id VARCHAR PRIMARY KEY,
+  geom GEOMETRY,
+
+  -- Gas and sector
+  gas VARCHAR,                             -- Gas type (e.g., CH4)
+  sector VARCHAR,                          -- IPCC sector code (e.g., 6A = Oil and Gas)
+
+  -- Plume observations
+  plume_count INTEGER,
+  detection_date_count INTEGER,
+  observation_date_count INTEGER,
+
+  -- Emissions data
+  emission_auto DOUBLE,                    -- Auto-calculated emission rate (kg/hr)
+  emission_uncertainty_auto DOUBLE,        -- Uncertainty in emission rate
+
+  -- Temporal coverage
+  timestamp_min DATE,
+  timestamp_max DATE,
+  published_at_min DATE,
+  published_at_max DATE,
+
+  -- Persistence
+  persistence DOUBLE,                      -- Fraction of observations with detection
+
+  -- Metadata
+  source_name VARCHAR
+);
