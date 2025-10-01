@@ -106,6 +106,7 @@ best_matches AS (
 SELECT
     e.id,
     e.emission_auto as rate_avg_kg_hr,
+    ROUND(e.emission_auto / NULLIF(e.persistence, 0), 2) as rate_detected_kg_hr,
     e.emission_uncertainty_auto as rate_uncertainty_kg_hr,
     e.plume_count,
     e.timestamp_min,

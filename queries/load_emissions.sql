@@ -22,7 +22,7 @@ SELECT
     published_at_max,
     persistence,
     source_name
-FROM ST_Read('data/sources_2025-10-01T14_21_01.341Z.json');
+FROM ST_Read('data/sources.json');
 
 -- Show summary
 SELECT 'Total emission sources' as metric, COUNT(*) as count FROM emissions.sources

@@ -38,6 +38,7 @@ aggregated_matches AS (
 SELECT
     a.id,
     a.rate_avg_kg_hr,
+    a.rate_detected_kg_hr,
     a.rate_uncertainty_kg_hr,
     a.plume_count,
     a.timestamp_min,

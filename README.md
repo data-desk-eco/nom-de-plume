@@ -47,66 +47,43 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
 ## Prerequisites
 
 - DuckDB CLI (`brew install duckdb`)
-- Python 3.10+ with uv (for fetching emissions data)
 - Make
-- curl (for downloading OGIM database)
-
-## Setup
-
-The pipeline automatically downloads required data files:
-
-```bash
-# Fetch latest emissions data from Carbon Mapper API
-# (fetches CH4 plumes for Texas bbox, ~10,443 sources, ~13 MB)
-uv run scripts/fetch_emissions.py
-```
-
-That's it! The OGIM database (2.9 GB) will be automatically downloaded when you run `make`.
+- curl (standard on macOS/Linux)
 
 ## Running the Pipeline
 
-### Full Build
+Everything is fully automated - just run `make`:
 
 ```bash
-# Build complete pipeline (auto-downloads OGIM if needed)
+# Build complete pipeline and generate LNG attribution report
 make
 
-# First run will:
-# 0. Download OGIM v2.7 from Zenodo (~2.9 GB, one-time, ~5 min depending on connection)
-# 1. Load infrastructure from OGIM GeoPackage (~30 sec)
-# 2. Load emissions from Carbon Mapper GeoJSON (~5 sec)
-# 3. Create spatial indexes (~10 sec)
-# 4. Run attribution spatial join (~3 min)
+# First run automatically:
+# 1. Downloads OGIM v2.7 from Zenodo (~2.9 GB, one-time, ~5 min)
+# 2. Fetches emissions from Carbon Mapper API (~10K sources, ~13 MB, <10 sec)
+# 3. Loads infrastructure from OGIM GeoPackage (~30 sec)
+# 4. Loads emissions data (~5 sec)
+# 5. Creates attribution table with spatial join (~3 min)
+# 6. Generates LNG attribution report (~1 sec)
 # Total first run: ~9 minutes (subsequent runs: ~4 minutes)
-```
-
-### Generate Reports
-
-```bash
-# Generate LNG attribution report
-make lng-attribution
 ```
 
 Output file:
 - `output/lng_attribution.csv` (52 rows, ~28 KB)
 
-### Test Infrastructure Loading
+### Rebuilding
 
 ```bash
-# Show facility counts by type without building full database
-make test
-```
+# Rebuild database from existing data
+make data/data.duckdb
 
-### Additional Commands
+# Re-fetch emissions data (get latest from Carbon Mapper)
+rm data/sources.json && make
 
-```bash
-# Manually download OGIM database (normally happens automatically)
-make download-ogim
-
-# Clean generated database and reports (keeps source data)
+# Clean generated files (keeps downloaded source data)
 make clean
 
-# Clean everything including downloaded OGIM database and emissions data
+# Clean everything including source data (will re-download on next make)
 make clean-all
 ```
 
@@ -118,6 +95,7 @@ The LNG attribution CSV contains one row per emission source with:
 |--------|-------------|
 | `id` | Unique emission source identifier |
 | `rate_avg_kg_hr` | Average methane emission rate (kg/hr) |
+| `rate_detected_kg_hr` | Emission rate adjusted for persistence (avg/persistence) |
 | `rate_uncertainty_kg_hr` | Uncertainty in emission rate |
 | `plume_count` | Number of times plume was observed |
 | `timestamp_min/max` | First and last observation dates |

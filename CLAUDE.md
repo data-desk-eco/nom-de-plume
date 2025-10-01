@@ -27,12 +27,12 @@ The database is **complete and production-ready** with full attribution capabili
 OGIM GeoPackage + Carbon Mapper GeoJSON → DuckDB Database
          ↓                                        ↓
   data/OGIM_v2.7.gpkg                      data.duckdb
-  (auto-downloaded)
-  data/sources_*.json
-  (fetch manually)
+  (auto-downloaded via curl)
+  data/sources.json
+  (auto-fetched via curl)
 ```
 
-Build with: `make` (auto-downloads OGIM if needed)
+Build with: `make` (fully automated, downloads all data)
 
 ### Database Schema
 
@@ -83,13 +83,10 @@ Operator Attribution
 
 ```
 data/
-  OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB, auto-downloaded from Zenodo)
-  sources_*.json                      # Carbon Mapper emissions GeoJSON (fetch manually)
+  OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB, auto-downloaded via curl)
+  sources.json                        # Carbon Mapper emissions GeoJSON (auto-fetched via curl)
   supply-contracts-gemini-2-5-pro.csv # LNG feedgas supply agreements from DOE
   data.duckdb                         # Final database (gitignored)
-
-scripts/
-  fetch_emissions.py                  # Fetch emissions from Carbon Mapper API
 
 queries/
   schema.sql                          # Database schema (loads spatial extension)
@@ -319,9 +316,10 @@ D DESCRIBE emissions.attributed;           # Show attribution results
 
 ## Development Guidelines
 
-- **Always use uv for Python** (per global CLAUDE.md)
-- **Minimal code** - Prefer simple, obvious solutions
-- **DuckDB CLI for pipelines** - Avoid Python DB bindings
+- **Minimal dependencies** - Pure make/curl/DuckDB pipeline, no Python required
+- **File-based Makefile targets** - Use actual file targets instead of .PHONY where possible
+- **Scripts output to stdout** - Redirect to files in Makefile using built-in variables ($@, $<, etc.)
+- **DuckDB CLI for pipelines** - No Python/language bindings needed
 - **No unnecessary files** - Keep repo clean
 - **Document data quality issues** - Note OGIM data limitations (e.g., plugged wells can still emit)
 - When editing computationally expensive SQL queries, always add a LIMIT clause in a sensible place to make it run faster during testing, then remove it for production. This saves a lot of waiting around.
