@@ -111,6 +111,11 @@ def main():
 
                 # Start new lease
                 root = parse_root_record(record)
+                if root is None:
+                    # Skip malformed record
+                    current_lease_key = None
+                    continue
+
                 current_lease_key = (root.oil_gas_code, root.district, root.lease_rrcid)
 
                 root_writer.writerow([
@@ -125,12 +130,14 @@ def main():
 
             elif record_id == '02' and current_lease_key:
                 info = parse_info_record(record)
-                info_records.append(info)
+                if info is not None:
+                    info_records.append(info)
 
             elif record_id == '03' and current_lease_key and info_records:
                 gpn = parse_gpn_record(record)
-                # Associate with most recent info record
-                gpn_records.append((info_records[-1].sequence_date_key, gpn))
+                if gpn is not None:
+                    # Associate with most recent info record
+                    gpn_records.append((info_records[-1].sequence_date_key, gpn))
 
             elif record_id == '07' and current_lease_key:
                 ln = parse_lease_name_record(record)
