@@ -4,19 +4,19 @@ Methane plume attribution system for Texas oil and gas infrastructure.
 
 ## Project Goal
 
-Attribute methane plumes observed by satellites to specific owners, operators, and gathering companies of oil and gas infrastructure in Texas.
+Attribute methane plumes observed by satellites to specific operators of oil and gas infrastructure in Texas.
 
 ## Current State
 
 The database is **complete and production-ready** with full attribution capability:
 
-- **1,005,281 wells** with corrected WGS84 coordinates and spatial geometry
+- **970,362 wells** from OGIM v2.7 with WGS84 coordinates and spatial geometry
+- **561 compressor stations**, **176 processing plants**, **24 tank batteries**
 - **10,443 emission sources** from Carbon Mapper satellite observations (CH4 and CO2)
-- **1,941 CH4 plumes** attributed to operators and purchasers with confidence scores
-- **743 plumes** matched to LNG feedgas supply contracts
-- **P5 organization data** linking operator/gatherer numbers to company names
+- **290 CH4 plumes** attributed to infrastructure operators with confidence scores
+- **52 plumes** matched to LNG feedgas supply contracts
 - Spatial queries enabled via DuckDB spatial extension
-- Complete chain: Plume location → Well → Lease → Operator/Purchaser → LNG Facility
+- Multi-infrastructure attribution: Plume location → Nearest facility (well/compressor/processing/tank) → Operator → LNG Facility
 - **LNG supply contracts** from DOE filings parsed by Gemini 2.5 Pro
 
 ## Architecture
@@ -24,38 +24,34 @@ The database is **complete and production-ready** with full attribution capabili
 ### Data Pipeline
 
 ```
-EBCDIC Files → Python Parsers → CSV Files → DuckDB Database
-     ↓              ↓              ↓              ↓
-  data/*.gz    scripts/*.py   (gitignored)  data.duckdb
+OGIM GeoPackage + Carbon Mapper GeoJSON → DuckDB Database
+         ↓                                        ↓
+  data/OGIM_v2.7.gpkg                      data.duckdb
+  data/sources_*.json
 ```
 
 Build with: `make` or `make data/data.duckdb`
 
 ### Database Schema
 
-**P4 Schema** (lease/producer data):
-- `p4.root` - 543,920 leases (oil_gas_code + district + lease_rrcid)
-- `p4.info` - 3.7M P-4 filings (temporal records)
-- `p4.gpn` - 11.9M gatherer/purchaser/nominator records
-- `p4.lease_name` - 524K lease names
+**Infrastructure Schema** (OGIM data):
+- `infrastructure.all_facilities` - 970K+ facilities with unified schema:
+  - Wells (weight=1.0): 970K Texas wells
+  - Processing plants (weight=2.0): 176 facilities
+  - Compressor stations (weight=1.5): 561 facilities
+  - Tank batteries (weight=1.3): 24 facilities
+  - Fields: facility_id, infra_type, type_weight, operator, facility_subtype, status, latitude, longitude, **GEOMETRY column**
 
-**Wellbore Schema** (well locations):
-- `wellbore.root` - 1.2M wells (API number = api_county + api_unique)
-- `wellbore.location` - 1M wells with WGS84 coordinates and **GEOMETRY column**
-- `wellbore.wellid` - 661K well-to-lease linkages (THE BRIDGE between systems)
-
-**P5 Schema** (organization data):
-- `p5.org` - 77,625 organizations with names and addresses
-- `p5.officer` - 182K officer records
-- `p5.specialty` - 7,845 specialty codes
-- `p5.activity` - 9,905 activity indicators
-
-**Emissions Schema** (satellite observations):
+**Emissions Schema** (Carbon Mapper observations):
 - `emissions.sources` - 10,443 emission sources with **GEOMETRY column**
-- `emissions.attributed` - 1,941 CH4 plumes matched to nearest wells with:
-  - Operator and purchaser information
-  - Confidence scores (0-100) based on proximity, operator dominance, and well density
-  - Distance to nearest well and well counts within 500m radius
+- `emissions.attributed` - 290 CH4 plumes matched to nearest facilities with:
+  - Operator information (directly from OGIM)
+  - Infrastructure type (well/compressor/processing/tank_battery)
+  - Confidence scores (22-92) based on:
+    - **Distance** (0-35 points): Closer plumes score higher, max at 0m (35 pts), min at 750m (0 pts)
+    - **Operator Dominance** (0-50 points): % of nearby facilities of same type operated by matched operator
+    - **Facility Density** (5-15 points): Fewer nearby facilities = less ambiguity = higher score
+  - Distance to nearest facility and facility counts within 750m radius
 - Includes CH4 and CO2 plumes from Carbon Mapper
 - Fields: emission rate, plume count, persistence, timestamps
 
@@ -63,135 +59,151 @@ Build with: `make` or `make data/data.duckdb`
 
 ```
 Satellite Plume (emissions.sources.geom)
-    ↓ ST_Distance() / spatial query
-Well Location (wellbore.location.geom)
-    ↓ api_county, api_unique
-Well-ID Bridge (wellbore.wellid)
-    ↓ oil_gas_code, district, lease_number/gas_rrcid
-P4 Lease (p4.root)
-    ↓ oil_gas_code, district, lease_rrcid
-    ├→ operator_number → p5.org (operator name)
-    └→ Gatherers/Purchasers (p4.gpn)
-        → gpn_number → p5.org (gatherer/purchaser name)
-        → actual_percent, type_code
+    ↓ ST_DWithin(750m) / spatial query with bbox pre-filter
+Infrastructure Facility (infrastructure.all_facilities.geom)
+    ↓ Confidence scoring: distance + operator dominance + density
+Best Match Selection (type_weight / distance ranking)
+    ↓ facility_id, operator, infra_type
+Operator Attribution
 ```
 
 ## Key Design Decisions
 
-1. **No Python dependencies** - Only stdlib, parsers use `cp500` encoding for EBCDIC
-2. **DuckDB CLI** - No Python bindings, pure SQL for data loading
-3. **Faithful schema** - Field names from Texas RRC documentation
-4. **No foreign keys** - Source data has quality issues (duplicates, orphans)
-5. **Spatial extension** - GEOMETRY column for efficient spatial queries
-6. **CSV intermediate** - Makefile tracks dependencies properly
+1. **OGIM v2.7** - Environmental Defense Fund's Oil and Gas Infrastructure Mapping database
+2. **GeoPackage format** - SQLite-based spatial database, loaded via DuckDB's SQLite scanner
+3. **DuckDB CLI** - No Python dependencies for data loading, pure SQL pipeline
+4. **Multi-infrastructure** - Includes wells, compressor stations, processing plants, tank batteries
+5. **Type weighting** - Different facility types weighted by emission likelihood
+6. **Spatial extension** - GEOMETRY columns for efficient spatial queries
+7. **Confidence scoring** - Three-factor scoring system handles attribution ambiguity
 
 ## File Structure
 
 ```
 data/
-  p4f606.ebc.gz                      # P4 EBCDIC source (203 MB)
-  dbf900.ebc.gz                      # Wellbore EBCDIC source (487 MB)
-  orf850.ebc.gz                      # P5 organization EBCDIC source (20 MB)
-  sources_*.json                     # Carbon Mapper emissions JSON
+  OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB GeoPackage)
+  sources_*.json                      # Carbon Mapper emissions GeoJSON
   supply-contracts-gemini-2-5-pro.csv # LNG feedgas supply agreements from DOE
-  *.csv                              # Generated CSVs (gitignored)
-  data.duckdb                        # Final database (gitignored)
+  data.duckdb                         # Final database (gitignored)
 
 scripts/
-  create_p4_db.py         # P4 EBCDIC → CSV parser
-  parse_p4.py             # P4 data structures
-  create_wellbore_db.py   # Wellbore EBCDIC → CSV parser
-  parse_wellbore.py       # Wellbore data structures
-  create_p5_db.py         # P5 EBCDIC → CSV parser
-  parse_p5.py             # P5 data structures
-  fetch_emissions.py      # Fetch emissions from Carbon Mapper API
+  fetch_emissions.py                  # Fetch emissions from Carbon Mapper API
 
 queries/
-  schema.sql                    # Database schema (loads spatial extension)
-  load_p4.sql                   # Load P4 data
-  load_wellbore.sql             # Load wellbore data (creates geometry with longitude fix)
-  load_p5.sql                   # Load P5 organization data
-  load_emissions.sql            # Load emissions data (creates geometry)
-  create_indexes.sql            # Create spatial and performance indexes
-  create_attribution_table.sql  # Materialize emissions attribution (expensive spatial join)
-  emissions_attribution.sql     # Legacy CSV export of attribution
-  lng_attribution.sql           # Match attributed plumes to LNG supply contracts
+  schema.sql                          # Database schema (loads spatial extension)
+  load_ogim.sql                       # Load infrastructure from OGIM GeoPackage
+  load_emissions.sql                  # Load emissions data (creates geometry)
+  create_ogim_attribution.sql         # Multi-infrastructure attribution with confidence scoring
+  ogim_lng_attribution.sql            # Match attributed plumes to LNG supply contracts
+  create_ogim_attribution_test.sql    # Test version (10 emissions only)
 
 output/
-  lng_attribution.csv     # CH4 plumes matched to LNG feedgas suppliers (743 rows)
-
-docs/
-  p4-user-manual_p4a002_feb2015.txt    # P4 field documentation
-  wba091_well-bore-database.txt        # Wellbore field documentation
-  wla001k.txt                           # P5 field documentation
+  lng_attribution.csv                 # CH4 plumes matched to LNG feedgas suppliers (52 rows)
 ```
 
 ## Important Implementation Details
 
-### EBCDIC Parsing
-- **Encoding**: Use `cp500` (IBM EBCDIC US/Canada)
-- **Signed decimals**: EBCDIC zoned decimal (last byte has sign in zone bits: 0xC=pos, 0xD=neg)
-- **Record types**: First 2 bytes identify segment type (01, 02, 03, etc.)
+### OGIM Data Structure
 
-### P4 Structure
-- Record 01 (root) = current lease state
-- Record 02 (info) = temporal P-4 filing (has sequence_date_key)
-- Record 03 (gpn) = gatherers/purchasers for that filing
-- Record 07 (lease_name) = lease names (matched by sequence_date_key)
-- **Buffering required**: Collect all records per lease before writing
+OGIM v2.7 is a GeoPackage (SQLite-based spatial database) with separate tables for each facility type. Key tables for Texas:
 
-### Wellbore Structure
-- Record 01 (root) = well identification (API number)
-- Record 13 (location) = WGS84 coordinates (NON-RECURRING)
-  - **Longitude sign issue**: RRC data stores Texas longitudes as positive values
-  - Fixed in `load_wellbore.sql` with `-ABS(longitude)` to ensure western hemisphere
-- Record 21 (wellid) = THE BRIDGE to RRC lease IDs (RECURRING)
-  - Oil wells: district + lease_number → p4.root.lease_rrcid
-  - Gas wells: gas_rrcid → p4.root.lease_rrcid
+- **Oil_and_Natural_Gas_Wells**: 970K wells with FAC_ID, OPERATOR, FAC_TYPE, FAC_STATUS, LATITUDE, LONGITUDE
+- **Gathering_and_Processing**: 176 facilities with OGIM_ID, OPERATOR, FAC_TYPE
+- **Natural_Gas_Compressor_Stations**: 561 facilities with OGIM_ID, OPERATOR, FAC_STATUS
+- **Tank_Battery**: 24 facilities with OGIM_ID, OPERATOR, FAC_TYPE
+
+All facilities include OPERATOR field (operator name, not a numeric ID).
+
+### Infrastructure Type Weighting
+
+Different infrastructure types have different emission likelihoods:
+
+- **Processing plants** (2.0x): Highest emission risk due to complex operations, large gas volumes
+- **Compressor stations** (1.5x): High risk due to mechanical compression, fugitive emissions
+- **Tank batteries** (1.3x): Medium-high risk from venting, flashing
+- **Wells** (1.0x): Baseline risk, most numerous facility type
+
+Type weight is used in final facility ranking: `type_weight / (distance + 0.01)` DESC
+
+### Confidence Scoring
+
+Three-factor scoring system (0-100 total):
+
+1. **Distance Score (0-35 points)**: Type-weighted distance score
+   - Formula: `(distance_score * type_weight) = GREATEST(0, 35 * (1 - distance_km/0.75)) * type_weight`
+   - Closer facilities score higher
+   - Weighted by infrastructure type
+
+2. **Operator Dominance Score (0-50 points)**:
+   - Formula: `50 * (operator_facilities_of_type / total_facilities_within_750m)`
+   - 100% = operator owns all nearby facilities of matched type (50 points)
+   - 50% = operator owns half of nearby facilities (25 points)
+   - Helps identify contested vs. clear attributions
+
+3. **Density Score (5-15 points)**:
+   - 1 facility: 15 points (unambiguous)
+   - 2-3 facilities: 12 points
+   - 4-10 facilities: 9 points
+   - 11-30 facilities: 6 points
+   - 30+ facilities: 5 points (highly contested)
+
+### Spatial Query Optimization
+
+Attribution query uses two-stage filtering for performance:
+
+1. **Bounding box pre-filter**: Quickly eliminate most facilities using coordinate ranges
+   ```sql
+   WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
+     AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
+   ```
+
+2. **Precise distance filter**: ST_DWithin for exact 750m radius
+   ```sql
+   AND ST_DWithin(e.geom, f.geom, 0.0075)  -- ~750m in degrees
+   ```
+
+This two-stage approach is much faster than ST_Distance comparisons alone.
 
 ### Geometry Columns
-Both wells and emissions use PostGIS-style GEOMETRY columns for spatial queries:
+
+Both infrastructure and emissions use PostGIS-style GEOMETRY columns for spatial queries:
 
 ```sql
--- Well geometry (created in load_wellbore.sql with longitude sign correction)
-ST_Point(-ABS(wgs84_longitude), wgs84_latitude) AS geom
+-- Infrastructure geometry (created in load_ogim.sql)
+ST_Point(LONGITUDE, LATITUDE) AS geom
 
 -- Emission geometry (created in load_emissions.sql)
 ST_Point(longitude, latitude) AS geom
 
--- Example: Find nearest well to an emission
+-- Example: Find nearest facility to an emission
 SELECT
     e.id as emission_id,
-    w.api_county || '-' || w.api_unique as well_api,
-    ST_Distance(e.geom, w.geom) * 111 as distance_km
+    f.facility_id,
+    f.infra_type,
+    f.operator,
+    ST_Distance(e.geom, f.geom) * 111 as distance_km
 FROM emissions.sources e
-CROSS JOIN wellbore.location w
-WHERE w.geom IS NOT NULL
-ORDER BY ST_Distance(e.geom, w.geom)
+CROSS JOIN infrastructure.all_facilities f
+WHERE ST_DWithin(e.geom, f.geom, 0.01)  -- ~1km
+ORDER BY ST_Distance(e.geom, f.geom)
 LIMIT 1;
 ```
 
 ## Common Queries
 
-### Find emissions near wells operated by a specific company
+### Find emissions near facilities operated by a specific company
 
 ```sql
 -- Install and load spatial extension first
 INSTALL spatial;
 LOAD spatial;
 
--- Find emissions within 5km of company's wells
-WITH company_wells AS (
-    SELECT loc.geom, loc.api_county, loc.api_unique, p4.operator_number, org.organization_name
-    FROM wellbore.location loc
-    JOIN wellbore.wellid wb ON loc.api_county = wb.api_county
-                            AND loc.api_unique = wb.api_unique
-    JOIN p4.root p4 ON wb.oil_gas_code = p4.oil_gas_code
-                    AND wb.district = p4.district
-                    AND (wb.lease_number = p4.lease_rrcid OR wb.gas_rrcid = p4.lease_rrcid)
-    LEFT JOIN p5.org org ON p4.operator_number = org.operator_number
-    WHERE UPPER(org.organization_name) LIKE '%COMPANY_NAME%'
-      AND loc.geom IS NOT NULL
+-- Find emissions within 5km of company's facilities
+WITH company_facilities AS (
+    SELECT geom, facility_id, infra_type, operator
+    FROM infrastructure.all_facilities
+    WHERE UPPER(operator) LIKE '%COMPANY_NAME%'
+      AND geom IS NOT NULL
 )
 SELECT
     e.id,
@@ -199,40 +211,48 @@ SELECT
     e.plume_count,
     ST_Y(e.geom) as lat,
     ST_X(e.geom) as lon,
-    w.api_county || '-' || w.api_unique as well_api,
-    w.organization_name,
-    ROUND(ST_Distance(e.geom, w.geom) * 111, 2) as distance_km
+    f.facility_id,
+    f.infra_type,
+    f.operator,
+    ROUND(ST_Distance(e.geom, f.geom) * 111, 2) as distance_km
 FROM emissions.sources e
-JOIN company_wells w ON ST_Distance(e.geom, w.geom) < 0.05  -- ~5km
+JOIN company_facilities f ON ST_DWithin(e.geom, f.geom, 0.05)  -- ~5km
 WHERE e.gas = 'CH4'
 ORDER BY e.emission_auto DESC, distance_km;
 ```
 
-### Find all operators and gatherers for wells near a plume
+### Find all facilities near a specific plume
 
 ```sql
 SELECT
-    loc.api_county || '-' || loc.api_unique as well_api,
-    ST_Distance(e.geom, loc.geom) * 111 as distance_km,
-    op_org.organization_name as operator_name,
-    gpn.type_code,
-    gpn_org.organization_name as gatherer_name,
-    gpn.actual_percent
+    f.facility_id,
+    f.infra_type,
+    f.operator,
+    f.facility_subtype,
+    ST_Distance(e.geom, f.geom) * 111 as distance_km
 FROM emissions.sources e
-JOIN wellbore.location loc ON ST_Distance(e.geom, loc.geom) < 0.01  -- ~1km
-JOIN wellbore.wellid wb ON loc.api_county = wb.api_county
-                        AND loc.api_unique = wb.api_unique
-JOIN p4.root p4 ON wb.oil_gas_code = p4.oil_gas_code
-                AND wb.district = p4.district
-                AND (wb.lease_number = p4.lease_rrcid OR wb.gas_rrcid = p4.lease_rrcid)
-LEFT JOIN p5.org op_org ON p4.operator_number = op_org.operator_number
-LEFT JOIN p4.gpn gpn ON p4.oil_gas_code = gpn.oil_gas_code
-                     AND p4.district = gpn.district
-                     AND p4.lease_rrcid = gpn.lease_rrcid
-LEFT JOIN p5.org gpn_org ON gpn.gpn_number = gpn_org.operator_number
+JOIN infrastructure.all_facilities f ON ST_DWithin(e.geom, f.geom, 0.01)  -- ~1km
 WHERE e.id = 'CH4_1B2_250m_-99.45098_28.43460'
-  AND loc.geom IS NOT NULL
+  AND f.geom IS NOT NULL
 ORDER BY distance_km;
+```
+
+### Show attribution confidence distribution
+
+```sql
+SELECT
+    CASE
+        WHEN confidence_score >= 80 THEN '80-100 (High)'
+        WHEN confidence_score >= 60 THEN '60-79 (Medium-High)'
+        WHEN confidence_score >= 40 THEN '40-59 (Medium)'
+        ELSE 'Under 40 (Low)'
+    END as confidence_range,
+    COUNT(*) as plume_count,
+    ROUND(AVG(distance_to_nearest_facility_km), 2) as avg_distance_km,
+    ROUND(AVG(total_facilities_within_750m), 1) as avg_facility_density
+FROM emissions.attributed
+GROUP BY confidence_range
+ORDER BY MIN(confidence_score) DESC;
 ```
 
 ## LNG Supply Chain Attribution
@@ -253,17 +273,13 @@ make lng-attribution
 
 1. **Attribution Table** (`emissions.attributed`):
    - Materialized table created during DB build
-   - Spatial join matches CH4 plumes to nearest wells within 500m
-   - Includes operator names and purchaser lists (type H - purchasers who buy gas)
-   - Confidence score (0-100) based on:
-     - **Operator Dominance** (0-50): % of nearby wells operated by matched company
-     - **Distance** (0-35): Closer plumes score higher
-     - **Well Density** (5-15): Fewer nearby wells = less ambiguity
+   - Spatial join matches CH4 plumes to nearest infrastructure within 750m
+   - Includes operator names directly from OGIM
+   - Confidence score (22-92) based on distance, operator dominance, and facility density
 
-2. **LNG Contract Matching** (`lng_attribution.sql`):
+2. **LNG Contract Matching** (`ogim_lng_attribution.sql`):
    - Fuzzy string matching (Jaro-Winkler > 0.85) between:
-     - Well operators ↔ LNG contract sellers
-     - Gas purchasers ↔ LNG contract sellers
+     - Facility operators ↔ LNG contract sellers
    - Matches both producers (Apache, Pioneer) and marketers (Chevron, Enterprise)
    - One row per emission source with aggregated LNG supplier info
 
@@ -271,48 +287,36 @@ make lng-attribution
 
 `output/lng_attribution.csv` contains:
 - Plume details (ID, location, emission rates, timestamps)
-- Attribution (nearest well, operator, purchasers, confidence score)
-- LNG matches (sellers, projects, match count, similarity scores)
-
-### Why Purchasers Matter
-
-Purchasers (type H in RRC data) are the companies that:
-- Buy gas from producers at the wellhead
-- Act as marketers/aggregators
-- Sign supply contracts with LNG facilities
-
-Gatherers (type G) provide transportation services only and don't appear in LNG supply contracts, so they're excluded from matching.
+- Attribution (nearest facility, operator, infrastructure type, confidence score)
+- LNG matches (sellers, projects)
 
 ## Database Schema Reference
 
 Full schema definitions with field descriptions are in:
 - `queries/schema.sql` - Complete DDL with all tables and columns
-- `docs/p4-user-manual_p4a002_feb2015.txt` - P4 field documentation
-- `docs/wba091_well-bore-database.txt` - Wellbore field documentation
-- `docs/wla001k.txt` - P5 organization field documentation
+- OGIM v2.7 documentation: https://data.catalyst.coop/edf-ogim
 
 To explore the schema interactively:
 ```bash
 duckdb data/data.duckdb
-D DESCRIBE p4.root;        # Show P4 root table structure
-D DESCRIBE wellbore.location;  # Show wellbore location table
-D DESCRIBE emissions.sources;  # Show emissions table
+D DESCRIBE infrastructure.all_facilities;  # Show infrastructure table
+D DESCRIBE emissions.sources;              # Show emissions table
+D DESCRIBE emissions.attributed;           # Show attribution results
 ```
 
 ## Future Work
 
-- Build spatial indexes for faster queries (R-tree on geometry columns)
-- Add temporal analysis (track ownership/gathering changes over time)
-- Parse additional EBCDIC datasets (pipelines, compressor stations)
+- Add temporal analysis (track facility status changes over time)
+- Include other states beyond Texas (OGIM covers multiple states)
 - Export to GeoJSON/Shapefile for GIS tools
 - Add regular emissions data updates from Carbon Mapper API
+- Integrate pipeline data from OGIM (currently only stationary facilities)
 
 ## Development Guidelines
 
 - **Always use uv for Python** (per global CLAUDE.md)
 - **Minimal code** - Prefer simple, obvious solutions
-- **Faithful to source** - Use field names from RRC documentation
+- **DuckDB CLI for pipelines** - Avoid Python DB bindings
 - **No unnecessary files** - Keep repo clean
-- **Test on samples first** - EBCDIC files are large
-- **Document data quality issues** - Source has duplicates, missing foreign keys
-- When editing computationally expensive SQL queries, always add a limit clause in a sensible place to make it run faster during testing, then remove it for production. This saves a lot of waiting around.
+- **Document data quality issues** - Note OGIM data limitations (e.g., plugged wells can still emit)
+- When editing computationally expensive SQL queries, always add a LIMIT clause in a sensible place to make it run faster during testing, then remove it for production. This saves a lot of waiting around.

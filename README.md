@@ -6,35 +6,39 @@ This pipeline connects satellite-detected methane emissions to specific oil and 
 
 ## What This Does
 
-1. **Parses Texas oil and gas well data** from Railroad Commission EBCDIC files (1M+ wells)
+1. **Loads infrastructure data** from OGIM v2.7 (Environmental Defense Fund's Oil & Gas Infrastructure Mapping)
 2. **Loads satellite methane observations** from Carbon Mapper's Tanager-1 satellite
-3. **Matches plumes to wells** using spatial queries (within 500m radius)
-4. **Attributes to operators and gas purchasers** via lease and contract data
-5. **Links to LNG supply chains** by matching operators/purchasers to DOE-filed LNG feedgas contracts
+3. **Matches plumes to infrastructure** using spatial queries (wells, compressors, processing plants, tank batteries within 750m)
+4. **Attributes to operators** using multi-infrastructure confidence scoring
+5. **Links to LNG supply chains** by matching operators to DOE-filed LNG feedgas contracts
 
 The result: A dataset showing which CH4 emissions are connected to which LNG export facilities (Sabine Pass, Corpus Christi, Freeport, etc.).
 
 ## Key Outputs
 
-- **208 methane plumes** (2025 data) attributed to 85 operators
-- **83 plumes** matched to LNG supply contracts
+- **290 methane plumes** (2025 data) attributed to infrastructure operators
+- **52 plumes** matched to LNG supply contracts
 - Each plume includes:
   - Emission rate (kg/hr methane)
-  - Well operator and gas purchasers
+  - Nearest infrastructure (well, compressor, processing plant, or tank battery)
+  - Infrastructure operator
   - LNG facility and contract sellers
-  - Confidence score (0-100)
+  - Confidence score (22-92, based on distance, operator dominance, and facility density)
   - Geographic coordinates
 
 ## Data Sources
 
-1. **Texas Railroad Commission** (RRC)
-   - Well locations and operators (EBCDIC format)
-   - Lease data and gas purchase contracts
-   - Organization registry
+1. **OGIM v2.7** (Environmental Defense Fund)
+   - 970K+ Texas wells with operator information
+   - 561 compressor stations
+   - 176 gas processing plants
+   - 24 tank batteries
+   - Available from: https://data.catalyst.coop/edf-ogim
 
 2. **Carbon Mapper**
    - Satellite methane plume observations
    - Emission rates and timestamps
+   - Fetched via API: `uv run scripts/fetch_emissions.py`
 
 3. **US Department of Energy**
    - LNG feedgas supply contracts (parsed by Gemini 2.5 Pro)
@@ -42,8 +46,8 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
 
 ## Prerequisites
 
-- Python 3.10+ (managed via `uv`)
 - DuckDB CLI (`brew install duckdb`)
+- Python 3.10+ with uv (optional, only for fetching emissions data)
 - Make
 
 ## Setup
@@ -51,14 +55,12 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
 The pipeline requires large source data files (not in repo):
 
 ```bash
-# Download RRC data files (place in data/)
-# - p4f606.ebc.gz (P-4 lease/producer data, 203 MB)
-# - dbf900.ebc.gz (Wellbore database, 487 MB)
-# - orf850.ebc.gz (Organization data, 20 MB)
-# Available from: https://www.rrc.texas.gov/resource-center/research/data-sets-available-for-download/
+# Download OGIM v2.7 GeoPackage (place in data/)
+# - OGIM_v2.7.gpkg (2.9 GB)
+# Available from: https://data.catalyst.coop/edf-ogim
 
 # Fetch latest emissions data from Carbon Mapper API
-# (fetches 2025 CH4 plumes for Texas bbox, ~2,944 sources, ~3.3 MB)
+# (fetches CH4 plumes for Texas bbox, ~10,443 sources, ~13 MB)
 uv run scripts/fetch_emissions.py
 ```
 
@@ -67,40 +69,33 @@ uv run scripts/fetch_emissions.py
 ### Full Build
 
 ```bash
-# Parse EBCDIC files, load database, create attribution table
+# Load OGIM data, load emissions, create attribution table
 make
 
 # This will:
-# 1. Convert EBCDIC → CSV (~5 min)
-# 2. Load into DuckDB (~30 sec)
+# 1. Load infrastructure from OGIM GeoPackage (~30 sec)
+# 2. Load emissions from Carbon Mapper GeoJSON (~5 sec)
 # 3. Create spatial indexes (~10 sec)
-# 4. Run attribution spatial join (~2.5 min)
-# Total: ~8 minutes
-```
-
-### Rebuild Just the Database
-
-```bash
-# If you've already generated CSVs and just want to rebuild the DB
-# (e.g., after modifying SQL queries or updating emissions data)
-rm data/data.duckdb && make
-
-# Or rebuild individual CSV datasets:
-make p4-csvs        # P4 lease/producer data
-make wellbore-csvs  # Wellbore location data
-make p5-csvs        # Organization data
+# 4. Run attribution spatial join (~3 min)
+# Total: ~4 minutes
 ```
 
 ### Generate Reports
 
 ```bash
-# Generate all attribution reports
-make attribution lng-attribution
+# Generate LNG attribution report
+make lng-attribution
 ```
 
-Output files:
-- `output/emissions_attribution.csv` (208 rows, ~78 KB)
-- `output/lng_attribution.csv` (83 rows, ~42 KB)
+Output file:
+- `output/lng_attribution.csv` (52 rows, ~28 KB)
+
+### Test Infrastructure Loading
+
+```bash
+# Show facility counts by type without building full database
+make test
+```
 
 ## Output Format
 
@@ -110,43 +105,62 @@ The LNG attribution CSV contains one row per emission source with:
 |--------|-------------|
 | `id` | Unique emission source identifier |
 | `rate_avg_kg_hr` | Average methane emission rate (kg/hr) |
-| `rate_detected_kg_hr` | Rate when detected (accounts for persistence) |
+| `rate_uncertainty_kg_hr` | Uncertainty in emission rate |
 | `plume_count` | Number of times plume was observed |
 | `timestamp_min/max` | First and last observation dates |
 | `latitude/longitude` | Plume center coordinates |
-| `nearest_well_api` | Well identifier (format: county-unique) |
-| `nearest_well_operator` | Company operating the well |
-| `purchaser_names` | Companies purchasing gas from this lease |
-| `distance_to_nearest_well_km` | Distance to matched well |
-| `confidence_score` | Attribution confidence (0-100) |
+| `nearest_facility_id` | Infrastructure facility identifier |
+| `facility_subtype` | Detailed facility type (e.g., "Gas Well", "Gas Plant") |
+| `nearest_facility_operator` | Company operating the facility |
+| `distance_to_nearest_facility_km` | Distance to matched facility |
+| `total_facilities_within_750m` | Number of facilities within 750m radius |
+| `operator_facilities_of_type` | Number of nearby facilities of same type operated by matched operator |
+| `confidence_score` | Attribution confidence (22-92) |
 | `lng_sellers` | Matched LNG contract sellers with similarity scores |
 | `lng_projects` | LNG facilities (Sabine Pass, Corpus Christi, etc.) |
-| `lng_match_count` | Number of distinct LNG suppliers matched |
 
 ## How Attribution Works
 
-### Step 1: Plume → Well Matching
+### Step 1: Plume → Infrastructure Matching
 
-For each CH4 plume, find all wells within 500m radius and identify the nearest well.
+For each CH4 plume, find all infrastructure within 750m radius (wells, compressor stations, processing plants, tank batteries).
+
+**Infrastructure Type Weighting**:
+- Processing plants (2.0x): Highest emission risk
+- Compressor stations (1.5x): High risk
+- Tank batteries (1.3x): Medium-high risk
+- Wells (1.0x): Baseline risk
+
+**Best Match Selection**: Rank by `type_weight / (distance + 0.01)` and select the top facility.
 
 **Confidence Score** (0-100) based on:
-- **Operator Dominance** (0-50 points): Higher if matched operator controls most nearby wells
-- **Distance** (0-35 points): Higher for closer wells (35 points at 0m, 0 points at 500m)
-- **Well Density** (5-15 points): Higher when fewer wells nearby (less ambiguity)
+- **Distance Score** (0-35 points, type-weighted): Closer facilities score higher (35 pts at 0m, 0 pts at 750m)
+- **Operator Dominance** (0-50 points): % of nearby facilities of same type operated by matched operator
+- **Facility Density** (5-15 points): Fewer facilities = less ambiguity = higher score
 
 ### Step 2: LNG Supply Chain Matching
 
-Match operators and gas purchasers to LNG contract sellers using fuzzy string matching (Jaro-Winkler similarity > 0.85).
+Match facility operators to LNG contract sellers using fuzzy string matching (Jaro-Winkler similarity > 0.85).
 
-**Why purchasers matter**: In Texas, many wells are operated by independent producers but the *gas purchasers* (large midstream/marketing companies like Chevron, Enterprise, Kinder Morgan) are the ones with LNG supply contracts. They buy gas at the wellhead, aggregate it, and sell to LNG facilities.
+**Why this matters**: Identifies which LNG export facilities receive gas from leaking infrastructure. Operators include both producers (Apache, Pioneer, EOG) and marketers (Chevron, Enterprise, Kinder Morgan).
+
+## Performance Optimization
+
+The attribution query uses two-stage spatial filtering:
+
+1. **Bounding box pre-filter**: Quickly eliminate facilities outside ~750m using coordinate ranges
+2. **Precise distance check**: ST_DWithin for exact 750m radius
+
+This approach is significantly faster than naive ST_Distance comparisons on 970K+ facilities.
 
 ## Technical Details
 
 See `CLAUDE.md` for:
-- Database schema and field definitions
-- EBCDIC parsing implementation
+- Complete database schema
+- OGIM data structure details
+- Confidence scoring formulas
 - SQL query examples
-- Data quality notes
+- Spatial query optimization techniques
 
 ## Methodology
 

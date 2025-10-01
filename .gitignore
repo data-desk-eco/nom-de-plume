@@ -6,6 +6,7 @@ data/*.duckdb.wal
 # Large source data files (download separately)
 data/*.ebc.gz
 data/*.json
+data/*.gpkg
 
 # Generated output files (but keep final CSV reports)
 output/*.tmp
