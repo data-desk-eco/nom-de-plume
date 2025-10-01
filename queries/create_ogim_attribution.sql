@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS emissions.attributed;
 CREATE TABLE emissions.attributed AS
 WITH
 -- Find all facilities within 750m of each emission source
+-- Optimized: bbox pre-filter + ST_DWithin instead of ST_Distance for performance
 nearby_facilities AS (
     SELECT
         e.id as emission_id,
@@ -26,7 +27,11 @@ nearby_facilities AS (
     FROM emissions.sources e
     CROSS JOIN infrastructure.all_facilities f
     WHERE e.gas = 'CH4'
-        AND ST_Distance(e.geom, f.geom) < 0.0075  -- ~750m radius
+        -- Bbox pre-filter: quickly eliminate most candidates
+        AND ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
+        AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
+        -- Precise distance filter
+        AND ST_DWithin(e.geom, f.geom, 0.0075)  -- ~750m radius, more efficient than ST_Distance
 ),
 
 -- Calculate total facility counts per emission (all operators)
