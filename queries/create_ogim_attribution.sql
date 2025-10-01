@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS emissions.attributed;
 -- Create attribution table with infrastructure type weighting
 CREATE TABLE emissions.attributed AS
 WITH
--- Find all facilities within 500m of each emission source
+-- Find all facilities within 750m of each emission source
 nearby_facilities AS (
     SELECT
         e.id as emission_id,
@@ -26,18 +26,18 @@ nearby_facilities AS (
     FROM emissions.sources e
     CROSS JOIN infrastructure.all_facilities f
     WHERE e.gas = 'CH4'
-        AND ST_Distance(e.geom, f.geom) < 0.005  -- ~500m radius
+        AND ST_Distance(e.geom, f.geom) < 0.0075  -- ~750m radius
 ),
 
 -- Calculate total facility counts per emission (all operators)
 emission_totals AS (
     SELECT
         emission_id,
-        COUNT(*) as total_facilities_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'well') as wells_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_500m
+        COUNT(*) as total_facilities_within_750m,
+        COUNT(*) FILTER (WHERE infra_type = 'well') as wells_within_750m,
+        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_750m,
+        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_750m,
+        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_750m
     FROM nearby_facilities
     GROUP BY emission_id
 ),
@@ -63,26 +63,26 @@ best_matches AS (
         nf.operator,
         nf.facility_subtype,
         nf.distance_km,
-        totals.total_facilities_within_500m,
-        totals.wells_within_500m,
-        totals.compressors_within_500m,
-        totals.processing_within_500m,
-        totals.tanks_within_500m,
+        totals.total_facilities_within_750m,
+        totals.wells_within_750m,
+        totals.compressors_within_750m,
+        totals.processing_within_750m,
+        totals.tanks_within_750m,
         op_stats.operator_facilities_of_type,
 
         -- Distance score (0-35 points): inverse relationship, closer = higher
-        -- Max at 0m (35 pts), min at 500m (0 pts)
-        GREATEST(0, 35 * (1 - (nf.distance_km / 0.5))) as distance_score,
+        -- Max at 0m (35 pts), min at 750m (0 pts)
+        GREATEST(0, 35 * (1 - (nf.distance_km / 0.75))) as distance_score,
 
         -- Operator dominance (0-50 points): % of nearby facilities of same type operated by this operator
-        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_within_500m, 0))) as operator_dominance_score,
+        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_within_750m, 0))) as operator_dominance_score,
 
         -- Density penalty (5-15 points): fewer facilities = less ambiguity = higher score
         CASE
-            WHEN totals.total_facilities_within_500m = 1 THEN 15
-            WHEN totals.total_facilities_within_500m <= 3 THEN 12
-            WHEN totals.total_facilities_within_500m <= 10 THEN 9
-            WHEN totals.total_facilities_within_500m <= 30 THEN 6
+            WHEN totals.total_facilities_within_750m = 1 THEN 15
+            WHEN totals.total_facilities_within_750m <= 3 THEN 12
+            WHEN totals.total_facilities_within_750m <= 10 THEN 9
+            WHEN totals.total_facilities_within_750m <= 30 THEN 6
             ELSE 5
         END as density_score
 
@@ -112,11 +112,11 @@ SELECT
     bm.facility_subtype,
     bm.operator as nearest_facility_operator,
     bm.distance_km as distance_to_nearest_facility_km,
-    bm.total_facilities_within_500m,
-    bm.wells_within_500m,
-    bm.compressors_within_500m,
-    bm.processing_within_500m,
-    bm.tanks_within_500m,
+    bm.total_facilities_within_750m,
+    bm.wells_within_750m,
+    bm.compressors_within_750m,
+    bm.processing_within_750m,
+    bm.tanks_within_750m,
     bm.operator_facilities_of_type,
 
     -- Calculate final weighted confidence score

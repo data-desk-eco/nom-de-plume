@@ -48,13 +48,11 @@ SELECT
     a.facility_subtype,
     a.nearest_facility_operator,
     a.distance_to_nearest_facility_km,
-    a.total_facilities_within_500m,
+    a.total_facilities_within_750m,
     a.operator_facilities_of_type,
     a.confidence_score,
     m.lng_sellers,
-    m.lng_projects,
-    m.lng_match_count,
-    m.max_similarity
+    m.lng_projects
 FROM emissions.attributed a
 LEFT JOIN aggregated_matches m ON a.id = m.id
 WHERE m.lng_match_count > 0  -- Only show emissions with LNG matches
