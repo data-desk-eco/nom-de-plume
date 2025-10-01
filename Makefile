@@ -56,8 +56,8 @@ data/dbf900.ebc.gz:
 		-o $@
 	@echo "✓ Wellbore data downloaded"
 
-# Parse P-4 data to extract GPN (gatherer/purchaser/nominator) records
-data/gpn.csv: data/p4f606.ebc.gz scripts/create_p4_db.py scripts/parse_p4.py
+# Parse P-4 data to extract root and GPN (gatherer/purchaser/nominator) records
+data/p4_root.csv data/gpn.csv: data/p4f606.ebc.gz scripts/create_p4_db.py scripts/parse_p4.py
 	@echo "Parsing P-4 data for purchaser/gatherer information..."
 	uv run scripts/create_p4_db.py
 	@echo "✓ P-4 data parsed"
@@ -101,7 +101,7 @@ output/lng_attribution.csv: data/data.duckdb data/supply-contracts-gemini-2-5-pr
 	@echo "✓ Report saved to $@"
 
 clean:
-	rm -f data/data.duckdb output/lng_attribution.csv data/gpn.csv data/p5_org.csv data/wellbore_wellid.csv
+	rm -f data/data.duckdb output/lng_attribution.csv data/p4_root.csv data/gpn.csv data/p5_org.csv data/wellbore_wellid.csv
 
 clean-all: clean
 	rm -f data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz
