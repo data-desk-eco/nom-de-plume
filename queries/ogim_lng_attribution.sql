@@ -52,6 +52,7 @@ SELECT
     a.total_facilities_within_750m,
     a.operator_facilities_of_type,
     a.confidence_score,
+    a.purchaser_names,
     m.lng_sellers,
     m.lng_projects
 FROM emissions.attributed a

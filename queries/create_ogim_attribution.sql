@@ -98,6 +98,37 @@ best_matches AS (
         AND nf.infra_type = op_stats.infra_type
     -- Sort by distance (closer first)
     ORDER BY nf.emission_id, nf.distance_km ASC
+),
+
+-- Add purchaser information for Texas wells
+purchaser_info AS (
+    SELECT
+        bm.emission_id,
+        STRING_AGG(
+            DISTINCT
+            CASE
+                WHEN p5.organization_name IS NOT NULL
+                THEN '[' || gpn.gpn_number || '] ' || p5.organization_name
+                ELSE '[' || gpn.gpn_number || ']'
+            END,
+            '; '
+        ) as purchaser_names
+    FROM best_matches bm
+    -- Join to wellbore.wellid using API number from OGIM facility_id
+    INNER JOIN wellbore.wellid wb
+        ON CAST(CAST(bm.facility_id AS DOUBLE) AS BIGINT) = (wb.api_county * 1000000000 + wb.api_unique)
+    -- Join to P-4 GPN records to get purchasers
+    INNER JOIN p4.gpn gpn
+        ON wb.oil_gas_code = gpn.oil_gas_code
+        AND wb.district = gpn.district
+        AND (wb.lease_number = gpn.lease_rrcid OR wb.gas_rrcid = gpn.lease_rrcid)
+    -- Join to P-5 org names
+    LEFT JOIN p5.org p5
+        ON gpn.gpn_number = p5.operator_number
+    WHERE bm.infra_type = 'well'  -- Only wells have purchaser data
+      AND gpn.type_code = 'H'  -- H = purchaser (not gatherer or nominator)
+      AND gpn.gpn_number IS NOT NULL
+    GROUP BY bm.emission_id
 )
 
 -- Final attribution with confidence scores
@@ -129,10 +160,14 @@ SELECT
         bm.operator_dominance_score +           -- Operator dominance (0-50)
         bm.density_score,                        -- Density bonus (5-15)
         1
-    ) as confidence_score
+    ) as confidence_score,
+
+    -- Texas well purchaser information
+    pi.purchaser_names
 
 FROM emissions.sources e
 LEFT JOIN best_matches bm ON e.id = bm.emission_id
+LEFT JOIN purchaser_info pi ON e.id = pi.emission_id
 WHERE e.gas = 'CH4';
 
 -- Create indexes for fast querying
