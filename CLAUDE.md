@@ -101,7 +101,7 @@ scripts/
 
 queries/
   schema.sql              # Database schema (loads spatial extension)
-  load_db.sql             # Load P4 data
+  load_p4.sql             # Load P4 data
   load_wellbore.sql       # Load wellbore data (creates geometry with longitude fix)
   load_p5.sql             # Load P5 organization data
   load_emissions.sql      # Load emissions data (creates geometry)
