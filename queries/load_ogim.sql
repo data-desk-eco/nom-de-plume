@@ -14,13 +14,12 @@ CREATE SCHEMA infrastructure;
 -- Each type gets a weight reflecting its emission likelihood
 CREATE OR REPLACE TABLE infrastructure.all_facilities AS
 WITH
--- Wells (baseline weight = 1.0)
+-- Wells
 -- Note: Including all wells regardless of status since plugged wells can still emit
 wells AS (
     SELECT
         FAC_ID as facility_id,
         'well' as infra_type,
-        1.0 as type_weight,
         OPERATOR as operator,
         FAC_TYPE as facility_subtype,
         FAC_STATUS as status,
@@ -36,12 +35,11 @@ wells AS (
         AND OPERATOR != 'N/A'
 ),
 
--- Gas processing plants (highest weight = 2.0)
+-- Gas processing plants
 processing AS (
     SELECT
         CAST(OGIM_ID AS VARCHAR) as facility_id,
         'processing' as infra_type,
-        2.0 as type_weight,
         OPERATOR as operator,
         FAC_TYPE as facility_subtype,
         FAC_STATUS as status,
@@ -57,12 +55,11 @@ processing AS (
         AND OPERATOR != 'N/A'
 ),
 
--- Compressor stations (high weight = 1.5)
+-- Compressor stations
 compressors AS (
     SELECT
         CAST(OGIM_ID AS VARCHAR) as facility_id,
         'compressor' as infra_type,
-        1.5 as type_weight,
         OPERATOR as operator,
         FAC_TYPE as facility_subtype,
         FAC_STATUS as status,
@@ -80,12 +77,11 @@ compressors AS (
         AND (OGIM_STATUS = 'OPERATIONAL' OR OGIM_STATUS = 'N/A' OR OGIM_STATUS IS NULL)
 ),
 
--- Tank batteries (medium-high weight = 1.3)
+-- Tank batteries
 tanks AS (
     SELECT
         CAST(OGIM_ID AS VARCHAR) as facility_id,
         'tank_battery' as infra_type,
-        1.3 as type_weight,
         OPERATOR as operator,
         FAC_TYPE as facility_subtype,
         FAC_STATUS as status,
@@ -117,9 +113,8 @@ CREATE INDEX idx_infrastructure_type ON infrastructure.all_facilities (infra_typ
 -- Summary statistics
 SELECT
     infra_type,
-    type_weight,
     COUNT(*) as facility_count,
     COUNT(DISTINCT operator) as unique_operators
 FROM infrastructure.all_facilities
-GROUP BY infra_type, type_weight
-ORDER BY type_weight DESC;
+GROUP BY infra_type
+ORDER BY facility_count DESC;

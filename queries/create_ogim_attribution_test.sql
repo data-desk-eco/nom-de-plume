@@ -26,7 +26,6 @@ nearby_facilities AS (
         e.geom as emission_geom,
         f.facility_id,
         f.infra_type,
-        f.type_weight,
         f.operator,
         f.facility_subtype,
         f.geom as facility_geom,
@@ -58,7 +57,6 @@ best_matches AS (
         nf.emission_id,
         nf.facility_id,
         nf.infra_type,
-        nf.type_weight,
         nf.operator,
         nf.facility_subtype,
         nf.distance_km,
@@ -90,8 +88,8 @@ best_matches AS (
         ON nf.emission_id = stats.emission_id
         AND nf.operator = stats.operator
         AND nf.infra_type = stats.infra_type
-    -- Sort by: 1) type weight (higher first), 2) distance (closer first)
-    ORDER BY nf.emission_id, (nf.type_weight / (nf.distance_km + 0.01)) DESC
+    -- Sort by distance (closer first)
+    ORDER BY nf.emission_id, nf.distance_km ASC
 )
 
 -- Final attribution with confidence scores
@@ -116,18 +114,13 @@ SELECT
     bm.tanks_within_500m,
     bm.operator_facilities_of_type,
 
-    -- Calculate final weighted confidence score
+    -- Calculate final confidence score
     ROUND(
-        (bm.distance_score * bm.type_weight) +  -- Type-weighted distance score
-        bm.operator_dominance_score +           -- Operator dominance
-        bm.density_score,                        -- Density bonus
+        bm.distance_score +                     -- Distance score (0-35)
+        bm.operator_dominance_score +           -- Operator dominance (0-50)
+        bm.density_score,                        -- Density bonus (5-15)
         1
-    ) as confidence_score,
-
-    bm.type_weight as infrastructure_type_weight,
-    bm.distance_score,
-    bm.operator_dominance_score,
-    bm.density_score
+    ) as confidence_score
 
 FROM test_emissions e
 LEFT JOIN best_matches bm ON e.id = bm.emission_id;
