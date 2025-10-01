@@ -1,6 +1,0 @@
-[project]
-name = "nom-de-plume"
-version = "0.1.0"
-description = "Methane plume attribution system for Texas oil and gas infrastructure"
-requires-python = ">=3.13"
-dependencies = []
