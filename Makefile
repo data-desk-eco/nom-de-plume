@@ -23,41 +23,12 @@ data/sources.json:
 		--data-urlencode "plume_gas=CH4"
 	@echo "✓ Emissions data fetched"
 
-# Download Texas RRC P-4 Production Data (194 MB)
-# Contains lease/purchaser/gatherer information
-data/p4f606.ebc.gz:
-	@mkdir -p $(@D)
-	@echo "Downloading Texas RRC P-4 production data (194 MB)..."
-	@curl -sL 'https://mft.rrc.texas.gov/link/godrivedownload' \
-		-H 'Referer: https://mft.rrc.texas.gov/link/19f9b9c7-2b82-4d7c-8dbd-77145a86d3de' \
-		-b 'JSESSIONID=765CDF16A742E1EC2271A85765F66E89; oam.Flash.RENDERMAP.TOKEN=8e4vusz1t' \
-		-o $@
-	@echo "✓ P-4 data downloaded"
+# Texas RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz)
+# must be downloaded manually from https://mft.rrc.texas.gov/ and placed in data/
+# The download links require active browser sessions and cannot be automated
 
-# Download Texas RRC P-5 Organization Data (20 MB)
-# Contains operator/purchaser/gatherer names
-data/orf850.ebc.gz:
-	@mkdir -p $(@D)
-	@echo "Downloading Texas RRC P-5 organization data (20 MB)..."
-	@curl -sL 'https://mft.rrc.texas.gov/link/godrivedownload' \
-		-H 'Referer: https://mft.rrc.texas.gov/link/04652169-eed6-4396-9019-2e270e790f6c' \
-		-b 'JSESSIONID=765CDF16A742E1EC2271A85765F66E89; oam.Flash.RENDERMAP.TOKEN=8e4vusz22' \
-		-o $@
-	@echo "✓ P-5 data downloaded"
-
-# Download Texas RRC Well Bore Database (464 MB)
-# Contains API number to RRC lease ID mappings
-data/dbf900.ebc.gz:
-	@mkdir -p $(@D)
-	@echo "Downloading Texas RRC wellbore database (464 MB)..."
-	@curl -sL 'https://mft.rrc.texas.gov/link/godrivedownload' \
-		-H 'Referer: https://mft.rrc.texas.gov/link/b070ce28-5c58-4fe2-9eb7-8b70befb7af9' \
-		-b 'JSESSIONID=765CDF16A742E1EC2271A85765F66E89; oam.Flash.RENDERMAP.TOKEN=8e4vusz2g' \
-		-o $@
-	@echo "✓ Wellbore data downloaded"
-
-# Parse P-4 data to extract root and GPN (gatherer/purchaser/nominator) records
-data/p4_root.csv data/gpn.csv: data/p4f606.ebc.gz scripts/create_p4_db.py scripts/parse_p4.py
+# Parse P-4 data to extract root, info, GPN, and lease name records
+data/root.csv data/info.csv data/gpn.csv data/lease_name.csv: data/p4f606.ebc.gz scripts/create_p4_db.py scripts/parse_p4.py
 	@echo "Parsing P-4 data for purchaser/gatherer information..."
 	uv run scripts/create_p4_db.py
 	@echo "✓ P-4 data parsed"
@@ -75,7 +46,7 @@ data/wellbore_wellid.csv: data/dbf900.ebc.gz scripts/create_wellbore_db.py scrip
 	@echo "✓ Wellbore data parsed"
 
 # Create DuckDB database from OGIM GeoPackage and Carbon Mapper emissions
-data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/gpn.csv data/p5_org.csv data/wellbore_wellid.csv queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/load_p4.sql queries/load_p5.sql queries/load_wellbore.sql queries/create_ogim_attribution.sql
+data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/root.csv data/info.csv data/gpn.csv data/lease_name.csv data/p5_org.csv data/wellbore_wellid.csv queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/load_p4.sql queries/load_p5.sql queries/load_wellbore.sql queries/create_ogim_attribution.sql
 	@echo "Building database from OGIM v2.7 data..."
 	@echo "1/7 Creating schema..."
 	duckdb $@ < queries/schema.sql
@@ -101,7 +72,8 @@ output/lng_attribution.csv: data/data.duckdb data/supply-contracts-gemini-2-5-pr
 	@echo "✓ Report saved to $@"
 
 clean:
-	rm -f data/data.duckdb output/lng_attribution.csv data/p4_root.csv data/gpn.csv data/p5_org.csv data/wellbore_wellid.csv
+	rm -f data/data.duckdb output/lng_attribution.csv data/root.csv data/info.csv data/gpn.csv data/lease_name.csv data/p5_org.csv data/wellbore_wellid.csv data/wellbore_root.csv data/wellbore_location.csv data/p5_specialty.csv data/p5_officer.csv data/p5_activity.csv
 
 clean-all: clean
-	rm -f data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz
+	rm -f data/OGIM_v2.7.gpkg data/sources.json
+	@echo "Note: RRC data files (data/*.ebc.gz) not removed - download them manually from https://mft.rrc.texas.gov/"

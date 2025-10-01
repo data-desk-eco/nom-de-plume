@@ -115,8 +115,11 @@ purchaser_info AS (
         ) as purchaser_names
     FROM best_matches bm
     -- Join to wellbore.wellid using API number from OGIM facility_id
+    -- OGIM format: 42361304130000.0 = state(2) + county(3) + unique(9)
+    -- Extract county (chars 3-5) and unique (chars 6-14)
     INNER JOIN wellbore.wellid wb
-        ON CAST(CAST(bm.facility_id AS DOUBLE) AS BIGINT) = (wb.api_county * 1000000000 + wb.api_unique)
+        ON CAST(SUBSTRING(bm.facility_id, 3, 3) AS INTEGER) = wb.api_county
+        AND CAST(SUBSTRING(bm.facility_id, 6, 9) AS INTEGER) = wb.api_unique
     -- Join to P-4 GPN records to get purchasers
     INNER JOIN p4.gpn gpn
         ON wb.oil_gas_code = gpn.oil_gas_code

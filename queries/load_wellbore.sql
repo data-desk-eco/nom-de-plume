@@ -1,14 +1,12 @@
 -- Load Well Bore data into DuckDB
-
--- Create wellbore schema
-CREATE SCHEMA IF NOT EXISTS wellbore;
+-- Note: Tables are created in schema.sql, this just inserts data
 
 -- Load Well Bore root table
-CREATE TABLE wellbore.root AS
+INSERT INTO wellbore.root
 SELECT * FROM read_csv_auto('data/wellbore_root.csv');
 
 -- Load Well Bore location table (use all_varchar then cast to handle embedded quotes)
-CREATE TABLE wellbore.location AS
+INSERT INTO wellbore.location
 SELECT
     CAST(api_county AS INTEGER) as api_county,
     CAST(api_unique AS INTEGER) as api_unique,
@@ -35,7 +33,7 @@ FROM read_csv('data/wellbore_location.csv',
     ignore_errors=true);
 
 -- Load Well Bore Well-ID table (links API to RRC lease IDs)
-CREATE TABLE wellbore.wellid AS
+INSERT INTO wellbore.wellid
 SELECT * FROM read_csv_auto('data/wellbore_wellid.csv');
 
 -- Show summary
