@@ -315,3 +315,4 @@ D DESCRIBE emissions.sources;  # Show emissions table
 - **No unnecessary files** - Keep repo clean
 - **Test on samples first** - EBCDIC files are large
 - **Document data quality issues** - Source has duplicates, missing foreign keys
+- When editing computationally expensive SQL queries, always add a limit clause in a sensible place to make it run faster during testing, then remove it for production. This saves a lot of waiting around.

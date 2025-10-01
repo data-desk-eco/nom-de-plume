@@ -17,7 +17,8 @@ WITH all_wells AS (
         p4.operator_number,
         p4.oil_gas_code,
         p4.district,
-        p4.lease_rrcid
+        p4.lease_rrcid,
+        p4.field_number
     FROM wellbore.location loc
     JOIN wellbore.wellid wb ON loc.api_county = wb.api_county
                             AND loc.api_unique = wb.api_unique
@@ -43,6 +44,7 @@ all_plume_well_pairs AS (
         w.oil_gas_code,
         w.district,
         w.lease_rrcid,
+        w.field_number,
         ST_Distance(e.geom, w.geom) * 111 as distance_km
     FROM emissions.sources e
     JOIN all_wells w ON
@@ -98,6 +100,21 @@ purchaser_info AS (
     WHERE gpn.type_code = 'H'
       AND gpn.gpn_number IS NOT NULL
     GROUP BY pwd.id
+),
+lease_names_at_time AS (
+    SELECT
+        pwd.id,
+        ln.lease_name
+    FROM nearest_wells_only pwd
+    LEFT JOIN LATERAL (
+        SELECT lease_name
+        FROM p4.lease_name ln
+        WHERE ln.oil_gas_code = pwd.oil_gas_code
+          AND ln.district = pwd.district
+          AND ln.lease_rrcid = pwd.lease_rrcid
+        ORDER BY ln.sequence_date_key DESC
+        LIMIT 1
+    ) ln ON true
 )
 SELECT
     pwd.id,
@@ -111,6 +128,8 @@ SELECT
     pwd.well_api as nearest_well_api,
     pwd.operator_name as nearest_well_operator,
     pwd.operator_number,
+    pwd.field_number,
+    ln.lease_name,
     ROUND(pwd.distance_km, 2) as distance_to_nearest_well_km,
     twc.total_wells_within_radius as total_wells_within_500m,
     owc.operator_well_count as operator_wells_within_500m,
@@ -133,4 +152,5 @@ FROM nearest_wells_only pwd
 LEFT JOIN total_well_counts twc ON pwd.id = twc.id
 LEFT JOIN operator_well_counts owc ON pwd.id = owc.id
                                    AND pwd.operator_number = owc.operator_number
-LEFT JOIN purchaser_info pi ON pwd.id = pi.id;
+LEFT JOIN purchaser_info pi ON pwd.id = pi.id
+LEFT JOIN lease_names_at_time ln ON pwd.id = ln.id;

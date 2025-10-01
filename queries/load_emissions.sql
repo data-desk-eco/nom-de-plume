@@ -7,7 +7,7 @@ LOAD spatial;
 -- ST_Read automatically parses GeoJSON and provides geom column
 INSERT INTO emissions.sources
 SELECT
-    id,
+    SPLIT_PART(id, '?', 1) as id,
     geom,
     gas,
     sector,

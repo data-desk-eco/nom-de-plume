@@ -86,6 +86,8 @@ SELECT
     a.longitude,
     a.nearest_well_api,
     a.nearest_well_operator,
+    a.field_number,
+    a.lease_name,
     a.purchaser_names,
     a.distance_to_nearest_well_km,
     a.total_wells_within_500m,
