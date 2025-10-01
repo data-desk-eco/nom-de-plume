@@ -11,6 +11,9 @@ data/*.json
 output/*.tmp
 output/*.log
 
+# Environment variables and secrets
+.env
+
 # Python
 __pycache__/
 *.pyc

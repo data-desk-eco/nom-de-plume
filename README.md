@@ -16,7 +16,8 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
 
 ## Key Outputs
 
-- **743 methane plumes** matched to LNG supply contracts
+- **208 methane plumes** (2025 data) attributed to 85 operators
+- **83 plumes** matched to LNG supply contracts
 - Each plume includes:
   - Emission rate (kg/hr methane)
   - Well operator and gas purchasers
@@ -56,7 +57,8 @@ The pipeline requires large source data files (not in repo):
 # - orf850.ebc.gz (Organization data, 20 MB)
 # Available from: https://www.rrc.texas.gov/resource-center/research/data-sets-available-for-download/
 
-# Fetch latest emissions data
+# Fetch latest emissions data from Carbon Mapper API
+# (fetches 2025 CH4 plumes for Texas bbox, ~2,944 sources, ~3.3 MB)
 uv run scripts/fetch_emissions.py
 ```
 
@@ -69,19 +71,36 @@ uv run scripts/fetch_emissions.py
 make
 
 # This will:
-# 1. Convert EBCDIC → CSV (5-10 min)
-# 2. Load into DuckDB (~2 min)
-# 3. Create spatial indexes (~1 min)
-# 4. Run attribution spatial join (~5 min)
+# 1. Convert EBCDIC → CSV (~5 min)
+# 2. Load into DuckDB (~30 sec)
+# 3. Create spatial indexes (~10 sec)
+# 4. Run attribution spatial join (~2.5 min)
+# Total: ~8 minutes
 ```
 
-### Generate LNG Attribution Report
+### Rebuild Just the Database
 
 ```bash
-make lng-attribution
+# If you've already generated CSVs and just want to rebuild the DB
+# (e.g., after modifying SQL queries or updating emissions data)
+rm data/data.duckdb && make
+
+# Or rebuild individual CSV datasets:
+make p4-csvs        # P4 lease/producer data
+make wellbore-csvs  # Wellbore location data
+make p5-csvs        # Organization data
 ```
 
-Output: `output/lng_attribution.csv` (743 rows, ~286 KB)
+### Generate Reports
+
+```bash
+# Generate all attribution reports
+make attribution lng-attribution
+```
+
+Output files:
+- `output/emissions_attribution.csv` (208 rows, ~78 KB)
+- `output/lng_attribution.csv` (83 rows, ~42 KB)
 
 ## Output Format
 

@@ -1,5 +1,6 @@
 -- Create materialized attribution table
 -- Performs expensive spatial join between emissions and wells
+-- Optimized: spatial join done once, then aggregated
 
 INSTALL spatial;
 LOAD spatial;
@@ -26,7 +27,8 @@ WITH all_wells AS (
     LEFT JOIN p5.org op_org ON p4.operator_number = op_org.operator_number
     WHERE loc.geom IS NOT NULL
 ),
-plume_well_distances AS (
+-- Compute spatial join ONCE and materialize all plume-well pairs within 500m
+all_plume_well_pairs AS (
     SELECT
         e.id,
         e.emission_auto,
@@ -41,33 +43,40 @@ plume_well_distances AS (
         w.oil_gas_code,
         w.district,
         w.lease_rrcid,
-        ST_Distance(e.geom, w.geom) * 111 as distance_km,
-        ROW_NUMBER() OVER (PARTITION BY e.id ORDER BY ST_Distance(e.geom, w.geom)) as rn
+        ST_Distance(e.geom, w.geom) * 111 as distance_km
     FROM emissions.sources e
-    JOIN all_wells w ON ST_Distance(e.geom, w.geom) < 0.005
+    JOIN all_wells w ON
+        -- Bounding box pre-filter (uses spatial index)
+        ST_Within(w.geom, ST_Buffer(e.geom, 0.005))
+        -- Exact distance check
+        AND ST_Distance(e.geom, w.geom) < 0.005
     WHERE e.gas = 'CH4'
+),
+-- Find nearest well for each plume
+nearest_wells_with_rank AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY id ORDER BY distance_km) as rn
+    FROM all_plume_well_pairs
 ),
 nearest_wells_only AS (
-    SELECT * FROM plume_well_distances WHERE rn = 1
+    SELECT * FROM nearest_wells_with_rank WHERE rn = 1
 ),
+-- Count total wells within radius (from materialized pairs)
 total_well_counts AS (
     SELECT
-        e.id,
-        COUNT(DISTINCT w.api_county || '-' || w.api_unique) as total_wells_within_radius
-    FROM emissions.sources e
-    JOIN all_wells w ON ST_Distance(e.geom, w.geom) < 0.005
-    WHERE e.gas = 'CH4'
-    GROUP BY e.id
+        id,
+        COUNT(DISTINCT well_api) as total_wells_within_radius
+    FROM all_plume_well_pairs
+    GROUP BY id
 ),
+-- Count wells per operator (from materialized pairs)
 operator_well_counts AS (
     SELECT
-        e.id,
-        w.operator_number,
-        COUNT(DISTINCT w.api_county || '-' || w.api_unique) as operator_well_count
-    FROM emissions.sources e
-    JOIN all_wells w ON ST_Distance(e.geom, w.geom) < 0.005
-    WHERE e.gas = 'CH4'
-    GROUP BY e.id, w.operator_number
+        id,
+        operator_number,
+        COUNT(DISTINCT well_api) as operator_well_count
+    FROM all_plume_well_pairs
+    GROUP BY id, operator_number
 ),
 purchaser_info AS (
     SELECT
