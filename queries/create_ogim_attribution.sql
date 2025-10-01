@@ -29,19 +29,27 @@ nearby_facilities AS (
         AND ST_Distance(e.geom, f.geom) < 0.005  -- ~500m radius
 ),
 
--- Calculate operator dominance and facility density per emission
-emission_stats AS (
+-- Calculate total facility counts per emission (all operators)
+emission_totals AS (
+    SELECT
+        emission_id,
+        COUNT(*) as total_facilities_within_500m,
+        COUNT(*) FILTER (WHERE infra_type = 'well') as wells_within_500m,
+        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_500m,
+        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_500m,
+        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_500m
+    FROM nearby_facilities
+    GROUP BY emission_id
+),
+
+-- Calculate operator-specific counts per emission/type/operator
+emission_operator_stats AS (
     SELECT
         emission_id,
         infra_type,
         operator,
-        COUNT(*) as facilities_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'well') as wells_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_500m,
-        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_500m,
-        COUNT(*) FILTER (WHERE operator = nf.operator AND infra_type = nf.infra_type) as operator_facilities_of_type
-    FROM nearby_facilities nf
+        COUNT(*) as operator_facilities_of_type
+    FROM nearby_facilities
     GROUP BY emission_id, infra_type, operator
 ),
 
@@ -55,34 +63,36 @@ best_matches AS (
         nf.operator,
         nf.facility_subtype,
         nf.distance_km,
-        stats.facilities_within_500m,
-        stats.wells_within_500m,
-        stats.compressors_within_500m,
-        stats.processing_within_500m,
-        stats.tanks_within_500m,
-        stats.operator_facilities_of_type,
+        totals.total_facilities_within_500m,
+        totals.wells_within_500m,
+        totals.compressors_within_500m,
+        totals.processing_within_500m,
+        totals.tanks_within_500m,
+        op_stats.operator_facilities_of_type,
 
         -- Distance score (0-35 points): inverse relationship, closer = higher
         -- Max at 0m (35 pts), min at 500m (0 pts)
         GREATEST(0, 35 * (1 - (nf.distance_km / 0.5))) as distance_score,
 
         -- Operator dominance (0-50 points): % of nearby facilities of same type operated by this operator
-        LEAST(50, 50 * (CAST(stats.operator_facilities_of_type AS FLOAT) / NULLIF(stats.facilities_within_500m, 0))) as operator_dominance_score,
+        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_within_500m, 0))) as operator_dominance_score,
 
         -- Density penalty (5-15 points): fewer facilities = less ambiguity = higher score
         CASE
-            WHEN stats.facilities_within_500m = 1 THEN 15
-            WHEN stats.facilities_within_500m <= 3 THEN 12
-            WHEN stats.facilities_within_500m <= 10 THEN 9
-            WHEN stats.facilities_within_500m <= 30 THEN 6
+            WHEN totals.total_facilities_within_500m = 1 THEN 15
+            WHEN totals.total_facilities_within_500m <= 3 THEN 12
+            WHEN totals.total_facilities_within_500m <= 10 THEN 9
+            WHEN totals.total_facilities_within_500m <= 30 THEN 6
             ELSE 5
         END as density_score
 
     FROM nearby_facilities nf
-    INNER JOIN emission_stats stats
-        ON nf.emission_id = stats.emission_id
-        AND nf.operator = stats.operator
-        AND nf.infra_type = stats.infra_type
+    INNER JOIN emission_totals totals
+        ON nf.emission_id = totals.emission_id
+    INNER JOIN emission_operator_stats op_stats
+        ON nf.emission_id = op_stats.emission_id
+        AND nf.operator = op_stats.operator
+        AND nf.infra_type = op_stats.infra_type
     -- Sort by: 1) type weight (higher first), 2) distance (closer first)
     ORDER BY nf.emission_id, (nf.type_weight / (nf.distance_km + 0.01)) DESC
 )
@@ -102,7 +112,7 @@ SELECT
     bm.facility_subtype,
     bm.operator as nearest_facility_operator,
     bm.distance_km as distance_to_nearest_facility_km,
-    bm.facilities_within_500m as total_facilities_within_500m,
+    bm.total_facilities_within_500m,
     bm.wells_within_500m,
     bm.compressors_within_500m,
     bm.processing_within_500m,

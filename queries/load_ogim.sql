@@ -15,6 +15,7 @@ CREATE SCHEMA infrastructure;
 CREATE OR REPLACE TABLE infrastructure.all_facilities AS
 WITH
 -- Wells (baseline weight = 1.0)
+-- Note: Including all wells regardless of status since plugged wells can still emit
 wells AS (
     SELECT
         FAC_ID as facility_id,
@@ -33,8 +34,6 @@ wells AS (
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL
         AND OPERATOR != 'N/A'
-        -- Filter to active wells only
-        AND (FAC_STATUS NOT IN ('PLUGGED', 'ABANDONED', 'SHUT-IN', 'INACTIVE') OR FAC_STATUS IS NULL OR FAC_STATUS = 'N/A')
 ),
 
 -- Gas processing plants (highest weight = 2.0)
