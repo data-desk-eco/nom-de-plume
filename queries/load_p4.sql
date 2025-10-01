@@ -2,19 +2,19 @@
 
 -- Load Record Type 01: P-4 Root (current schedule state)
 INSERT INTO p4.root
-SELECT * FROM read_csv_auto('data/root.csv');
+SELECT * FROM read_csv_auto('/tmp/root.csv');
 
 -- Load Record Type 02: P-4 Info (temporal P-4 filings)
 INSERT INTO p4.info
-SELECT * FROM read_csv_auto('data/info.csv');
+SELECT * FROM read_csv_auto('/tmp/info.csv');
 
 -- Load Record Type 03: P-4 GPN (gatherer/purchaser/nominator)
 INSERT INTO p4.gpn
-SELECT * FROM read_csv_auto('data/gpn.csv');
+SELECT * FROM read_csv_auto('/tmp/gpn.csv');
 
 -- Load Record Type 07: P-4 Lease Name
 INSERT INTO p4.lease_name
-SELECT * FROM read_csv_auto('data/lease_name.csv');
+SELECT * FROM read_csv_auto('/tmp/lease_name.csv');
 
 -- Show summary
 SELECT 'Root records (leases)' as metric, COUNT(*) as count FROM p4.root

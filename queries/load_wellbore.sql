@@ -3,7 +3,7 @@
 
 -- Load Well Bore root table
 INSERT INTO wellbore.root
-SELECT * FROM read_csv_auto('data/wellbore_root.csv');
+SELECT * FROM read_csv_auto('/tmp/wellbore_root.csv');
 
 -- Load Well Bore location table (use all_varchar then cast to handle embedded quotes)
 INSERT INTO wellbore.location
@@ -27,14 +27,14 @@ SELECT
     CAST(plane_coordinate_east AS DOUBLE) as plane_coordinate_east,
     CAST(plane_coordinate_north AS DOUBLE) as plane_coordinate_north,
     verification_flag
-FROM read_csv('data/wellbore_location.csv',
+FROM read_csv('/tmp/wellbore_location.csv',
     header=true,
     all_varchar=true,
     ignore_errors=true);
 
 -- Load Well Bore Well-ID table (links API to RRC lease IDs)
 INSERT INTO wellbore.wellid
-SELECT * FROM read_csv_auto('data/wellbore_wellid.csv');
+SELECT * FROM read_csv_auto('/tmp/wellbore_wellid.csv');
 
 -- Show summary
 SELECT 'Well bores' as metric, COUNT(*) as count FROM wellbore.root

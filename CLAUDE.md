@@ -86,15 +86,29 @@ data/
   OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB, auto-downloaded via curl)
   sources.json                        # Carbon Mapper emissions GeoJSON (auto-fetched via curl)
   supply-contracts-gemini-2-5-pro.csv # LNG feedgas supply agreements from DOE
+  p4f606.ebc.gz                       # Texas RRC P-4 data (manual download)
+  orf850.ebc.gz                       # Texas RRC P-5 data (manual download)
+  dbf900.ebc.gz                       # Texas RRC wellbore data (manual download)
   data.duckdb                         # Final database (gitignored)
+
+/tmp/
+  *.csv                               # Parsed Texas RRC CSVs (auto-generated, not tracked)
 
 queries/
   schema.sql                          # Database schema (loads spatial extension)
   load_ogim.sql                       # Load infrastructure from OGIM GeoPackage
   load_emissions.sql                  # Load emissions data (creates geometry)
+  load_p4.sql                         # Load Texas RRC P-4 data from /tmp
+  load_p5.sql                         # Load Texas RRC P-5 data from /tmp
+  load_wellbore.sql                   # Load Texas RRC wellbore data from /tmp
   create_ogim_attribution.sql         # Multi-infrastructure attribution with confidence scoring
   ogim_lng_attribution.sql            # Match attributed plumes to LNG supply contracts
   create_ogim_attribution_test.sql    # Test version (10 emissions only)
+
+scripts/
+  create_p4_db.py, parse_p4.py        # Parse Texas RRC P-4 EBCDIC to /tmp CSVs
+  create_p5_db.py, parse_p5.py        # Parse Texas RRC P-5 EBCDIC to /tmp CSVs
+  create_wellbore_db.py, parse_wellbore.py  # Parse Texas RRC wellbore EBCDIC to /tmp CSVs
 
 output/
   lng_attribution.csv                 # CH4 plumes matched to LNG feedgas suppliers (52 rows)

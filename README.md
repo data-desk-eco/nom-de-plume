@@ -44,9 +44,17 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
    - LNG feedgas supply contracts (parsed by Gemini 2.5 Pro)
    - Stored in `data/supply-contracts-gemini-2-5-pro.csv`
 
+4. **Texas Railroad Commission** (manual download required)
+   - P-4 Schedule data (purchaser/gatherer information): `data/p4f606.ebc.gz`
+   - P-5 Organization data (operator names): `data/orf850.ebc.gz`
+   - Wellbore data (API→lease mappings): `data/dbf900.ebc.gz`
+   - Download from: https://mft.rrc.texas.gov/
+   - Note: Files are parsed to /tmp during build (not tracked in repo)
+
 ## Prerequisites
 
 - DuckDB CLI (`brew install duckdb`)
+- Python 3.x with uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - Make
 - curl (standard on macOS/Linux)
 
@@ -63,9 +71,10 @@ make
 # 2. Fetches emissions from Carbon Mapper API (~10K sources, ~13 MB, <10 sec)
 # 3. Loads infrastructure from OGIM GeoPackage (~30 sec)
 # 4. Loads emissions data (~5 sec)
-# 5. Creates attribution table with spatial join (~3 min)
-# 6. Generates LNG attribution report (~1 sec)
-# Total first run: ~9 minutes (subsequent runs: ~4 minutes)
+# 5. Parses Texas RRC data (P-4, P-5, wellbore) to /tmp (~2 min)
+# 6. Creates attribution table with spatial join (~3 min)
+# 7. Generates LNG attribution report (~1 sec)
+# Total first run: ~11 minutes (subsequent runs: ~6 minutes)
 ```
 
 Output file:

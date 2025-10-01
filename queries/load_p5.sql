@@ -2,19 +2,19 @@
 
 -- Load Record Type 'A ': Organization information
 INSERT INTO p5.org
-SELECT * FROM read_csv_auto('data/p5_org.csv');
+SELECT * FROM read_csv_auto('/tmp/p5_org.csv');
 
 -- Load Record Type 'F ': Specialty codes
 INSERT INTO p5.specialty
-SELECT * FROM read_csv_auto('data/p5_specialty.csv');
+SELECT * FROM read_csv_auto('/tmp/p5_specialty.csv');
 
 -- Load Record Type 'K ': Officer information
 INSERT INTO p5.officer
-SELECT * FROM read_csv_auto('data/p5_officer.csv');
+SELECT * FROM read_csv_auto('/tmp/p5_officer.csv');
 
 -- Load Record Type 'U ': Activity indicators
 INSERT INTO p5.activity
-SELECT * FROM read_csv_auto('data/p5_activity.csv');
+SELECT * FROM read_csv_auto('/tmp/p5_activity.csv');
 
 -- Show summary
 SELECT 'Organization records' as metric, COUNT(*) as count FROM p5.org
