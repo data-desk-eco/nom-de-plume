@@ -29,7 +29,7 @@ wells AS (
         LONGITUDE as longitude,
         ST_Point(LONGITUDE, LATITUDE) as geom
     FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Oil_and_Natural_Gas_Wells')
-    WHERE STATE_PROV = 'TEXAS'
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
         AND LATITUDE IS NOT NULL
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL
@@ -50,7 +50,7 @@ processing AS (
         LONGITUDE as longitude,
         ST_Point(LONGITUDE, LATITUDE) as geom
     FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Gathering_and_Processing')
-    WHERE STATE_PROV = 'TEXAS'
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
         AND LATITUDE IS NOT NULL
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL
@@ -71,7 +71,7 @@ compressors AS (
         LONGITUDE as longitude,
         ST_Point(LONGITUDE, LATITUDE) as geom
     FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Natural_Gas_Compressor_Stations')
-    WHERE STATE_PROV = 'TEXAS'
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
         AND LATITUDE IS NOT NULL
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL
@@ -94,7 +94,7 @@ tanks AS (
         LONGITUDE as longitude,
         ST_Point(LONGITUDE, LATITUDE) as geom
     FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Tank_Battery')
-    WHERE STATE_PROV = 'TEXAS'
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
         AND LATITUDE IS NOT NULL
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL

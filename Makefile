@@ -6,18 +6,18 @@ all: output/lng_attribution.csv
 data/OGIM_v2.7.gpkg:
 	@mkdir -p $(@D)
 	@echo "Downloading OGIM v2.7 database from Zenodo (2.9 GB)..."
-	@echo "This may take several minutes depending on your connection..."
-	curl -L -o $@ https://zenodo.org/records/15103476/files/OGIM_v2.7.gpkg
+	@curl -sL -o $@ https://zenodo.org/records/15103476/files/OGIM_v2.7.gpkg
 	@echo "✓ OGIM database downloaded"
 
-# Fetch emissions data from Carbon Mapper API (Texas bbox, 2025 CH4 plumes)
+# Fetch emissions data from Carbon Mapper API (2025 CH4 plumes, Texas + Louisiana)
+# Bbox: west, south, east, north covering TX + LA
 data/sources.json:
 	@mkdir -p $(@D)
 	@echo "Fetching emissions data from Carbon Mapper API..."
-	curl -G -o $@ "https://api.carbonmapper.org/api/v1/catalog/sources.geojson" \
+	@curl -sG -o $@ "https://api.carbonmapper.org/api/v1/catalog/sources.geojson" \
 		--data-urlencode "bbox=-106.65" \
 		--data-urlencode "bbox=25.84" \
-		--data-urlencode "bbox=-93.51" \
+		--data-urlencode "bbox=-88.75" \
 		--data-urlencode "bbox=36.50" \
 		--data-urlencode "datetime=2025-01-01T00:00:00Z/.." \
 		--data-urlencode "plume_gas=CH4"
