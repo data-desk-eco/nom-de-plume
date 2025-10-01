@@ -1,5 +1,4 @@
-# Generated CSV files and database
-data/*.csv
+# Generated database
 data/*.duckdb
 data/*.duckdb.wal
 
