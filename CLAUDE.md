@@ -1,10 +1,10 @@
 # Nom de plume
 
-Methane plume attribution system for Texas oil and gas infrastructure.
+Methane plume attribution system for Texas and Louisiana oil and gas infrastructure.
 
 ## Project Goal
 
-Attribute methane plumes observed by satellites to specific operators of oil and gas infrastructure in Texas.
+Attribute methane plumes observed by satellites to specific operators of oil and gas infrastructure in Texas and Louisiana.
 
 ## Current State
 
@@ -38,7 +38,7 @@ Build with: `make` (fully automated, downloads all data)
 
 **Infrastructure Schema** (OGIM data):
 - `infrastructure.all_facilities` - 970K+ facilities with unified schema:
-  - Wells (weight=1.0): 970K Texas wells
+  - Wells (weight=1.0): 970K Texas and Louisiana wells
   - Processing plants (weight=2.0): 176 facilities
   - Compressor stations (weight=1.5): 561 facilities
   - Tank batteries (weight=1.3): 24 facilities
@@ -106,7 +106,7 @@ output/
 
 OGIM v2.7 is a GeoPackage (SQLite-based spatial database) with separate tables for each facility type. The database is automatically downloaded from Zenodo (https://zenodo.org/records/15103476) on first run.
 
-Key tables for Texas:
+Key tables for Texas and Louisiana:
 
 - **Oil_and_Natural_Gas_Wells**: 970K wells with FAC_ID, OPERATOR, FAC_TYPE, FAC_STATUS, LATITUDE, LONGITUDE
 - **Gathering_and_Processing**: 176 facilities with OGIM_ID, OPERATOR, FAC_TYPE
@@ -309,7 +309,7 @@ D DESCRIBE emissions.attributed;           # Show attribution results
 ## Future Work
 
 - Add temporal analysis (track facility status changes over time)
-- Include other states beyond Texas (OGIM covers multiple states)
+- Include other states beyond Texas and Louisiana (OGIM covers multiple states)
 - Export to GeoJSON/Shapefile for GIS tools
 - Add regular emissions data updates from Carbon Mapper API
 - Integrate pipeline data from OGIM (currently only stationary facilities)

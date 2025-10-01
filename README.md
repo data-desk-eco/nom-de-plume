@@ -1,6 +1,6 @@
 # Nom de Plume
 
-**Methane plume attribution system for Texas LNG supply chains**
+**Methane plume attribution system for Texas and Louisiana LNG supply chains**
 
 This pipeline connects satellite-detected methane emissions to specific oil and gas operators and LNG export facilities, revealing which companies' infrastructure is leaking methane that feeds liquefied natural gas exports.
 
@@ -29,7 +29,7 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
 ## Data Sources
 
 1. **OGIM v2.7** (Environmental Defense Fund)
-   - 970K+ Texas wells with operator information
+   - 970K+ Texas and Louisiana wells with operator information
    - 561 compressor stations
    - 176 gas processing plants
    - 24 tank batteries
