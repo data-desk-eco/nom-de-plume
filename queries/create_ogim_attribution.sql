@@ -1,40 +1,219 @@
--- Create emissions attribution table using OGIM multi-infrastructure approach
--- Matches CH4 plumes to nearest wells, compressor stations, processing plants, and tank batteries
--- Applies infrastructure type weighting and calculates confidence scores
+-- Hybrid attribution: Texas RRC for Texas plumes, OGIM for all others
+-- Texas plumes get purchaser information via spatial join to RRC wellbore data
+-- Non-Texas plumes use OGIM infrastructure (wells, compressors, processing, tanks)
 
--- Ensure spatial extension is loaded
+INSTALL spatial;
 LOAD spatial;
 
--- Drop existing table
 DROP TABLE IF EXISTS emissions.attributed;
 
--- Create attribution table with infrastructure type weighting
 CREATE TABLE emissions.attributed AS
 WITH
--- Find all facilities within 750m of each emission source
--- Optimized: bbox pre-filter + ST_DWithin instead of ST_Distance for performance
-nearby_facilities AS (
+-- ============================================================================
+-- TEXAS ATTRIBUTION (RRC-based with purchaser data)
+-- ============================================================================
+texas_wells AS (
+    SELECT
+        loc.geom,
+        loc.api_county,
+        loc.api_unique,
+        op_org.organization_name as operator_name,
+        p4.operator_number,
+        p4.oil_gas_code,
+        p4.district,
+        p4.lease_rrcid,
+        p4.field_number
+    FROM wellbore.location loc
+    JOIN wellbore.wellid wb ON loc.api_county = wb.api_county
+                            AND loc.api_unique = wb.api_unique
+    JOIN p4.root p4 ON wb.oil_gas_code = p4.oil_gas_code
+                    AND wb.district = p4.district
+                    AND (wb.lease_number = p4.lease_rrcid OR wb.gas_rrcid = p4.lease_rrcid)
+    LEFT JOIN p5.org op_org ON p4.operator_number = op_org.operator_number
+    WHERE loc.geom IS NOT NULL
+),
+
+-- Texas plumes (geographic bounds)
+texas_plumes AS (
+    SELECT id, geom, emission_auto, emission_uncertainty_auto, persistence, plume_count, timestamp_min, timestamp_max
+    FROM emissions.sources
+    WHERE gas = 'CH4'
+      AND ST_X(geom) BETWEEN -106.65 AND -93.51  -- Texas longitude
+      AND ST_Y(geom) BETWEEN 25.84 AND 36.50     -- Texas latitude
+),
+
+-- Spatial join: Texas plumes to RRC wells within 750m
+texas_plume_well_pairs AS (
+    SELECT
+        e.id,
+        e.emission_auto,
+        e.emission_uncertainty_auto,
+        e.persistence,
+        e.plume_count,
+        e.timestamp_min,
+        e.timestamp_max,
+        e.geom as plume_geom,
+        w.api_county || '-' || w.api_unique as well_api,
+        w.operator_name,
+        w.operator_number,
+        w.oil_gas_code,
+        w.district,
+        w.lease_rrcid,
+        w.field_number,
+        ST_Distance(e.geom, w.geom) * 111 as distance_km
+    FROM texas_plumes e
+    CROSS JOIN texas_wells w
+    WHERE ST_X(w.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
+      AND ST_Y(w.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
+      AND ST_DWithin(e.geom, w.geom, 0.0075)  -- ~750m
+),
+
+-- Nearest well per Texas plume
+texas_nearest_wells AS (
+    SELECT DISTINCT ON (id)
+        id,
+        emission_auto,
+        emission_uncertainty_auto,
+        persistence,
+        plume_count,
+        timestamp_min,
+        timestamp_max,
+        plume_geom,
+        well_api,
+        operator_name,
+        operator_number,
+        oil_gas_code,
+        district,
+        lease_rrcid,
+        field_number,
+        distance_km
+    FROM texas_plume_well_pairs
+    ORDER BY id, distance_km
+),
+
+-- Total well counts for Texas plumes
+texas_well_counts AS (
+    SELECT
+        id,
+        COUNT(DISTINCT well_api) as total_wells_within_750m
+    FROM texas_plume_well_pairs
+    GROUP BY id
+),
+
+-- Operator well counts for Texas plumes
+texas_operator_counts AS (
+    SELECT
+        id,
+        operator_number,
+        COUNT(DISTINCT well_api) as operator_wells
+    FROM texas_plume_well_pairs
+    GROUP BY id, operator_number
+),
+
+-- Purchaser info for Texas plumes
+texas_purchasers AS (
+    SELECT
+        nw.id,
+        STRING_AGG(
+            DISTINCT
+            CASE
+                WHEN gpn_org.organization_name IS NOT NULL
+                THEN '[' || gpn.gpn_number || '] ' || gpn_org.organization_name
+                ELSE '[' || gpn.gpn_number || ']'
+            END,
+            '; '
+        ) as purchaser_names
+    FROM texas_nearest_wells nw
+    JOIN p4.gpn gpn ON nw.oil_gas_code = gpn.oil_gas_code
+                    AND nw.district = gpn.district
+                    AND nw.lease_rrcid = gpn.lease_rrcid
+    LEFT JOIN p5.org gpn_org ON gpn.gpn_number = gpn_org.operator_number
+    WHERE gpn.type_code = 'H'  -- H = purchaser
+      AND gpn.gpn_number IS NOT NULL
+    GROUP BY nw.id
+),
+
+-- Final Texas attribution
+texas_attributed AS (
+    SELECT
+        nw.id,
+        nw.emission_auto as rate_avg_kg_hr,
+        ROUND(nw.emission_auto / NULLIF(nw.persistence, 0), 2) as rate_detected_kg_hr,
+        nw.emission_uncertainty_auto as rate_uncertainty_kg_hr,
+        nw.plume_count,
+        nw.timestamp_min,
+        nw.timestamp_max,
+        ST_Y(nw.plume_geom) as latitude,
+        ST_X(nw.plume_geom) as longitude,
+        nw.well_api as nearest_facility_id,
+        'well' as nearest_facility_type,
+        NULL as facility_subtype,
+        nw.operator_name as nearest_facility_operator,
+        nw.distance_km as distance_to_nearest_facility_km,
+        wc.total_wells_within_750m as total_facilities_within_750m,
+        wc.total_wells_within_750m as wells_within_750m,
+        0 as compressors_within_750m,
+        0 as processing_within_750m,
+        0 as tanks_within_750m,
+        oc.operator_wells as operator_facilities_of_type,
+        ROUND(
+            -- Operator Dominance (0-50)
+            (oc.operator_wells::FLOAT / NULLIF(wc.total_wells_within_750m, 0)) * 50 +
+            -- Distance (0-35)
+            GREATEST(0, 35 * (1 - (nw.distance_km / 0.75))) +
+            -- Density (5-15)
+            CASE
+                WHEN wc.total_wells_within_750m = 1 THEN 15
+                WHEN wc.total_wells_within_750m <= 3 THEN 12
+                WHEN wc.total_wells_within_750m <= 10 THEN 9
+                WHEN wc.total_wells_within_750m <= 30 THEN 6
+                ELSE 5
+            END,
+            1
+        ) as confidence_score,
+        p.purchaser_names
+    FROM texas_nearest_wells nw
+    LEFT JOIN texas_well_counts wc ON nw.id = wc.id
+    LEFT JOIN texas_operator_counts oc ON nw.id = oc.id AND nw.operator_number = oc.operator_number
+    LEFT JOIN texas_purchasers p ON nw.id = p.id
+),
+
+-- ============================================================================
+-- NON-TEXAS ATTRIBUTION (OGIM-based, multi-infrastructure)
+-- ============================================================================
+non_texas_plumes AS (
+    SELECT id, geom, emission_auto, emission_uncertainty_auto, persistence, plume_count, timestamp_min, timestamp_max
+    FROM emissions.sources
+    WHERE gas = 'CH4'
+      AND NOT (ST_X(geom) BETWEEN -106.65 AND -93.51 AND ST_Y(geom) BETWEEN 25.84 AND 36.50)
+),
+
+-- Find all OGIM facilities within 750m of non-Texas emissions
+non_texas_nearby_facilities AS (
     SELECT
         e.id as emission_id,
         e.geom as emission_geom,
+        e.emission_auto,
+        e.emission_uncertainty_auto,
+        e.persistence,
+        e.plume_count,
+        e.timestamp_min,
+        e.timestamp_max,
         f.facility_id,
         f.infra_type,
         f.operator,
         f.facility_subtype,
         f.geom as facility_geom,
-        ST_Distance(e.geom, f.geom) * 111 as distance_km  -- Convert degrees to km (approximate)
-    FROM emissions.sources e
+        ST_Distance(e.geom, f.geom) * 111 as distance_km
+    FROM non_texas_plumes e
     CROSS JOIN infrastructure.all_facilities f
-    WHERE e.gas = 'CH4'
-        -- Bbox pre-filter: quickly eliminate most candidates
-        AND ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
-        AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
-        -- Precise distance filter
-        AND ST_DWithin(e.geom, f.geom, 0.0075)  -- ~750m radius, more efficient than ST_Distance
+    WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
+      AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
+      AND ST_DWithin(e.geom, f.geom, 0.0075)
 ),
 
--- Calculate total facility counts per emission (all operators)
-emission_totals AS (
+-- Total facility counts for non-Texas plumes
+non_texas_totals AS (
     SELECT
         emission_id,
         COUNT(*) as total_facilities_within_750m,
@@ -42,25 +221,32 @@ emission_totals AS (
         COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_750m,
         COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_750m,
         COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_750m
-    FROM nearby_facilities
+    FROM non_texas_nearby_facilities
     GROUP BY emission_id
 ),
 
--- Calculate operator-specific counts per emission/type/operator
-emission_operator_stats AS (
+-- Operator counts for non-Texas plumes
+non_texas_operator_stats AS (
     SELECT
         emission_id,
         infra_type,
         operator,
         COUNT(*) as operator_facilities_of_type
-    FROM nearby_facilities
+    FROM non_texas_nearby_facilities
     GROUP BY emission_id, infra_type, operator
 ),
 
--- Find the single best match per emission (closest facility)
-best_matches AS (
+-- Best match for non-Texas plumes (closest facility)
+non_texas_best_matches AS (
     SELECT DISTINCT ON (nf.emission_id)
         nf.emission_id,
+        nf.emission_auto,
+        nf.emission_uncertainty_auto,
+        nf.persistence,
+        nf.plume_count,
+        nf.timestamp_min,
+        nf.timestamp_max,
+        nf.emission_geom,
         nf.facility_id,
         nf.infra_type,
         nf.operator,
@@ -72,15 +258,8 @@ best_matches AS (
         totals.processing_within_750m,
         totals.tanks_within_750m,
         op_stats.operator_facilities_of_type,
-
-        -- Distance score (0-35 points): inverse relationship, closer = higher
-        -- Max at 0m (35 pts), min at 750m (0 pts)
         GREATEST(0, 35 * (1 - (nf.distance_km / 0.75))) as distance_score,
-
-        -- Operator dominance (0-50 points): % of nearby facilities of same type operated by this operator
         LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_within_750m, 0))) as operator_dominance_score,
-
-        -- Density penalty (5-15 points): fewer facilities = less ambiguity = higher score
         CASE
             WHEN totals.total_facilities_within_750m = 1 THEN 15
             WHEN totals.total_facilities_within_750m <= 3 THEN 12
@@ -88,92 +267,52 @@ best_matches AS (
             WHEN totals.total_facilities_within_750m <= 30 THEN 6
             ELSE 5
         END as density_score
-
-    FROM nearby_facilities nf
-    INNER JOIN emission_totals totals
-        ON nf.emission_id = totals.emission_id
-    INNER JOIN emission_operator_stats op_stats
+    FROM non_texas_nearby_facilities nf
+    INNER JOIN non_texas_totals totals ON nf.emission_id = totals.emission_id
+    INNER JOIN non_texas_operator_stats op_stats
         ON nf.emission_id = op_stats.emission_id
         AND nf.operator = op_stats.operator
         AND nf.infra_type = op_stats.infra_type
-    -- Sort by distance (closer first)
     ORDER BY nf.emission_id, nf.distance_km ASC
 ),
 
--- Add purchaser information for Texas wells
-purchaser_info AS (
+-- Final non-Texas attribution
+non_texas_attributed AS (
     SELECT
-        bm.emission_id,
-        STRING_AGG(
-            DISTINCT
-            CASE
-                WHEN p5.organization_name IS NOT NULL
-                THEN '[' || gpn.gpn_number || '] ' || p5.organization_name
-                ELSE '[' || gpn.gpn_number || ']'
-            END,
-            '; '
-        ) as purchaser_names
-    FROM best_matches bm
-    -- Join to wellbore.wellid using API number from OGIM facility_id
-    -- OGIM format: 42361304130000.0 = state(2) + county(3) + unique(9)
-    -- Extract county (chars 3-5) and unique (chars 6-14)
-    INNER JOIN wellbore.wellid wb
-        ON CAST(SUBSTRING(bm.facility_id, 3, 3) AS INTEGER) = wb.api_county
-        AND CAST(SUBSTRING(bm.facility_id, 6, 9) AS INTEGER) = wb.api_unique
-    -- Join to P-4 GPN records to get purchasers
-    INNER JOIN p4.gpn gpn
-        ON wb.oil_gas_code = gpn.oil_gas_code
-        AND wb.district = gpn.district
-        AND (wb.lease_number = gpn.lease_rrcid OR wb.gas_rrcid = gpn.lease_rrcid)
-    -- Join to P-5 org names
-    LEFT JOIN p5.org p5
-        ON gpn.gpn_number = p5.operator_number
-    WHERE bm.infra_type = 'well'  -- Only wells have purchaser data
-      AND gpn.type_code = 'H'  -- H = purchaser (not gatherer or nominator)
-      AND gpn.gpn_number IS NOT NULL
-    GROUP BY bm.emission_id
+        bm.emission_id as id,
+        bm.emission_auto as rate_avg_kg_hr,
+        ROUND(bm.emission_auto / NULLIF(bm.persistence, 0), 2) as rate_detected_kg_hr,
+        bm.emission_uncertainty_auto as rate_uncertainty_kg_hr,
+        bm.plume_count,
+        bm.timestamp_min,
+        bm.timestamp_max,
+        ST_Y(bm.emission_geom) as latitude,
+        ST_X(bm.emission_geom) as longitude,
+        bm.facility_id as nearest_facility_id,
+        bm.infra_type as nearest_facility_type,
+        bm.facility_subtype,
+        bm.operator as nearest_facility_operator,
+        bm.distance_km as distance_to_nearest_facility_km,
+        bm.total_facilities_within_750m,
+        bm.wells_within_750m,
+        bm.compressors_within_750m,
+        bm.processing_within_750m,
+        bm.tanks_within_750m,
+        bm.operator_facilities_of_type,
+        ROUND(
+            bm.distance_score + bm.operator_dominance_score + bm.density_score,
+            1
+        ) as confidence_score,
+        NULL as purchaser_names  -- No purchaser data for non-Texas plumes
+    FROM non_texas_best_matches bm
 )
 
--- Final attribution with confidence scores
-SELECT
-    e.id,
-    e.emission_auto as rate_avg_kg_hr,
-    ROUND(e.emission_auto / NULLIF(e.persistence, 0), 2) as rate_detected_kg_hr,
-    e.emission_uncertainty_auto as rate_uncertainty_kg_hr,
-    e.plume_count,
-    e.timestamp_min,
-    e.timestamp_max,
-    ST_Y(e.geom) as latitude,
-    ST_X(e.geom) as longitude,
-    bm.facility_id as nearest_facility_id,
-    bm.infra_type as nearest_facility_type,
-    bm.facility_subtype,
-    bm.operator as nearest_facility_operator,
-    bm.distance_km as distance_to_nearest_facility_km,
-    bm.total_facilities_within_750m,
-    bm.wells_within_750m,
-    bm.compressors_within_750m,
-    bm.processing_within_750m,
-    bm.tanks_within_750m,
-    bm.operator_facilities_of_type,
+-- Combine Texas and non-Texas attributions
+SELECT * FROM texas_attributed
+UNION ALL
+SELECT * FROM non_texas_attributed;
 
-    -- Calculate final confidence score
-    ROUND(
-        bm.distance_score +                     -- Distance score (0-35)
-        bm.operator_dominance_score +           -- Operator dominance (0-50)
-        bm.density_score,                        -- Density bonus (5-15)
-        1
-    ) as confidence_score,
-
-    -- Texas well purchaser information
-    pi.purchaser_names
-
-FROM emissions.sources e
-LEFT JOIN best_matches bm ON e.id = bm.emission_id
-LEFT JOIN purchaser_info pi ON e.id = pi.emission_id
-WHERE e.gas = 'CH4';
-
--- Create indexes for fast querying
+-- Create indexes
 CREATE INDEX idx_attributed_operator ON emissions.attributed (nearest_facility_operator);
 CREATE INDEX idx_attributed_facility_type ON emissions.attributed (nearest_facility_type);
 CREATE INDEX idx_attributed_confidence ON emissions.attributed (confidence_score);
@@ -184,7 +323,8 @@ SELECT
     COUNT(*) as attributed_plumes,
     ROUND(AVG(confidence_score), 1) as avg_confidence,
     ROUND(AVG(distance_to_nearest_facility_km), 2) as avg_distance_km,
-    COUNT(DISTINCT nearest_facility_operator) as unique_operators
+    COUNT(DISTINCT nearest_facility_operator) as unique_operators,
+    COUNT(purchaser_names) as plumes_with_purchasers
 FROM emissions.attributed
 WHERE nearest_facility_operator IS NOT NULL
 GROUP BY nearest_facility_type

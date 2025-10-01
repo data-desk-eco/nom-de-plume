@@ -27,31 +27,11 @@ data/sources.json:
 # must be downloaded manually from https://mft.rrc.texas.gov/ and placed in data/
 # The download links require active browser sessions and cannot be automated
 
-# Parse P-4 data to extract root, info, GPN, and lease name records
-# Output goes to /tmp to avoid cluttering the repository
-.PHONY: parse-p4
-parse-p4: data/p4f606.ebc.gz scripts/create_p4_db.py scripts/parse_p4.py
-	@echo "Parsing P-4 data for purchaser/gatherer information..."
-	uv run scripts/create_p4_db.py
-	@echo "✓ P-4 data parsed to /tmp"
-
-# Parse P-5 data to extract organization names
-.PHONY: parse-p5
-parse-p5: data/orf850.ebc.gz scripts/create_p5_db.py scripts/parse_p5.py
-	@echo "Parsing P-5 data for organization names..."
-	uv run scripts/create_p5_db.py
-	@echo "✓ P-5 data parsed to /tmp"
-
-# Parse wellbore data to extract API→lease mappings
-.PHONY: parse-wellbore
-parse-wellbore: data/dbf900.ebc.gz scripts/create_wellbore_db.py scripts/parse_wellbore.py
-	@echo "Parsing wellbore data for API number mappings..."
-	uv run scripts/create_wellbore_db.py
-	@echo "✓ Wellbore data parsed to /tmp"
-
 # Create DuckDB database from OGIM GeoPackage and Carbon Mapper emissions
-data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/load_p4.sql queries/load_p5.sql queries/load_wellbore.sql queries/create_ogim_attribution.sql scripts/create_p4_db.py scripts/parse_p4.py scripts/create_p5_db.py scripts/parse_p5.py scripts/create_wellbore_db.py scripts/parse_wellbore.py
-	@echo "Building database from OGIM v2.7 data..."
+# Depends on: data files + database creation queries (schema, loading)
+# Does NOT depend on: attribution or LNG analysis queries (use separate targets for those)
+data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/load_p4.sql queries/load_p5.sql queries/load_wellbore.sql scripts/create_p4_db.py scripts/parse_p4.py scripts/create_p5_db.py scripts/parse_p5.py scripts/create_wellbore_db.py scripts/parse_wellbore.py
+	@echo "Building database from OGIM v2.7 + Texas RRC data..."
 	@echo "1/7 Creating schema..."
 	@duckdb $@ < queries/schema.sql
 	@echo "2/7 Loading emissions from Carbon Mapper..."
@@ -67,16 +47,33 @@ data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/
 	@echo "6/7 Parsing and loading Texas RRC wellbore data (API→lease mappings)..."
 	@uv run scripts/create_wellbore_db.py
 	@duckdb $@ < queries/load_wellbore.sql
-	@echo "7/7 Creating attribution table with multi-infrastructure scoring..."
+	@echo "Creating spatial indexes for performance..."
+	@duckdb $@ -c "INSTALL spatial; LOAD spatial; CREATE INDEX IF NOT EXISTS idx_wellbore_location_geom ON wellbore.location USING RTREE (geom); CREATE INDEX IF NOT EXISTS idx_emissions_sources_geom ON emissions.sources USING RTREE (geom); CREATE INDEX IF NOT EXISTS idx_p4_gpn_lease ON p4.gpn (oil_gas_code, district, lease_rrcid); CREATE INDEX IF NOT EXISTS idx_p4_gpn_number ON p4.gpn (gpn_number);"
+	@echo "7/7 Creating hybrid attribution (Texas RRC + OGIM)..."
 	@duckdb $@ < queries/create_ogim_attribution.sql
 	@echo "✓ Database build complete"
 
-# Generate LNG feedgas supply attribution report
-output/lng_attribution.csv: data/data.duckdb data/supply-contracts-gemini-2-5-pro.csv queries/ogim_lng_attribution.sql
-	@mkdir -p $(@D)
+# Regenerate attribution table (without rebuilding entire database)
+.PHONY: attribution
+attribution: data/data.duckdb
+	@echo "Regenerating attribution table..."
+	@duckdb data/data.duckdb < queries/create_ogim_attribution.sql
+	@echo "✓ Attribution complete"
+
+# Generate LNG attribution report
+.PHONY: lng-attribution
+lng-attribution: data/data.duckdb
+	@mkdir -p output
 	@echo "Generating LNG attribution report..."
-	duckdb --csv data/data.duckdb < queries/ogim_lng_attribution.sql > $@
-	@echo "✓ Report saved to $@"
+	@duckdb --csv data/data.duckdb < queries/ogim_lng_attribution.sql > output/lng_attribution.csv
+	@echo "✓ Report saved to output/lng_attribution.csv"
+
+# Legacy file-based target (for backwards compatibility with 'make all')
+output/lng_attribution.csv: data/data.duckdb data/supply-contracts-gemini-2-5-pro.csv
+	@$(MAKE) lng-attribution
+
+clean-output:
+	rm -f output/lng_attribution.csv
 
 clean:
 	rm -f data/data.duckdb output/lng_attribution.csv

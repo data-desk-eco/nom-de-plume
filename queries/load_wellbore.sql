@@ -6,6 +6,9 @@ INSERT INTO wellbore.root
 SELECT * FROM read_csv_auto('/tmp/wellbore_root.csv');
 
 -- Load Well Bore location table (use all_varchar then cast to handle embedded quotes)
+INSTALL spatial;
+LOAD spatial;
+
 INSERT INTO wellbore.location
 SELECT
     CAST(api_county AS INTEGER) as api_county,
@@ -22,7 +25,13 @@ SELECT
     CAST(feet_from_sur_sect_2 AS INTEGER) as feet_from_sur_sect_2,
     direc_from_sur_sect_2,
     CAST(wgs84_latitude AS DOUBLE) as wgs84_latitude,
-    CAST(wgs84_longitude AS DOUBLE) as wgs84_longitude,
+    -ABS(CAST(wgs84_longitude AS DOUBLE)) as wgs84_longitude,  -- Texas longitudes are negative (western hemisphere)
+    -- Create geometry point, handling zero coordinates
+    CASE
+        WHEN CAST(wgs84_latitude AS DOUBLE) != 0 AND CAST(wgs84_longitude AS DOUBLE) != 0
+        THEN ST_Point(-ABS(CAST(wgs84_longitude AS DOUBLE)), CAST(wgs84_latitude AS DOUBLE))
+        ELSE NULL
+    END as geom,
     CAST(plane_zone AS INTEGER) as plane_zone,
     CAST(plane_coordinate_east AS DOUBLE) as plane_coordinate_east,
     CAST(plane_coordinate_north AS DOUBLE) as plane_coordinate_north,

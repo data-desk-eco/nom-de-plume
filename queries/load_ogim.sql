@@ -18,7 +18,7 @@ WITH
 -- Note: Including all wells regardless of status since plugged wells can still emit
 wells AS (
     SELECT
-        FAC_ID as facility_id,
+        CAST(CAST(FAC_ID AS BIGINT) AS VARCHAR) as facility_id,
         'well' as infra_type,
         OPERATOR as operator,
         FAC_TYPE as facility_subtype,

@@ -5,6 +5,7 @@
 INSTALL spatial;
 LOAD spatial;
 
+DROP SCHEMA IF EXISTS p4 CASCADE;
 CREATE SCHEMA p4;
 
 -- Record Type 01: Lease/P-4 Root Information (P4ROOT segment)
@@ -109,6 +110,7 @@ CREATE TABLE p4.lease_name (
 -- Texas RRC Well Bore Database Schema
 -- ============================================================================
 
+DROP SCHEMA IF EXISTS wellbore CASCADE;
 CREATE SCHEMA wellbore;
 
 -- Record Type 01: Well Bore Root (WBROOT segment)
@@ -205,6 +207,7 @@ CREATE TABLE wellbore.wellid (
 -- P-5 Organization Report (operator/gatherer names and info)
 -- ============================================================================
 
+DROP SCHEMA IF EXISTS p5 CASCADE;
 CREATE SCHEMA p5;
 
 -- Record Type 'A ': Organization information
@@ -299,6 +302,7 @@ CREATE TABLE p5.activity (
 -- Emissions (Carbon Mapper satellite observations)
 -- ============================================================================
 
+DROP SCHEMA IF EXISTS emissions CASCADE;
 CREATE SCHEMA emissions;
 
 -- Emission sources detected by Carbon Mapper (CH4, CO2, etc.)
