@@ -33,7 +33,7 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
    - 561 compressor stations
    - 176 gas processing plants
    - 24 tank batteries
-   - Available from: https://data.catalyst.coop/edf-ogim
+   - Auto-downloaded from Zenodo: https://zenodo.org/records/15103476
 
 2. **Carbon Mapper**
    - Satellite methane plume observations
@@ -47,37 +47,37 @@ The result: A dataset showing which CH4 emissions are connected to which LNG exp
 ## Prerequisites
 
 - DuckDB CLI (`brew install duckdb`)
-- Python 3.10+ with uv (optional, only for fetching emissions data)
+- Python 3.10+ with uv (for fetching emissions data)
 - Make
+- curl (for downloading OGIM database)
 
 ## Setup
 
-The pipeline requires large source data files (not in repo):
+The pipeline automatically downloads required data files:
 
 ```bash
-# Download OGIM v2.7 GeoPackage (place in data/)
-# - OGIM_v2.7.gpkg (2.9 GB)
-# Available from: https://data.catalyst.coop/edf-ogim
-
 # Fetch latest emissions data from Carbon Mapper API
 # (fetches CH4 plumes for Texas bbox, ~10,443 sources, ~13 MB)
 uv run scripts/fetch_emissions.py
 ```
+
+That's it! The OGIM database (2.9 GB) will be automatically downloaded when you run `make`.
 
 ## Running the Pipeline
 
 ### Full Build
 
 ```bash
-# Load OGIM data, load emissions, create attribution table
+# Build complete pipeline (auto-downloads OGIM if needed)
 make
 
-# This will:
+# First run will:
+# 0. Download OGIM v2.7 from Zenodo (~2.9 GB, one-time, ~5 min depending on connection)
 # 1. Load infrastructure from OGIM GeoPackage (~30 sec)
 # 2. Load emissions from Carbon Mapper GeoJSON (~5 sec)
 # 3. Create spatial indexes (~10 sec)
 # 4. Run attribution spatial join (~3 min)
-# Total: ~4 minutes
+# Total first run: ~9 minutes (subsequent runs: ~4 minutes)
 ```
 
 ### Generate Reports
@@ -95,6 +95,19 @@ Output file:
 ```bash
 # Show facility counts by type without building full database
 make test
+```
+
+### Additional Commands
+
+```bash
+# Manually download OGIM database (normally happens automatically)
+make download-ogim
+
+# Clean generated database and reports (keeps source data)
+make clean
+
+# Clean everything including downloaded OGIM database and emissions data
+make clean-all
 ```
 
 ## Output Format

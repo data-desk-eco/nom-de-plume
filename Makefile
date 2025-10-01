@@ -1,6 +1,16 @@
-.PHONY: all clean lng-attribution test
+.PHONY: all clean clean-all lng-attribution test download-ogim
 
 all: data/data.duckdb
+
+# Download OGIM v2.7 database from Zenodo (2.9 GB)
+data/OGIM_v2.7.gpkg:
+	@mkdir -p data
+	@echo "Downloading OGIM v2.7 database from Zenodo (2.9 GB)..."
+	@echo "This may take several minutes depending on your connection..."
+	curl -L -o data/OGIM_v2.7.gpkg https://zenodo.org/records/15103476/files/OGIM_v2.7.gpkg
+	@echo "✓ OGIM database downloaded"
+
+download-ogim: data/OGIM_v2.7.gpkg
 
 # Create DuckDB database from OGIM GeoPackage and Carbon Mapper emissions
 data/data.duckdb: data/OGIM_v2.7.gpkg data/sources_*.json queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/create_ogim_attribution.sql
@@ -32,3 +42,6 @@ test: data/OGIM_v2.7.gpkg
 
 clean:
 	rm -f data/data.duckdb output/lng_attribution.csv
+
+clean-all: clean
+	rm -f data/OGIM_v2.7.gpkg data/sources_*.json

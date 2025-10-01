@@ -27,10 +27,12 @@ The database is **complete and production-ready** with full attribution capabili
 OGIM GeoPackage + Carbon Mapper GeoJSON → DuckDB Database
          ↓                                        ↓
   data/OGIM_v2.7.gpkg                      data.duckdb
+  (auto-downloaded)
   data/sources_*.json
+  (fetch manually)
 ```
 
-Build with: `make` or `make data/data.duckdb`
+Build with: `make` (auto-downloads OGIM if needed)
 
 ### Database Schema
 
@@ -81,8 +83,8 @@ Operator Attribution
 
 ```
 data/
-  OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB GeoPackage)
-  sources_*.json                      # Carbon Mapper emissions GeoJSON
+  OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB, auto-downloaded from Zenodo)
+  sources_*.json                      # Carbon Mapper emissions GeoJSON (fetch manually)
   supply-contracts-gemini-2-5-pro.csv # LNG feedgas supply agreements from DOE
   data.duckdb                         # Final database (gitignored)
 
@@ -105,7 +107,9 @@ output/
 
 ### OGIM Data Structure
 
-OGIM v2.7 is a GeoPackage (SQLite-based spatial database) with separate tables for each facility type. Key tables for Texas:
+OGIM v2.7 is a GeoPackage (SQLite-based spatial database) with separate tables for each facility type. The database is automatically downloaded from Zenodo (https://zenodo.org/records/15103476) on first run.
+
+Key tables for Texas:
 
 - **Oil_and_Natural_Gas_Wells**: 970K wells with FAC_ID, OPERATOR, FAC_TYPE, FAC_STATUS, LATITUDE, LONGITUDE
 - **Gathering_and_Processing**: 176 facilities with OGIM_ID, OPERATOR, FAC_TYPE
@@ -295,6 +299,7 @@ make lng-attribution
 Full schema definitions with field descriptions are in:
 - `queries/schema.sql` - Complete DDL with all tables and columns
 - OGIM v2.7 documentation: https://data.catalyst.coop/edf-ogim
+- OGIM v2.7 download: https://zenodo.org/records/15103476 (auto-downloaded by `make`)
 
 To explore the schema interactively:
 ```bash
