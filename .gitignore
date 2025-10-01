@@ -7,8 +7,9 @@ data/*.duckdb.wal
 data/*.ebc.gz
 data/*.json
 
-# Generated output files
-output/
+# Generated output files (but keep final CSV reports)
+output/*.tmp
+output/*.log
 
 # Python
 __pycache__/

@@ -12,10 +12,12 @@ The database is **complete and production-ready** with full attribution capabili
 
 - **1,005,281 wells** with corrected WGS84 coordinates and spatial geometry
 - **10,443 emission sources** from Carbon Mapper satellite observations (CH4 and CO2)
+- **1,941 CH4 plumes** attributed to operators and purchasers with confidence scores
+- **743 plumes** matched to LNG feedgas supply contracts
 - **P5 organization data** linking operator/gatherer numbers to company names
 - Spatial queries enabled via DuckDB spatial extension
-- Complete chain: Plume location → Well → Lease → Operator/Gatherer → Company name
-- **Verified attribution**: Successfully matched emissions to operators (e.g., Ineos wells)
+- Complete chain: Plume location → Well → Lease → Operator/Purchaser → LNG Facility
+- **LNG supply contracts** from DOE filings parsed by Gemini 2.5 Pro
 
 ## Architecture
 
@@ -50,6 +52,10 @@ Build with: `make` or `make data/data.duckdb`
 
 **Emissions Schema** (satellite observations):
 - `emissions.sources` - 10,443 emission sources with **GEOMETRY column**
+- `emissions.attributed` - 1,941 CH4 plumes matched to nearest wells with:
+  - Operator and purchaser information
+  - Confidence scores (0-100) based on proximity, operator dominance, and well density
+  - Distance to nearest well and well counts within 500m radius
 - Includes CH4 and CO2 plumes from Carbon Mapper
 - Fields: emission rate, plume count, persistence, timestamps
 
@@ -83,12 +89,13 @@ P4 Lease (p4.root)
 
 ```
 data/
-  p4f606.ebc.gz           # P4 EBCDIC source (203 MB)
-  dbf900.ebc.gz           # Wellbore EBCDIC source (487 MB)
-  orf850.ebc.gz           # P5 organization EBCDIC source (20 MB)
-  sources_*.json          # Carbon Mapper emissions JSON
-  *.csv                   # Generated CSVs (gitignored)
-  data.duckdb             # Final database (gitignored)
+  p4f606.ebc.gz                      # P4 EBCDIC source (203 MB)
+  dbf900.ebc.gz                      # Wellbore EBCDIC source (487 MB)
+  orf850.ebc.gz                      # P5 organization EBCDIC source (20 MB)
+  sources_*.json                     # Carbon Mapper emissions JSON
+  supply-contracts-gemini-2-5-pro.csv # LNG feedgas supply agreements from DOE
+  *.csv                              # Generated CSVs (gitignored)
+  data.duckdb                        # Final database (gitignored)
 
 scripts/
   create_p4_db.py         # P4 EBCDIC → CSV parser
@@ -100,11 +107,18 @@ scripts/
   fetch_emissions.py      # Fetch emissions from Carbon Mapper API
 
 queries/
-  schema.sql              # Database schema (loads spatial extension)
-  load_p4.sql             # Load P4 data
-  load_wellbore.sql       # Load wellbore data (creates geometry with longitude fix)
-  load_p5.sql             # Load P5 organization data
-  load_emissions.sql      # Load emissions data (creates geometry)
+  schema.sql                    # Database schema (loads spatial extension)
+  load_p4.sql                   # Load P4 data
+  load_wellbore.sql             # Load wellbore data (creates geometry with longitude fix)
+  load_p5.sql                   # Load P5 organization data
+  load_emissions.sql            # Load emissions data (creates geometry)
+  create_indexes.sql            # Create spatial and performance indexes
+  create_attribution_table.sql  # Materialize emissions attribution (expensive spatial join)
+  emissions_attribution.sql     # Legacy CSV export of attribution
+  lng_attribution.sql           # Match attributed plumes to LNG supply contracts
+
+output/
+  lng_attribution.csv     # CH4 plumes matched to LNG feedgas suppliers (743 rows)
 
 docs/
   p4-user-manual_p4a002_feb2015.txt    # P4 field documentation
@@ -220,6 +234,54 @@ WHERE e.id = 'CH4_1B2_250m_-99.45098_28.43460'
   AND loc.geom IS NOT NULL
 ORDER BY distance_km;
 ```
+
+## LNG Supply Chain Attribution
+
+The system includes specialized functionality to match attributed plumes to LNG feedgas supply contracts.
+
+### Usage
+
+```bash
+# Build database (includes attribution table creation)
+make
+
+# Generate LNG attribution report
+make lng-attribution
+```
+
+### Methodology
+
+1. **Attribution Table** (`emissions.attributed`):
+   - Materialized table created during DB build
+   - Spatial join matches CH4 plumes to nearest wells within 500m
+   - Includes operator names and purchaser lists (type H - purchasers who buy gas)
+   - Confidence score (0-100) based on:
+     - **Operator Dominance** (0-50): % of nearby wells operated by matched company
+     - **Distance** (0-35): Closer plumes score higher
+     - **Well Density** (5-15): Fewer nearby wells = less ambiguity
+
+2. **LNG Contract Matching** (`lng_attribution.sql`):
+   - Fuzzy string matching (Jaro-Winkler > 0.85) between:
+     - Well operators ↔ LNG contract sellers
+     - Gas purchasers ↔ LNG contract sellers
+   - Matches both producers (Apache, Pioneer) and marketers (Chevron, Enterprise)
+   - One row per emission source with aggregated LNG supplier info
+
+### Output Format
+
+`output/lng_attribution.csv` contains:
+- Plume details (ID, location, emission rates, timestamps)
+- Attribution (nearest well, operator, purchasers, confidence score)
+- LNG matches (sellers, projects, match count, similarity scores)
+
+### Why Purchasers Matter
+
+Purchasers (type H in RRC data) are the companies that:
+- Buy gas from producers at the wellhead
+- Act as marketers/aggregators
+- Sign supply contracts with LNG facilities
+
+Gatherers (type G) provide transportation services only and don't appear in LNG supply contracts, so they're excluded from matching.
 
 ## Database Schema Reference
 
