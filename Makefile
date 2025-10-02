@@ -9,17 +9,17 @@ data/OGIM_v2.7.gpkg:
 	@curl -sL -o $@ https://zenodo.org/records/15103476/files/OGIM_v2.7.gpkg
 	@echo "✓ OGIM database downloaded"
 
-# Fetch emissions data from Carbon Mapper API (2025 CH4 plumes, Texas + Louisiana)
+# Fetch emissions data from Carbon Mapper API (2024-2025 CH4 plumes, Texas + Louisiana)
 # Bbox: west, south, east, north covering TX + LA
 data/sources.json:
 	@mkdir -p $(@D)
-	@echo "Fetching emissions data from Carbon Mapper API..."
+	@echo "Fetching emissions data from Carbon Mapper API (2024-2025)..."
 	@curl -sG -o $@ "https://api.carbonmapper.org/api/v1/catalog/sources.geojson" \
 		--data-urlencode "bbox=-106.65" \
 		--data-urlencode "bbox=25.84" \
 		--data-urlencode "bbox=-88.75" \
 		--data-urlencode "bbox=36.50" \
-		--data-urlencode "datetime=2025-01-01T00:00:00Z/.." \
+		--data-urlencode "datetime=2024-01-01T00:00:00Z/.." \
 		--data-urlencode "plume_gas=CH4"
 	@echo "✓ Emissions data fetched"
 
