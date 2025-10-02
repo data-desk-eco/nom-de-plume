@@ -95,6 +95,106 @@ tanks AS (
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL
         AND OPERATOR != 'N/A'
+),
+
+-- Injection and disposal wells
+injection AS (
+    SELECT
+        CAST(OGIM_ID AS VARCHAR) as facility_id,
+        'injection_disposal' as infra_type,
+        OPERATOR as operator,
+        FAC_TYPE as facility_subtype,
+        FAC_STATUS as status,
+        OGIM_STATUS as ogim_status,
+        LATITUDE as latitude,
+        LONGITUDE as longitude,
+        ST_Point(LONGITUDE, LATITUDE) as geom
+    FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Injection_and_Disposal')
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
+        AND LATITUDE IS NOT NULL
+        AND LONGITUDE IS NOT NULL
+        AND OPERATOR IS NOT NULL
+        AND OPERATOR != 'N/A'
+),
+
+-- Petroleum terminals
+terminals AS (
+    SELECT
+        CAST(OGIM_ID AS VARCHAR) as facility_id,
+        'petroleum_terminal' as infra_type,
+        OPERATOR as operator,
+        FAC_TYPE as facility_subtype,
+        FAC_STATUS as status,
+        OGIM_STATUS as ogim_status,
+        LATITUDE as latitude,
+        LONGITUDE as longitude,
+        ST_Point(LONGITUDE, LATITUDE) as geom
+    FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Petroleum_Terminals')
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
+        AND LATITUDE IS NOT NULL
+        AND LONGITUDE IS NOT NULL
+        AND OPERATOR IS NOT NULL
+        AND OPERATOR != 'N/A'
+),
+
+-- Other stations
+stations_other AS (
+    SELECT
+        CAST(OGIM_ID AS VARCHAR) as facility_id,
+        'station_other' as infra_type,
+        OPERATOR as operator,
+        FAC_TYPE as facility_subtype,
+        FAC_STATUS as status,
+        OGIM_STATUS as ogim_status,
+        LATITUDE as latitude,
+        LONGITUDE as longitude,
+        ST_Point(LONGITUDE, LATITUDE) as geom
+    FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Stations_Other')
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
+        AND LATITUDE IS NOT NULL
+        AND LONGITUDE IS NOT NULL
+        AND OPERATOR IS NOT NULL
+        AND OPERATOR != 'N/A'
+),
+
+-- LNG facilities
+lng_facilities AS (
+    SELECT
+        CAST(OGIM_ID AS VARCHAR) as facility_id,
+        'lng_facility' as infra_type,
+        OPERATOR as operator,
+        FAC_TYPE as facility_subtype,
+        FAC_STATUS as status,
+        OGIM_STATUS as ogim_status,
+        LATITUDE as latitude,
+        LONGITUDE as longitude,
+        ST_Point(LONGITUDE, LATITUDE) as geom
+    FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'LNG_Facilities')
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
+        AND LATITUDE IS NOT NULL
+        AND LONGITUDE IS NOT NULL
+        AND OPERATOR IS NOT NULL
+        AND OPERATOR != 'N/A'
+),
+
+-- Crude oil refineries
+refineries AS (
+    SELECT
+        CAST(OGIM_ID AS VARCHAR) as facility_id,
+        'refinery' as infra_type,
+        OPERATOR as operator,
+        FAC_TYPE as facility_subtype,
+        FAC_STATUS as status,
+        OGIM_STATUS as ogim_status,
+        LATITUDE as latitude,
+        LONGITUDE as longitude,
+        ST_Point(LONGITUDE, LATITUDE) as geom
+    FROM sqlite_scan('data/OGIM_v2.7.gpkg', 'Crude_Oil_Refineries')
+    WHERE STATE_PROV IN ('TEXAS', 'LOUISIANA')
+        AND LATITUDE IS NOT NULL
+        AND LONGITUDE IS NOT NULL
+        AND OPERATOR IS NOT NULL
+        AND OPERATOR != 'N/A'
 )
 
 SELECT * FROM wells
@@ -103,7 +203,17 @@ SELECT * FROM processing
 UNION ALL
 SELECT * FROM compressors
 UNION ALL
-SELECT * FROM tanks;
+SELECT * FROM tanks
+UNION ALL
+SELECT * FROM injection
+UNION ALL
+SELECT * FROM terminals
+UNION ALL
+SELECT * FROM stations_other
+UNION ALL
+SELECT * FROM lng_facilities
+UNION ALL
+SELECT * FROM refineries;
 
 -- Create spatial index for fast queries
 CREATE INDEX idx_infrastructure_geom ON infrastructure.all_facilities USING RTREE (geom);
