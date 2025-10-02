@@ -43,7 +43,7 @@ texas_plumes AS (
       AND ST_Y(geom) BETWEEN 25.84 AND 36.50     -- Texas latitude
 ),
 
--- Spatial join: Texas plumes to RRC wells within 750m
+-- Spatial join: Texas plumes to RRC wells within search radius
 texas_plume_well_pairs AS (
     SELECT
         e.id,
@@ -64,9 +64,9 @@ texas_plume_well_pairs AS (
         ST_Distance(e.geom, w.geom) * 111 as distance_km
     FROM texas_plumes e
     CROSS JOIN texas_wells w
-    WHERE ST_X(w.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
-      AND ST_Y(w.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
-      AND ST_DWithin(e.geom, w.geom, 0.0075)  -- ~750m
+    WHERE ST_X(w.geom) BETWEEN ST_X(e.geom) - 0.015 AND ST_X(e.geom) + 0.015
+      AND ST_Y(w.geom) BETWEEN ST_Y(e.geom) - 0.015 AND ST_Y(e.geom) + 0.015
+      AND ST_DWithin(e.geom, w.geom, 0.015)  -- ~1.5km
 ),
 
 -- Nearest well per Texas plume
@@ -96,7 +96,7 @@ texas_nearest_wells AS (
 texas_well_counts AS (
     SELECT
         id,
-        COUNT(DISTINCT well_api) as total_wells_within_750m
+        COUNT(DISTINCT well_api) as total_wells_nearby
     FROM texas_plume_well_pairs
     GROUP BY id
 ),
@@ -130,25 +130,19 @@ texas_operator_rows AS (
         nw.operator_name as entity_name,
         nw.operator_number as entity_id,
         nw.distance_km as distance_to_nearest_facility_km,
-        wc.total_wells_within_750m as total_facilities_within_750m,
-        wc.total_wells_within_750m as wells_within_750m,
-        0 as compressors_within_750m,
-        0 as processing_within_750m,
-        0 as tanks_within_750m,
+        wc.total_wells_nearby as total_facilities_nearby,
+        wc.total_wells_nearby as wells_nearby,
+        0 as compressors_nearby,
+        0 as processing_nearby,
+        0 as tanks_nearby,
         oc.operator_wells as operator_facilities_of_type,
         ROUND(
             -- Operator Dominance (0-50)
-            (oc.operator_wells::FLOAT / NULLIF(wc.total_wells_within_750m, 0)) * 50 +
+            (oc.operator_wells::FLOAT / NULLIF(wc.total_wells_nearby, 0)) * 50 +
             -- Distance (0-35)
-            GREATEST(0, 35 * (1 - (nw.distance_km / 0.75))) +
-            -- Density (5-15)
-            CASE
-                WHEN wc.total_wells_within_750m = 1 THEN 15
-                WHEN wc.total_wells_within_750m <= 3 THEN 12
-                WHEN wc.total_wells_within_750m <= 10 THEN 9
-                WHEN wc.total_wells_within_750m <= 30 THEN 6
-                ELSE 5
-            END,
+            GREATEST(0, 35 * (1 - (nw.distance_km / 1.5))) +
+            -- Density (5-15): inverse log scale, fewer facilities = higher score
+            LEAST(15, GREATEST(5, 15 - LOG(GREATEST(1, wc.total_wells_nearby)) * 3)),
             1
         ) as confidence_score
     FROM texas_nearest_wells nw
@@ -179,24 +173,24 @@ texas_ogim_nearby_facilities AS (
     FROM texas_plumes e
     CROSS JOIN infrastructure.all_facilities f
     WHERE f.infra_type != 'well'  -- Only non-well infrastructure from OGIM
-      AND ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
-      AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
-      AND ST_DWithin(e.geom, f.geom, 0.0075)
+      AND ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.015 AND ST_X(e.geom) + 0.015
+      AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.015 AND ST_Y(e.geom) + 0.015
+      AND ST_DWithin(e.geom, f.geom, 0.015)
 ),
 
 -- Total facility counts for Texas OGIM plumes
 texas_ogim_totals AS (
     SELECT
         emission_id,
-        COUNT(*) as total_facilities_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'injection_disposal') as injection_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'petroleum_terminal') as terminals_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'station_other') as stations_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'lng_facility') as lng_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'refinery') as refineries_within_750m
+        COUNT(*) as total_facilities_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'injection_disposal') as injection_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'petroleum_terminal') as terminals_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'station_other') as stations_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'lng_facility') as lng_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'refinery') as refineries_nearby
     FROM texas_ogim_nearby_facilities
     GROUP BY emission_id
 ),
@@ -228,25 +222,19 @@ texas_ogim_best_matches AS (
         nf.operator,
         nf.facility_subtype,
         nf.distance_km,
-        totals.total_facilities_within_750m,
-        totals.compressors_within_750m,
-        totals.processing_within_750m,
-        totals.tanks_within_750m,
-        totals.injection_within_750m,
-        totals.terminals_within_750m,
-        totals.stations_within_750m,
-        totals.lng_within_750m,
-        totals.refineries_within_750m,
+        totals.total_facilities_nearby,
+        totals.compressors_nearby,
+        totals.processing_nearby,
+        totals.tanks_nearby,
+        totals.injection_nearby,
+        totals.terminals_nearby,
+        totals.stations_nearby,
+        totals.lng_nearby,
+        totals.refineries_nearby,
         op_stats.operator_facilities_of_type,
-        GREATEST(0, 35 * (1 - (nf.distance_km / 0.75))) as distance_score,
-        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_within_750m, 0))) as operator_dominance_score,
-        CASE
-            WHEN totals.total_facilities_within_750m = 1 THEN 15
-            WHEN totals.total_facilities_within_750m <= 3 THEN 12
-            WHEN totals.total_facilities_within_750m <= 10 THEN 9
-            WHEN totals.total_facilities_within_750m <= 30 THEN 6
-            ELSE 5
-        END as density_score
+        GREATEST(0, 35 * (1 - (nf.distance_km / 1.5))) as distance_score,
+        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_nearby, 0))) as operator_dominance_score,
+        LEAST(15, GREATEST(5, 15 - LOG(GREATEST(1, totals.total_facilities_nearby)) * 3)) as density_score
     FROM texas_ogim_nearby_facilities nf
     INNER JOIN texas_ogim_totals totals ON nf.emission_id = totals.emission_id
     INNER JOIN texas_ogim_operator_stats op_stats
@@ -275,11 +263,11 @@ texas_ogim_operator_rows AS (
         bm.operator as entity_name,
         NULL as entity_id,  -- OGIM doesn't have numeric IDs
         bm.distance_km as distance_to_nearest_facility_km,
-        bm.total_facilities_within_750m,
-        0 as wells_within_750m,  -- Only non-well infra
-        bm.compressors_within_750m,
-        bm.processing_within_750m,
-        bm.tanks_within_750m,
+        bm.total_facilities_nearby,
+        0 as wells_nearby,  -- Only non-well infra
+        bm.compressors_nearby,
+        bm.processing_nearby,
+        bm.tanks_nearby,
         bm.operator_facilities_of_type,
         ROUND(
             bm.distance_score + bm.operator_dominance_score + bm.density_score,
@@ -298,7 +286,7 @@ non_texas_plumes AS (
       AND NOT (ST_X(geom) BETWEEN -106.65 AND -93.51 AND ST_Y(geom) BETWEEN 25.84 AND 36.50)
 ),
 
--- Find all OGIM facilities within 750m of non-Texas emissions
+-- Find all OGIM facilities within search radius of non-Texas emissions
 non_texas_nearby_facilities AS (
     SELECT
         e.id as emission_id,
@@ -317,20 +305,20 @@ non_texas_nearby_facilities AS (
         ST_Distance(e.geom, f.geom) * 111 as distance_km
     FROM non_texas_plumes e
     CROSS JOIN infrastructure.all_facilities f
-    WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
-      AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
-      AND ST_DWithin(e.geom, f.geom, 0.0075)
+    WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.015 AND ST_X(e.geom) + 0.015
+      AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.015 AND ST_Y(e.geom) + 0.015
+      AND ST_DWithin(e.geom, f.geom, 0.015)
 ),
 
 -- Total facility counts for non-Texas plumes
 non_texas_totals AS (
     SELECT
         emission_id,
-        COUNT(*) as total_facilities_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'well') as wells_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_within_750m,
-        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_within_750m
+        COUNT(*) as total_facilities_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'well') as wells_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'compressor') as compressors_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'processing') as processing_nearby,
+        COUNT(*) FILTER (WHERE infra_type = 'tank_battery') as tanks_nearby
     FROM non_texas_nearby_facilities
     GROUP BY emission_id
 ),
@@ -362,21 +350,15 @@ non_texas_best_matches AS (
         nf.operator,
         nf.facility_subtype,
         nf.distance_km,
-        totals.total_facilities_within_750m,
-        totals.wells_within_750m,
-        totals.compressors_within_750m,
-        totals.processing_within_750m,
-        totals.tanks_within_750m,
+        totals.total_facilities_nearby,
+        totals.wells_nearby,
+        totals.compressors_nearby,
+        totals.processing_nearby,
+        totals.tanks_nearby,
         op_stats.operator_facilities_of_type,
-        GREATEST(0, 35 * (1 - (nf.distance_km / 0.75))) as distance_score,
-        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_within_750m, 0))) as operator_dominance_score,
-        CASE
-            WHEN totals.total_facilities_within_750m = 1 THEN 15
-            WHEN totals.total_facilities_within_750m <= 3 THEN 12
-            WHEN totals.total_facilities_within_750m <= 10 THEN 9
-            WHEN totals.total_facilities_within_750m <= 30 THEN 6
-            ELSE 5
-        END as density_score
+        GREATEST(0, 35 * (1 - (nf.distance_km / 1.5))) as distance_score,
+        LEAST(50, 50 * (CAST(op_stats.operator_facilities_of_type AS FLOAT) / NULLIF(totals.total_facilities_nearby, 0))) as operator_dominance_score,
+        LEAST(15, GREATEST(5, 15 - LOG(GREATEST(1, totals.total_facilities_nearby)) * 3)) as density_score
     FROM non_texas_nearby_facilities nf
     INNER JOIN non_texas_totals totals ON nf.emission_id = totals.emission_id
     INNER JOIN non_texas_operator_stats op_stats
@@ -405,11 +387,11 @@ non_texas_operator_rows AS (
         bm.operator as entity_name,
         NULL as entity_id,  -- OGIM doesn't have numeric IDs
         bm.distance_km as distance_to_nearest_facility_km,
-        bm.total_facilities_within_750m,
-        bm.wells_within_750m,
-        bm.compressors_within_750m,
-        bm.processing_within_750m,
-        bm.tanks_within_750m,
+        bm.total_facilities_nearby,
+        bm.wells_nearby,
+        bm.compressors_nearby,
+        bm.processing_nearby,
+        bm.tanks_nearby,
         bm.operator_facilities_of_type,
         ROUND(
             bm.distance_score + bm.operator_dominance_score + bm.density_score,

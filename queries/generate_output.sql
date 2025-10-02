@@ -22,7 +22,7 @@ plume_info AS (
         nearest_facility_id,
         nearest_facility_type,
         distance_to_nearest_facility_km,
-        total_facilities_within_750m,
+        total_facilities_nearby,
         operator_facilities_of_type,
         confidence_score,
         entity_name as operator
@@ -144,7 +144,7 @@ SELECT
     p.nearest_facility_id,
     p.nearest_facility_type,
     p.distance_to_nearest_facility_km,
-    p.total_facilities_within_750m,
+    p.total_facilities_nearby,
     p.operator_facilities_of_type,
     p.confidence_score,
     m.lng_matches,
