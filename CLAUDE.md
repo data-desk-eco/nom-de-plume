@@ -2,254 +2,149 @@
 
 Methane plume attribution system for Texas and Louisiana oil and gas infrastructure.
 
-## Project Goal
+## Quick Start
 
-Attribute methane plumes observed by satellites to specific operators of oil and gas infrastructure in Texas and Louisiana.
+```bash
+make                    # Build database and generate LNG attribution report
+make attribution        # Regenerate attribution table only
+make lng-attribution    # Regenerate LNG report only
+make clean             # Remove generated files (keep source data)
+make clean-all         # Remove everything including source data
+```
 
-## Current State
+## Project Overview
 
-The database is **complete and production-ready** with full attribution capability:
+**Goal**: Attribute satellite-detected methane plumes to oil and gas operators and LNG export facilities.
 
-- **970,362 wells** from OGIM v2.7 with WGS84 coordinates and spatial geometry
-- **561 compressor stations**, **176 processing plants**, **24 tank batteries**
-- **10,443 emission sources** from Carbon Mapper satellite observations (CH4 and CO2)
-- **290 CH4 plumes** attributed to infrastructure operators with confidence scores
-- **52 plumes** matched to LNG feedgas supply contracts
-- Spatial queries enabled via DuckDB spatial extension
-- Multi-infrastructure attribution: Plume location → Nearest facility (well/compressor/processing/tank) → Operator → LNG Facility
-- **LNG supply contracts** from DOE filings parsed by Gemini 2.5 Pro
+**Current State**: Production-ready with 2,661 plumes attributed to infrastructure operators, 91 matched to LNG supply contracts.
+
+**Data**:
+- 2,947 CH4 plumes from Carbon Mapper (2025 data, Texas + Louisiana)
+- 1.1M+ facilities from OGIM v2.7 and Texas RRC
+- LNG supply contracts from DOE filings
 
 ## Architecture
 
-### Data Pipeline
+### Pipeline
 
 ```
-OGIM GeoPackage + Carbon Mapper GeoJSON → DuckDB Database
-         ↓                                        ↓
-  data/OGIM_v2.7.gpkg                      data.duckdb
-  (auto-downloaded via curl)
-  data/sources.json
-  (auto-fetched via curl)
+OGIM GeoPackage + Carbon Mapper API + Texas RRC data
+                  ↓
+         DuckDB (data.duckdb)
+                  ↓
+    Spatial join + confidence scoring
+                  ↓
+      LNG contract matching
+                  ↓
+     output/lng_attribution.csv
 ```
-
-Build with: `make` (fully automated, downloads all data)
 
 ### Database Schema
 
-**Infrastructure Schema** (OGIM data):
-- `infrastructure.all_facilities` - 970K+ facilities with unified schema:
-  - Wells (weight=1.0): 970K Texas and Louisiana wells
-  - Processing plants (weight=2.0): 176 facilities
-  - Compressor stations (weight=1.5): 561 facilities
-  - Tank batteries (weight=1.3): 24 facilities
-  - Fields: facility_id, infra_type, type_weight, operator, facility_subtype, status, latitude, longitude, **GEOMETRY column**
+**Infrastructure** (`infrastructure.all_facilities`):
+- 1.1M+ facilities with unified schema
+- Types: wells, compressor stations, processing plants, tank batteries
+- Source: OGIM v2.7 + Texas RRC (with hybrid operator attribution)
+- Fields: `facility_id`, `infra_type`, `type_weight`, `operator`, `facility_subtype`, `status`, `latitude`, `longitude`, `geom`
 
-**Emissions Schema** (Carbon Mapper observations):
-- `emissions.sources` - 10,443 emission sources with **GEOMETRY column**
-- `emissions.attributed` - 290 CH4 plumes matched to nearest facilities with:
-  - Operator information (directly from OGIM)
-  - Infrastructure type (well/compressor/processing/tank_battery)
-  - Confidence scores (22-92) based on:
-    - **Distance** (0-35 points): Closer plumes score higher, max at 0m (35 pts), min at 750m (0 pts)
-    - **Operator Dominance** (0-50 points): % of nearby facilities of same type operated by matched operator
-    - **Facility Density** (5-15 points): Fewer nearby facilities = less ambiguity = higher score
-  - Distance to nearest facility and facility counts within 750m radius
-- Includes CH4 and CO2 plumes from Carbon Mapper
-- Fields: emission rate, plume count, persistence, timestamps
+**Emissions** (`emissions.sources`):
+- 2,947 CH4 plumes from Carbon Mapper
+- Fields: `id`, `emission_auto` (kg/hr), `plume_count`, `persistence`, `latitude`, `longitude`, `geom`
 
-### Attribution Chain
+**Attribution** (`emissions.attributed`):
+- 2,661 plumes matched to infrastructure (90% attribution rate)
+- Confidence scores (0-100) based on distance, operator dominance, and facility density
+- Fields: `emission_id`, `nearest_facility_id`, `operator`, `infra_type`, `confidence_score`, `distance_to_nearest_facility_km`, `total_facilities_within_750m`, `operator_facilities_of_type`
 
-```
-Satellite Plume (emissions.sources.geom)
-    ↓ ST_DWithin(750m) / spatial query with bbox pre-filter
-Infrastructure Facility (infrastructure.all_facilities.geom)
-    ↓ Confidence scoring: distance + operator dominance + density
-Best Match Selection (type_weight / distance ranking)
-    ↓ facility_id, operator, infra_type
-Operator Attribution
-```
+### Hybrid Texas RRC + OGIM Attribution
 
-## Key Design Decisions
+The system uses a **hybrid approach** combining Texas RRC operator data with OGIM infrastructure:
 
-1. **OGIM v2.7** - Environmental Defense Fund's Oil and Gas Infrastructure Mapping database
-2. **GeoPackage format** - SQLite-based spatial database, loaded via DuckDB's SQLite scanner
-3. **DuckDB CLI** - No Python dependencies for data loading, pure SQL pipeline
-4. **Multi-infrastructure** - Includes wells, compressor stations, processing plants, tank batteries
-5. **Type weighting** - Different facility types weighted by emission likelihood
-6. **Spatial extension** - GEOMETRY columns for efficient spatial queries
-7. **Confidence scoring** - Three-factor scoring system handles attribution ambiguity
+1. **Wells**: Use Texas RRC P-4 purchaser/gatherer data (more current) instead of OGIM operator field
+2. **Other infrastructure**: Use OGIM operator field (compressors, processing plants, tank batteries)
+
+This provides more accurate operator attribution for wells while maintaining comprehensive infrastructure coverage.
+
+### Confidence Scoring
+
+Three-factor scoring system (0-100):
+
+1. **Distance Score (0-35 points, type-weighted)**:
+   - Formula: `GREATEST(0, 35 * (1 - distance_km/0.75)) * type_weight`
+   - Closer facilities score higher
+   - Weighted by infrastructure type (processing=2.0x, compressor=1.5x, tank=1.3x, well=1.0x)
+
+2. **Operator Dominance (0-50 points)**:
+   - Formula: `50 * (operator_facilities_of_type / total_facilities_within_750m)`
+   - Higher when operator owns most nearby facilities of matched type
+
+3. **Facility Density (5-15 points)**:
+   - 1 facility: 15 pts (unambiguous)
+   - 2-3: 12 pts, 4-10: 9 pts, 11-30: 6 pts, 30+: 5 pts
+
+### LNG Supply Chain Matching
+
+Matches facility operators to LNG contract sellers using fuzzy string matching (Jaro-Winkler > 0.85).
+
+Chain: `Plume → Infrastructure → Operator → LNG Seller → LNG Facility`
 
 ## File Structure
 
 ```
 data/
-  OGIM_v2.7.gpkg                      # OGIM infrastructure database (2.9 GB, auto-downloaded via curl)
-  sources.json                        # Carbon Mapper emissions GeoJSON (auto-fetched via curl)
-  supply-contracts-gemini-2-5-pro.csv # LNG feedgas supply agreements from DOE
-  p4f606.ebc.gz                       # Texas RRC P-4 data (manual download)
-  orf850.ebc.gz                       # Texas RRC P-5 data (manual download)
-  dbf900.ebc.gz                       # Texas RRC wellbore data (manual download)
-  data.duckdb                         # Final database (gitignored)
-
-/tmp/
-  *.csv                               # Parsed Texas RRC CSVs (auto-generated, not tracked)
+  OGIM_v2.7.gpkg           # OGIM infrastructure (auto-downloaded, 2.9 GB)
+  sources.json             # Carbon Mapper emissions (auto-fetched, ~13 MB)
+  supply-contracts-*.csv   # LNG supply contracts (DOE)
+  p4f606.ebc.gz            # Texas RRC P-4 (manual download)
+  orf850.ebc.gz            # Texas RRC P-5 (manual download)
+  dbf900.ebc.gz            # Texas RRC wellbore (manual download)
+  data.duckdb              # Final database (gitignored)
 
 queries/
-  schema.sql                          # Database schema (loads spatial extension)
-  load_ogim.sql                       # Load infrastructure from OGIM GeoPackage
-  load_emissions.sql                  # Load emissions data (creates geometry)
-  load_p4.sql                         # Load Texas RRC P-4 data from /tmp
-  load_p5.sql                         # Load Texas RRC P-5 data from /tmp
-  load_wellbore.sql                   # Load Texas RRC wellbore data from /tmp
-  create_ogim_attribution.sql         # Multi-infrastructure attribution with confidence scoring
-  ogim_lng_attribution.sql            # Match attributed plumes to LNG supply contracts
-  create_ogim_attribution_test.sql    # Test version (10 emissions only)
+  schema.sql               # Database schema
+  load_emissions.sql       # Load Carbon Mapper data
+  load_ogim.sql            # Load OGIM infrastructure
+  load_p4.sql              # Load Texas RRC P-4
+  load_p5.sql              # Load Texas RRC P-5
+  load_wellbore.sql        # Load Texas RRC wellbore
+  create_attribution.sql   # Create attribution table
+  generate_output.sql      # Generate LNG attribution CSV
 
 scripts/
-  create_p4_db.py, parse_p4.py        # Parse Texas RRC P-4 EBCDIC to /tmp CSVs
-  create_p5_db.py, parse_p5.py        # Parse Texas RRC P-5 EBCDIC to /tmp CSVs
-  create_wellbore_db.py, parse_wellbore.py  # Parse Texas RRC wellbore EBCDIC to /tmp CSVs
+  create_p4_db.py          # Parse P-4 EBCDIC to /tmp CSVs
+  parse_p4.py
+  create_p5_db.py          # Parse P-5 EBCDIC to /tmp CSVs
+  parse_p5.py
+  create_wellbore_db.py    # Parse wellbore EBCDIC to /tmp CSVs
+  parse_wellbore.py
 
 output/
-  lng_attribution.csv                 # CH4 plumes matched to LNG feedgas suppliers (52 rows)
-```
-
-## Important Implementation Details
-
-### OGIM Data Structure
-
-OGIM v2.7 is a GeoPackage (SQLite-based spatial database) with separate tables for each facility type. The database is automatically downloaded from Zenodo (https://zenodo.org/records/15103476) on first run.
-
-Key tables for Texas and Louisiana:
-
-- **Oil_and_Natural_Gas_Wells**: 970K wells with FAC_ID, OPERATOR, FAC_TYPE, FAC_STATUS, LATITUDE, LONGITUDE
-- **Gathering_and_Processing**: 176 facilities with OGIM_ID, OPERATOR, FAC_TYPE
-- **Natural_Gas_Compressor_Stations**: 561 facilities with OGIM_ID, OPERATOR, FAC_STATUS
-- **Tank_Battery**: 24 facilities with OGIM_ID, OPERATOR, FAC_TYPE
-
-All facilities include OPERATOR field (operator name, not a numeric ID).
-
-### Infrastructure Type Weighting
-
-Different infrastructure types have different emission likelihoods:
-
-- **Processing plants** (2.0x): Highest emission risk due to complex operations, large gas volumes
-- **Compressor stations** (1.5x): High risk due to mechanical compression, fugitive emissions
-- **Tank batteries** (1.3x): Medium-high risk from venting, flashing
-- **Wells** (1.0x): Baseline risk, most numerous facility type
-
-Type weight is used in final facility ranking: `type_weight / (distance + 0.01)` DESC
-
-### Confidence Scoring
-
-Three-factor scoring system (0-100 total):
-
-1. **Distance Score (0-35 points)**: Type-weighted distance score
-   - Formula: `(distance_score * type_weight) = GREATEST(0, 35 * (1 - distance_km/0.75)) * type_weight`
-   - Closer facilities score higher
-   - Weighted by infrastructure type
-
-2. **Operator Dominance Score (0-50 points)**:
-   - Formula: `50 * (operator_facilities_of_type / total_facilities_within_750m)`
-   - 100% = operator owns all nearby facilities of matched type (50 points)
-   - 50% = operator owns half of nearby facilities (25 points)
-   - Helps identify contested vs. clear attributions
-
-3. **Density Score (5-15 points)**:
-   - 1 facility: 15 points (unambiguous)
-   - 2-3 facilities: 12 points
-   - 4-10 facilities: 9 points
-   - 11-30 facilities: 6 points
-   - 30+ facilities: 5 points (highly contested)
-
-### Spatial Query Optimization
-
-Attribution query uses two-stage filtering for performance:
-
-1. **Bounding box pre-filter**: Quickly eliminate most facilities using coordinate ranges
-   ```sql
-   WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.0075 AND ST_X(e.geom) + 0.0075
-     AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.0075 AND ST_Y(e.geom) + 0.0075
-   ```
-
-2. **Precise distance filter**: ST_DWithin for exact 750m radius
-   ```sql
-   AND ST_DWithin(e.geom, f.geom, 0.0075)  -- ~750m in degrees
-   ```
-
-This two-stage approach is much faster than ST_Distance comparisons alone.
-
-### Geometry Columns
-
-Both infrastructure and emissions use PostGIS-style GEOMETRY columns for spatial queries:
-
-```sql
--- Infrastructure geometry (created in load_ogim.sql)
-ST_Point(LONGITUDE, LATITUDE) AS geom
-
--- Emission geometry (created in load_emissions.sql)
-ST_Point(longitude, latitude) AS geom
-
--- Example: Find nearest facility to an emission
-SELECT
-    e.id as emission_id,
-    f.facility_id,
-    f.infra_type,
-    f.operator,
-    ST_Distance(e.geom, f.geom) * 111 as distance_km
-FROM emissions.sources e
-CROSS JOIN infrastructure.all_facilities f
-WHERE ST_DWithin(e.geom, f.geom, 0.01)  -- ~1km
-ORDER BY ST_Distance(e.geom, f.geom)
-LIMIT 1;
+  lng_attribution.csv      # Final output (91 plumes with LNG matches)
 ```
 
 ## Common Queries
 
-### Find emissions near facilities operated by a specific company
+### Find emissions near a specific operator
 
 ```sql
--- Install and load spatial extension first
-INSTALL spatial;
-LOAD spatial;
+INSTALL spatial; LOAD spatial;
 
--- Find emissions within 5km of company's facilities
-WITH company_facilities AS (
+WITH operator_facilities AS (
     SELECT geom, facility_id, infra_type, operator
     FROM infrastructure.all_facilities
-    WHERE UPPER(operator) LIKE '%COMPANY_NAME%'
-      AND geom IS NOT NULL
+    WHERE UPPER(operator) LIKE '%COMPANY%'
 )
 SELECT
     e.id,
     e.emission_auto as kg_per_hr,
-    e.plume_count,
-    ST_Y(e.geom) as lat,
-    ST_X(e.geom) as lon,
     f.facility_id,
     f.infra_type,
     f.operator,
     ROUND(ST_Distance(e.geom, f.geom) * 111, 2) as distance_km
 FROM emissions.sources e
-JOIN company_facilities f ON ST_DWithin(e.geom, f.geom, 0.05)  -- ~5km
+JOIN operator_facilities f ON ST_DWithin(e.geom, f.geom, 0.05)
 WHERE e.gas = 'CH4'
 ORDER BY e.emission_auto DESC, distance_km;
-```
-
-### Find all facilities near a specific plume
-
-```sql
-SELECT
-    f.facility_id,
-    f.infra_type,
-    f.operator,
-    f.facility_subtype,
-    ST_Distance(e.geom, f.geom) * 111 as distance_km
-FROM emissions.sources e
-JOIN infrastructure.all_facilities f ON ST_DWithin(e.geom, f.geom, 0.01)  -- ~1km
-WHERE e.id = 'CH4_1B2_250m_-99.45098_28.43460'
-  AND f.geom IS NOT NULL
-ORDER BY distance_km;
 ```
 
 ### Show attribution confidence distribution
@@ -263,77 +158,52 @@ SELECT
         ELSE 'Under 40 (Low)'
     END as confidence_range,
     COUNT(*) as plume_count,
-    ROUND(AVG(distance_to_nearest_facility_km), 2) as avg_distance_km,
-    ROUND(AVG(total_facilities_within_750m), 1) as avg_facility_density
+    ROUND(AVG(distance_to_nearest_facility_km), 2) as avg_distance_km
 FROM emissions.attributed
 GROUP BY confidence_range
 ORDER BY MIN(confidence_score) DESC;
 ```
 
-## LNG Supply Chain Attribution
+## Development Guidelines
 
-The system includes specialized functionality to match attributed plumes to LNG feedgas supply contracts.
+- **Use uv for Python**: All Python scripts use uv (specified in global CLAUDE.md)
+- **File-based Makefile targets**: Use actual file targets instead of .PHONY where possible
+- **Scripts output to stdout**: Redirect to files in Makefile using built-in variables
+- **Test with LIMIT**: When editing expensive SQL queries, add LIMIT during testing
+- **Keep repo clean**: Parse Texas RRC data to /tmp, not the repo
+- **DuckDB CLI for pipelines**: No Python/language bindings needed for data loading
 
-### Usage
+## Key Implementation Details
 
-```bash
-# Build database (includes attribution table creation)
-make
+### Spatial Query Optimization
 
-# Generate LNG attribution report
-make lng-attribution
-```
+Attribution uses two-stage filtering:
 
-### Methodology
+1. **Bounding box pre-filter**: Quickly eliminate facilities using coordinate ranges
+2. **ST_DWithin**: Precise 750m radius check
 
-1. **Attribution Table** (`emissions.attributed`):
-   - Materialized table created during DB build
-   - Spatial join matches CH4 plumes to nearest infrastructure within 750m
-   - Includes operator names directly from OGIM
-   - Confidence score (22-92) based on distance, operator dominance, and facility density
+This is much faster than naive ST_Distance comparisons on 1M+ facilities.
 
-2. **LNG Contract Matching** (`ogim_lng_attribution.sql`):
-   - Fuzzy string matching (Jaro-Winkler > 0.85) between:
-     - Facility operators ↔ LNG contract sellers
-   - Matches both producers (Apache, Pioneer) and marketers (Chevron, Enterprise)
-   - One row per emission source with aggregated LNG supplier info
+### Texas RRC Data Integration
 
-### Output Format
+RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz) are EBCDIC-encoded binary files that must be:
+1. Downloaded manually from https://mft.rrc.texas.gov/
+2. Parsed by Python scripts to /tmp/*.csv
+3. Loaded into DuckDB
 
-`output/lng_attribution.csv` contains:
-- Plume details (ID, location, emission rates, timestamps)
-- Attribution (nearest facility, operator, infrastructure type, confidence score)
-- LNG matches (sellers, projects)
+The P-4 "purchaser" field is used as the operator for wells, providing more current attribution than OGIM.
 
-## Database Schema Reference
+## Data Sources
 
-Full schema definitions with field descriptions are in:
-- `queries/schema.sql` - Complete DDL with all tables and columns
-- OGIM v2.7 documentation: https://data.catalyst.coop/edf-ogim
-- OGIM v2.7 download: https://zenodo.org/records/15103476 (auto-downloaded by `make`)
-
-To explore the schema interactively:
-```bash
-duckdb data/data.duckdb
-D DESCRIBE infrastructure.all_facilities;  # Show infrastructure table
-D DESCRIBE emissions.sources;              # Show emissions table
-D DESCRIBE emissions.attributed;           # Show attribution results
-```
+- **OGIM v2.7**: https://zenodo.org/records/15103476 (auto-downloaded)
+- **Carbon Mapper**: https://api.carbonmapper.org/api/v1/catalog/sources.geojson (auto-fetched)
+- **Texas RRC**: https://mft.rrc.texas.gov/ (manual download required)
+- **DOE LNG Contracts**: data/supply-contracts-gemini-2-5-pro.csv (parsed by Gemini 2.5 Pro)
 
 ## Future Work
 
-- Add temporal analysis (track facility status changes over time)
-- Include other states beyond Texas and Louisiana (OGIM covers multiple states)
-- Export to GeoJSON/Shapefile for GIS tools
-- Add regular emissions data updates from Carbon Mapper API
-- Integrate pipeline data from OGIM (currently only stationary facilities)
-
-## Development Guidelines
-
-- **Minimal dependencies** - Pure make/curl/DuckDB pipeline, no Python required
-- **File-based Makefile targets** - Use actual file targets instead of .PHONY where possible
-- **Scripts output to stdout** - Redirect to files in Makefile using built-in variables ($@, $<, etc.)
-- **DuckDB CLI for pipelines** - No Python/language bindings needed
-- **No unnecessary files** - Keep repo clean
-- **Document data quality issues** - Note OGIM data limitations (e.g., plugged wells can still emit)
-- When editing computationally expensive SQL queries, always add a LIMIT clause in a sensible place to make it run faster during testing, then remove it for production. This saves a lot of waiting around.
+- Add Louisiana RRC data for Louisiana wells
+- Temporal analysis (track facility status changes)
+- Export to GeoJSON/Shapefile
+- Regular emissions data updates from Carbon Mapper API
+- Pipeline infrastructure from OGIM

@@ -6,50 +6,48 @@ This pipeline connects satellite-detected methane emissions to specific oil and 
 
 ## What This Does
 
-1. **Loads infrastructure data** from OGIM v2.7 (Environmental Defense Fund's Oil & Gas Infrastructure Mapping)
+1. **Loads infrastructure data** from OGIM v2.7 (Environmental Defense Fund's Oil & Gas Infrastructure Mapping) and Texas Railroad Commission
 2. **Loads satellite methane observations** from Carbon Mapper's Tanager-1 satellite
 3. **Matches plumes to infrastructure** using spatial queries (wells, compressors, processing plants, tank batteries within 750m)
-4. **Attributes to operators** using multi-infrastructure confidence scoring
+4. **Attributes to operators** using hybrid Texas RRC + OGIM data with confidence scoring
 5. **Links to LNG supply chains** by matching operators to DOE-filed LNG feedgas contracts
 
 The result: A dataset showing which CH4 emissions are connected to which LNG export facilities (Sabine Pass, Corpus Christi, Freeport, etc.).
 
 ## Key Outputs
 
-- **290 methane plumes** (2025 data) attributed to infrastructure operators
-- **52 plumes** matched to LNG supply contracts
+- **2,661 methane plumes** (2025 data) attributed to infrastructure operators (90% attribution rate)
+- **91 plumes** matched to LNG supply contracts
 - Each plume includes:
   - Emission rate (kg/hr methane)
   - Nearest infrastructure (well, compressor, processing plant, or tank battery)
-  - Infrastructure operator
+  - Infrastructure operator (from Texas RRC or OGIM)
   - LNG facility and contract sellers
-  - Confidence score (22-92, based on distance, operator dominance, and facility density)
+  - Confidence score (0-100, based on distance, operator dominance, and facility density)
   - Geographic coordinates
 
 ## Data Sources
 
 1. **OGIM v2.7** (Environmental Defense Fund)
    - 970K+ Texas and Louisiana wells with operator information
-   - 561 compressor stations
-   - 176 gas processing plants
-   - 24 tank batteries
+   - 561 compressor stations, 176 gas processing plants, 24 tank batteries
    - Auto-downloaded from Zenodo: https://zenodo.org/records/15103476
 
-2. **Carbon Mapper**
+2. **Texas Railroad Commission**
+   - P-4 Schedule data (purchaser/gatherer information)
+   - P-5 Organization data (operator names)
+   - Wellbore data (API→lease mappings)
+   - Manual download required from: https://mft.rrc.texas.gov/
+   - Files: `p4f606.ebc.gz`, `orf850.ebc.gz`, `dbf900.ebc.gz`
+
+3. **Carbon Mapper**
    - Satellite methane plume observations
    - Emission rates and timestamps
-   - Fetched via API: `uv run scripts/fetch_emissions.py`
+   - Auto-fetched via API
 
-3. **US Department of Energy**
+4. **US Department of Energy**
    - LNG feedgas supply contracts (parsed by Gemini 2.5 Pro)
    - Stored in `data/supply-contracts-gemini-2-5-pro.csv`
-
-4. **Texas Railroad Commission** (manual download required)
-   - P-4 Schedule data (purchaser/gatherer information): `data/p4f606.ebc.gz`
-   - P-5 Organization data (operator names): `data/orf850.ebc.gz`
-   - Wellbore data (API→lease mappings): `data/dbf900.ebc.gz`
-   - Download from: https://mft.rrc.texas.gov/
-   - Note: Files are parsed to /tmp during build (not tracked in repo)
 
 ## Prerequisites
 
@@ -78,7 +76,7 @@ make
 ```
 
 Output file:
-- `output/lng_attribution.csv` (52 rows, ~28 KB)
+- `output/lng_attribution.csv` (91 rows, ~28 KB)
 
 ### Rebuilding
 
@@ -88,6 +86,12 @@ make data/data.duckdb
 
 # Re-fetch emissions data (get latest from Carbon Mapper)
 rm data/sources.json && make
+
+# Regenerate attribution table only
+make attribution
+
+# Regenerate LNG report only
+make lng-attribution
 
 # Clean generated files (keeps downloaded source data)
 make clean
@@ -104,7 +108,7 @@ The LNG attribution CSV contains one row per emission source with:
 |--------|-------------|
 | `id` | Unique emission source identifier |
 | `rate_avg_kg_hr` | Average methane emission rate (kg/hr) |
-| `rate_detected_kg_hr` | Emission rate adjusted for persistence (avg/persistence) |
+| `rate_detected_kg_hr` | Emission rate adjusted for persistence |
 | `rate_uncertainty_kg_hr` | Uncertainty in emission rate |
 | `plume_count` | Number of times plume was observed |
 | `timestamp_min/max` | First and last observation dates |
@@ -114,8 +118,8 @@ The LNG attribution CSV contains one row per emission source with:
 | `nearest_facility_operator` | Company operating the facility |
 | `distance_to_nearest_facility_km` | Distance to matched facility |
 | `total_facilities_within_750m` | Number of facilities within 750m radius |
-| `operator_facilities_of_type` | Number of nearby facilities of same type operated by matched operator |
-| `confidence_score` | Attribution confidence (22-92) |
+| `operator_facilities_of_type` | Nearby facilities of same type operated by matched operator |
+| `confidence_score` | Attribution confidence (0-100) |
 | `lng_sellers` | Matched LNG contract sellers with similarity scores |
 | `lng_projects` | LNG facilities (Sabine Pass, Corpus Christi, etc.) |
 
@@ -138,7 +142,14 @@ For each CH4 plume, find all infrastructure within 750m radius (wells, compresso
 - **Operator Dominance** (0-50 points): % of nearby facilities of same type operated by matched operator
 - **Facility Density** (5-15 points): Fewer facilities = less ambiguity = higher score
 
-### Step 2: LNG Supply Chain Matching
+### Step 2: Hybrid Texas RRC + OGIM Operator Attribution
+
+- **Wells**: Use Texas RRC P-4 purchaser/gatherer data (more current than OGIM)
+- **Other infrastructure**: Use OGIM operator field (compressors, processing plants, tank batteries)
+
+This hybrid approach provides more accurate operator attribution for wells while maintaining comprehensive infrastructure coverage.
+
+### Step 3: LNG Supply Chain Matching
 
 Match facility operators to LNG contract sellers using fuzzy string matching (Jaro-Winkler similarity > 0.85).
 
@@ -151,20 +162,16 @@ The attribution query uses two-stage spatial filtering:
 1. **Bounding box pre-filter**: Quickly eliminate facilities outside ~750m using coordinate ranges
 2. **Precise distance check**: ST_DWithin for exact 750m radius
 
-This approach is significantly faster than naive ST_Distance comparisons on 970K+ facilities.
+This approach is significantly faster than naive ST_Distance comparisons on 1M+ facilities.
 
 ## Technical Details
 
 See `CLAUDE.md` for:
 - Complete database schema
-- OGIM data structure details
+- OGIM and Texas RRC data structure details
 - Confidence scoring formulas
 - SQL query examples
 - Spatial query optimization techniques
-
-## Methodology
-
-See `METHODOLOGY.md` for the research approach and validation methodology.
 
 ## License
 
