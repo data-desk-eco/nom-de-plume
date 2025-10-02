@@ -1,7 +1,7 @@
--- Hybrid attribution: One row per plume-entity match
--- Entity = operator (from OGIM/RRC) or purchaser (from RRC P-4 data)
--- Texas plumes get both operator and purchaser rows
--- Non-Texas plumes only get operator rows (no purchaser data available)
+-- Hybrid attribution: One row per plume with operator attribution
+-- Texas plumes use RRC operator data (from P-5)
+-- Non-Texas plumes use OGIM operator data
+-- Purchaser data (from P-4) is available via JOIN but not stored in this table
 
 INSTALL spatial;
 LOAD spatial;
@@ -156,41 +156,6 @@ texas_operator_rows AS (
     LEFT JOIN texas_operator_counts oc ON nw.id = oc.id AND nw.operator_number = oc.operator_number
 ),
 
--- Texas purchaser attribution (one row per plume-purchaser pair)
-texas_purchaser_rows AS (
-    SELECT
-        nw.id,
-        nw.emission_auto as rate_avg_kg_hr,
-        ROUND(nw.emission_auto / NULLIF(nw.persistence, 0), 2) as rate_detected_kg_hr,
-        nw.emission_uncertainty_auto as rate_uncertainty_kg_hr,
-        nw.plume_count,
-        nw.timestamp_min,
-        nw.timestamp_max,
-        ST_Y(nw.plume_geom) as latitude,
-        ST_X(nw.plume_geom) as longitude,
-        nw.well_api as nearest_facility_id,
-        'well' as nearest_facility_type,
-        NULL as facility_subtype,
-        'purchaser' as entity_type,
-        gpn_org.organization_name as entity_name,
-        gpn.gpn_number as entity_id,
-        nw.distance_km as distance_to_nearest_facility_km,
-        wc.total_wells_within_750m as total_facilities_within_750m,
-        wc.total_wells_within_750m as wells_within_750m,
-        0 as compressors_within_750m,
-        0 as processing_within_750m,
-        0 as tanks_within_750m,
-        NULL as operator_facilities_of_type,  -- Not applicable for purchasers
-        NULL as confidence_score  -- Purchasers inherit confidence from operator match
-    FROM texas_nearest_wells nw
-    LEFT JOIN texas_well_counts wc ON nw.id = wc.id
-    JOIN p4.gpn gpn ON nw.oil_gas_code = gpn.oil_gas_code
-                    AND nw.district = gpn.district
-                    AND nw.lease_rrcid = gpn.lease_rrcid
-    LEFT JOIN p5.org gpn_org ON gpn.gpn_number = gpn_org.operator_number
-    WHERE gpn.type_code = 'H'  -- H = purchaser
-      AND gpn.gpn_number IS NOT NULL
-),
 
 -- ============================================================================
 -- NON-TEXAS ATTRIBUTION (OGIM-based, multi-infrastructure)
@@ -322,10 +287,8 @@ non_texas_operator_rows AS (
     FROM non_texas_best_matches bm
 )
 
--- Combine all attribution rows (Texas operators + Texas purchasers + Non-Texas operators)
+-- Combine all attribution rows (Texas operators + Non-Texas operators)
 SELECT * FROM texas_operator_rows
-UNION ALL
-SELECT * FROM texas_purchaser_rows
 UNION ALL
 SELECT * FROM non_texas_operator_rows;
 
@@ -341,8 +304,7 @@ SELECT
     COUNT(DISTINCT id) as attributed_plumes,
     ROUND(AVG(confidence_score), 1) as avg_confidence,
     ROUND(AVG(distance_to_nearest_facility_km), 2) as avg_distance_km,
-    COUNT(DISTINCT entity_name) FILTER (WHERE entity_type = 'operator') as unique_operators,
-    COUNT(*) FILTER (WHERE entity_type = 'purchaser') as plumes_with_purchasers
+    COUNT(DISTINCT entity_name) as unique_operators
 FROM emissions.attributed
 WHERE entity_name IS NOT NULL
 GROUP BY nearest_facility_type

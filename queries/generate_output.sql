@@ -1,6 +1,5 @@
 -- LNG Feedgas Supply Attribution Query
--- Joins attributed plumes (one row per plume-entity) with LNG feedgas supply agreements
--- Matches both operators and purchasers to LNG sellers using fuzzy matching
+-- Joins attributed plumes with operators AND purchasers, then fuzzy-matches to LNG sellers
 -- Returns one row per emission source with summarized LNG supplier matches
 
 -- Load LNG contracts
@@ -8,9 +7,9 @@ WITH lng_contracts AS (
     SELECT * FROM read_csv_auto('data/supply-contracts-gemini-2-5-pro.csv')
 ),
 
--- Get base plume info (one row per plume)
+-- Get base plume info (one row per plume) with operator
 plume_info AS (
-    SELECT DISTINCT ON (id)
+    SELECT
         id,
         rate_avg_kg_hr,
         rate_detected_kg_hr,
@@ -21,31 +20,88 @@ plume_info AS (
         latitude,
         longitude,
         nearest_facility_id,
-        facility_subtype,
         nearest_facility_type,
         distance_to_nearest_facility_km,
         total_facilities_within_750m,
         operator_facilities_of_type,
         confidence_score,
-        entity_name as operator  -- Add operator name
+        entity_name as operator
     FROM emissions.attributed
-    WHERE entity_type = 'operator'  -- Use operator row for base plume info
-    ORDER BY id
+    WHERE entity_type = 'operator'
 ),
 
--- Fuzzy match entities (operators + purchasers) to LNG sellers
+-- Get Texas well details for purchaser lookup
+texas_wells AS (
+    SELECT DISTINCT
+        a.id,
+        a.nearest_facility_id,
+        SPLIT_PART(a.nearest_facility_id, '-', 1) as api_county,
+        SPLIT_PART(a.nearest_facility_id, '-', 2) as api_unique
+    FROM emissions.attributed a
+    WHERE a.nearest_facility_type = 'well'
+      AND a.nearest_facility_id LIKE '%-%'  -- Texas API format
+),
+
+-- Join to wellbore data to get RRC identifiers
+well_rrc_ids AS (
+    SELECT
+        tw.id,
+        tw.nearest_facility_id,
+        wb.oil_gas_code,
+        wb.district,
+        COALESCE(wb.lease_number, wb.gas_rrcid) as lease_rrcid
+    FROM texas_wells tw
+    JOIN wellbore.wellid wb
+        ON tw.api_county = wb.api_county
+        AND tw.api_unique = wb.api_unique
+),
+
+-- Get purchasers for Texas wells
+texas_purchasers AS (
+    SELECT
+        w.id,
+        'purchaser' as entity_type,
+        gpn_org.organization_name as entity_name
+    FROM well_rrc_ids w
+    JOIN p4.gpn gpn
+        ON w.oil_gas_code = gpn.oil_gas_code
+        AND w.district = gpn.district
+        AND w.lease_rrcid = gpn.lease_rrcid
+    LEFT JOIN p5.org gpn_org ON gpn.gpn_number = gpn_org.operator_number
+    WHERE gpn.type_code = 'H'  -- H = purchaser
+      AND gpn.gpn_number IS NOT NULL
+      AND gpn_org.organization_name IS NOT NULL
+),
+
+-- Combine operators and purchasers for matching
+all_entities AS (
+    SELECT
+        id,
+        'operator' as entity_type,
+        operator as entity_name
+    FROM plume_info
+    WHERE operator IS NOT NULL
+    UNION ALL
+    SELECT
+        id,
+        entity_type,
+        entity_name
+    FROM texas_purchasers
+),
+
+-- Fuzzy match all entities (operators + purchasers) to LNG sellers
 entity_matches AS (
     SELECT
-        a.id,
-        a.entity_type,
-        a.entity_name,
+        e.id,
+        e.entity_type,
+        e.entity_name,
         c.Seller as matched_seller,
         c.LNG_Project,
-        ROUND(jaro_winkler_similarity(UPPER(a.entity_name), UPPER(c.Seller)), 3) as similarity_score
-    FROM emissions.attributed a
+        ROUND(jaro_winkler_similarity(UPPER(e.entity_name), UPPER(c.Seller)), 3) as similarity_score
+    FROM all_entities e
     CROSS JOIN lng_contracts c
-    WHERE a.entity_name IS NOT NULL
-      AND jaro_winkler_similarity(UPPER(a.entity_name), UPPER(c.Seller)) > 0.85
+    WHERE e.entity_name IS NOT NULL
+      AND jaro_winkler_similarity(UPPER(e.entity_name), UPPER(c.Seller)) > 0.85
 ),
 
 -- Deduplicate matches (unique entity_type + entity_name + matched_seller combinations)
@@ -87,7 +143,6 @@ SELECT
     p.longitude,
     p.nearest_facility_id,
     p.nearest_facility_type,
-    p.facility_subtype,
     p.distance_to_nearest_facility_km,
     p.total_facilities_within_750m,
     p.operator_facilities_of_type,
