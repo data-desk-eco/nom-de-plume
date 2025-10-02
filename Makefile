@@ -50,14 +50,14 @@ data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/
 	@echo "Creating spatial indexes for performance..."
 	@duckdb $@ -c "INSTALL spatial; LOAD spatial; CREATE INDEX IF NOT EXISTS idx_wellbore_location_geom ON wellbore.location USING RTREE (geom); CREATE INDEX IF NOT EXISTS idx_emissions_sources_geom ON emissions.sources USING RTREE (geom); CREATE INDEX IF NOT EXISTS idx_p4_gpn_lease ON p4.gpn (oil_gas_code, district, lease_rrcid); CREATE INDEX IF NOT EXISTS idx_p4_gpn_number ON p4.gpn (gpn_number);"
 	@echo "7/7 Creating hybrid attribution (Texas RRC + OGIM)..."
-	@duckdb $@ < queries/create_ogim_attribution.sql
+	@duckdb $@ < queries/create_attribution.sql
 	@echo "✓ Database build complete"
 
 # Regenerate attribution table (without rebuilding entire database)
 .PHONY: attribution
 attribution: data/data.duckdb
 	@echo "Regenerating attribution table..."
-	@duckdb data/data.duckdb < queries/create_ogim_attribution.sql
+	@duckdb data/data.duckdb < queries/create_attribution.sql
 	@echo "✓ Attribution complete"
 
 # Generate LNG attribution report
@@ -65,7 +65,7 @@ attribution: data/data.duckdb
 lng-attribution: data/data.duckdb
 	@mkdir -p output
 	@echo "Generating LNG attribution report..."
-	@duckdb --csv data/data.duckdb < queries/ogim_lng_attribution.sql > output/lng_attribution.csv
+	@duckdb --csv data/data.duckdb < queries/generate_output.sql > output/lng_attribution.csv
 	@echo "✓ Report saved to output/lng_attribution.csv"
 
 # Legacy file-based target (for backwards compatibility with 'make all')
