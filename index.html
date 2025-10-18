@@ -30,6 +30,7 @@ SELECT
 FROM emissions.attributed
 WHERE rate_avg_kg_hr >= 100
   AND confidence_score >= 75
+  AND distance_to_nearest_facility_km <= 0.5
 ORDER BY timestamp_max DESC
 LIMIT 100
   </script>
@@ -47,6 +48,7 @@ WITH plume_locations AS (
   FROM emissions.attributed
   WHERE rate_avg_kg_hr >= 100
     AND confidence_score >= 75
+    AND distance_to_nearest_facility_km <= 0.5
   ORDER BY timestamp_max DESC
   LIMIT 100
 )
@@ -325,7 +327,6 @@ async function loadMap(index, plume) {
     }).addTo(map);
 
     marker.bindPopup(`
-      ${isMatched ? '<strong>★ MATCHED FACILITY</strong><br>' : ''}
       <strong>${facility.infra_type}</strong><br>
       Operator: ${facility.operator || 'Unknown'}<br>
       Distance: ${facility.distance_m}m<br>
