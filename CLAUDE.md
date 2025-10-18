@@ -120,6 +120,34 @@ scripts/
 
 output/
   lng_attribution.csv      # Final output (91 plumes with LNG matches)
+
+index.html                 # Observable Framework notebook for visualization
+```
+
+## Interactive Visualization
+
+The project includes an Observable Framework notebook (`index.html`) that provides an interactive exploration of super-emitter events.
+
+**Features**:
+- Displays 100 most recent super-emitter events (≥100 kg/hr, ≥75 confidence score)
+- Expandable cards showing operator, facility type, emission rate, and observation dates
+- Interactive maps with grayscale satellite imagery showing plume locations and nearby infrastructure
+- Color-coded facility markers by type (wells, compressors, processing plants, etc.)
+- Facility counts distinguishing operator-owned vs. total nearby facilities
+
+**Usage**:
+```bash
+npx observable preview    # Start development server
+```
+
+**Technical Details**:
+- Queries `emissions.attributed` table from `data/data.duckdb`
+- Pre-loads infrastructure within 1.5km of each plume for map display
+- Uses Leaflet.js for interactive maps with Esri World Imagery tiles
+- Responsive design: side-by-side layout on desktop, stacked on mobile
+- Color palette: Red (#D94848), Orange (#F28322), Yellow (#F1C644), Green (#60BF66), Purple (#9461C7)
+
+**Data Consistency Note**: Map facility counts may differ from attribution table totals if data has been updated since attribution calculation. Run `make attribution` to regenerate with current data.
 ```
 
 ## Common Queries

@@ -1,0 +1,13 @@
+{
+  "name": "notebook-kit-template",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@observablehq/notebook-kit": "^1.0.1"
+  },
+  "scripts": {
+    "docs:preview": "notebooks preview --root . --template template.html",
+    "docs:build": "notebooks build --root . --template template.html"
+  }
+}
