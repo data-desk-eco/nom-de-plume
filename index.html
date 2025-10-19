@@ -343,12 +343,12 @@ async function loadMap(index, plume) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  plumeMarker.bindPopup(`
+  plumeMarker.bindTooltip(`
     <strong>Methane Plume</strong><br>
     ${plume.rate_detected_kg_hr?.toFixed(1)} kg/hr<br>
     ${plume.plume_count} observations<br>
     ${formatPopupDate(plume.timestamp_min)} to ${formatPopupDate(plume.timestamp_max)}
-  `);
+  `, { permanent: false, sticky: false });
 
   const typeColors = {
     'well': '#60BF66',
@@ -386,12 +386,12 @@ async function loadMap(index, plume) {
       fillOpacity: isMatched ? 1.0 : 0.7
     }).addTo(map);
 
-    marker.bindPopup(`
+    marker.bindTooltip(`
       <strong>${facility.infra_type}</strong><br>
       Operator: ${facility.operator || 'Unknown'}<br>
       Distance: ${facility.distance_m}m<br>
       <small>${facility.facility_id}</small>
-    `);
+    `, { permanent: false, sticky: false });
   }
 
   // Convert sets to counts
