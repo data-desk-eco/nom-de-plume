@@ -344,7 +344,7 @@ async function loadMap(index, plume) {
   };
 
   plumeMarker.bindTooltip(`
-    <strong>Methane Plume</strong><br>
+    <strong>methane plume</strong><br>
     ${plume.rate_detected_kg_hr?.toFixed(1)} kg/hr<br>
     ${plume.plume_count} observations<br>
     ${formatPopupDate(plume.timestamp_min)} to ${formatPopupDate(plume.timestamp_max)}
@@ -401,16 +401,16 @@ async function loadMap(index, plume) {
 
   const legendDiv = document.getElementById(`legend-${index}`);
 
-  let legendContent = '<div><span style="color: #D94848; font-size: 1.2em;">●</span> Methane Plume</div>';
+  let legendContent = '<div><span style="color: #D94848; font-size: 1.2em;">●</span> methane plume</div>';
 
-  if (infraCounts.well) legendContent += `<div><span style="color: #60BF66;">●</span> Wells (${infraCounts.well})</div>`;
-  if (infraCounts.compressor) legendContent += `<div><span style="color: #F1C644;">●</span> Compressors (${infraCounts.compressor})</div>`;
-  if (infraCounts.processing) legendContent += `<div><span style="color: #F28322;">●</span> Processing (${infraCounts.processing})</div>`;
-  if (infraCounts.tank_battery) legendContent += `<div><span style="color: #9461C7;">●</span> Tank Batteries (${infraCounts.tank_battery})</div>`;
-  if (infraCounts.injection_disposal) legendContent += `<div><span style="color: #D94848;">●</span> Injection/Disposal (${infraCounts.injection_disposal})</div>`;
-  if (infraCounts.petroleum_terminal) legendContent += `<div><span style="color: #F28322;">●</span> Terminals (${infraCounts.petroleum_terminal})</div>`;
-  if (infraCounts.lng_facility) legendContent += `<div><span style="color: #D94848;">●</span> LNG Facilities (${infraCounts.lng_facility})</div>`;
-  if (infraCounts.refinery) legendContent += `<div><span style="color: #F28322;">●</span> Refineries (${infraCounts.refinery})</div>`;
+  if (infraCounts.well) legendContent += `<div><span style="color: #60BF66;">●</span> wells (${infraCounts.well})</div>`;
+  if (infraCounts.compressor) legendContent += `<div><span style="color: #F1C644;">●</span> compressors (${infraCounts.compressor})</div>`;
+  if (infraCounts.processing) legendContent += `<div><span style="color: #F28322;">●</span> processing (${infraCounts.processing})</div>`;
+  if (infraCounts.tank_battery) legendContent += `<div><span style="color: #9461C7;">●</span> tank batteries (${infraCounts.tank_battery})</div>`;
+  if (infraCounts.injection_disposal) legendContent += `<div><span style="color: #D94848;">●</span> injection/disposal (${infraCounts.injection_disposal})</div>`;
+  if (infraCounts.petroleum_terminal) legendContent += `<div><span style="color: #F28322;">●</span> terminals (${infraCounts.petroleum_terminal})</div>`;
+  if (infraCounts.lng_facility) legendContent += `<div><span style="color: #D94848;">●</span> lng facilities (${infraCounts.lng_facility})</div>`;
+  if (infraCounts.refinery) legendContent += `<div><span style="color: #F28322;">●</span> refineries (${infraCounts.refinery})</div>`;
 
   legendDiv.innerHTML = legendContent;
 
