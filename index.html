@@ -146,7 +146,7 @@ for (let i = 0; i < plumes.length; i++) {
       ${plume.operator || 'Unknown Operator'}
     </h3>
     <div class="card-details">
-      ${maxDate} / ${plume.nearest_facility_type || 'Unknown'} / ${(plume.distance_to_nearest_facility_km * 1000)?.toFixed(0) || 'N/A'} m / ${plume.rate_avg_kg_hr?.toFixed(1) || 'N/A'} kg/hr
+      ${maxDate} / ${plume.nearest_facility_type || 'Unknown'} / ${(plume.distance_to_nearest_facility_km * 1000)?.toFixed(0) || 'N/A'} m / ${plume.rate_detected_kg_hr?.toFixed(1) || 'N/A'} kg/hr
     </div>
   `;
 
@@ -193,7 +193,7 @@ for (let i = 0; i < plumes.length; i++) {
       </tr>
       <tr>
         <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>emission rate</strong></td>
-        <td style="padding: 0.5rem 0;">${plume.rate_avg_kg_hr?.toFixed(1) || 'N/A'} kg/hr avg</td>
+        <td style="padding: 0.5rem 0;">${plume.rate_detected_kg_hr?.toFixed(1) || 'N/A'} kg/hr</td>
       </tr>
       <tr>
         <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>observations</strong></td>
@@ -289,7 +289,7 @@ async function loadMap(index, plume) {
 
   plumeMarker.bindPopup(`
     <strong>Methane Plume</strong><br>
-    ${plume.rate_avg_kg_hr?.toFixed(1)} kg/hr<br>
+    ${plume.rate_detected_kg_hr?.toFixed(1)} kg/hr<br>
     ${plume.plume_count} observations<br>
     ${formatPopupDate(plume.timestamp_min)} to ${formatPopupDate(plume.timestamp_max)}
   `);
