@@ -5,180 +5,77 @@
   <script id="title" type="text/markdown">
 # *Nom de plume*
 
-The list below shows oil and gas infrastructure — mostly wells — which have been linked to methane plumes meeting the US Environmental Protection Agency's definition of a 'super-emitter event' (at least 100 kg/hr), published by [Carbon Mapper](https://data.carbonmapper.org/).
+The list below shows oil and gas infrastructure — mostly wells — which have been linked to methane plumes meeting the US Environmental Protection Agency's definition of a 'super-emitter event' (at least 100 kg/hr), published by [Carbon Mapper](https://data.carbonmapper.org/).
 
 ---
   </script>
 
-  <!-- Search operator input -->
-  <script id="search-input" type="module">
-const container = document.createElement('div');
-container.style.marginBottom = '1.5rem';
-
-const input = document.createElement('input');
-input.type = 'text';
-input.placeholder = 'Search operator...';
-input.style.cssText = `
-  width: 100%;
-  max-width: 400px;
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  border: 1px solid #666;
-  border-radius: 4px;
-  background: #1a1a1a;
-  color: #fff;
-`;
-
-let debounceTimer;
-input.addEventListener('input', (e) => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    globalThis.searchOperator = e.target.value.trim().toLowerCase();
-  }, 200);
-});
-
-container.appendChild(input);
-display(container);
-globalThis.searchOperator = '';
+  <!-- Get first 500 plumes ordered by most recent -->
+  <script id="plumes-sql" type="application/sql" database="data/data.duckdb" output="plumes" hidden>
+SELECT
+  id,
+  entity_name as operator,
+  rate_avg_kg_hr,
+  rate_detected_kg_hr,
+  latitude,
+  longitude,
+  nearest_facility_id,
+  nearest_facility_type,
+  distance_to_nearest_facility_km,
+  total_facilities_nearby,
+  operator_facilities_of_type,
+  plume_count,
+  timestamp_min,
+  timestamp_max
+FROM emissions.attributed
+WHERE rate_detected_kg_hr >= 100
+  AND confidence_score >= 75
+  AND distance_to_nearest_facility_km <= 0.5
+ORDER BY timestamp_max DESC
+LIMIT 500
   </script>
 
-  <!-- Get plumes based on search or recent -->
-  <script id="plumes-data" type="module">
-const db = await sql`SELECT 1`.db;
-let plumes = [];
+  <!-- Pre-load ALL infrastructure for the plumes we're showing -->
+  <script id="infrastructure-sql" type="application/sql" database="data/data.duckdb" output="infrastructure" hidden>
+INSTALL spatial;
+LOAD spatial;
 
-const updatePlumes = async () => {
-  const search = globalThis.searchOperator || '';
-
-  if (search) {
-    plumes = await db.query(`
-      SELECT
-        id,
-        entity_name as operator,
-        rate_avg_kg_hr,
-        rate_detected_kg_hr,
-        latitude,
-        longitude,
-        nearest_facility_id,
-        nearest_facility_type,
-        distance_to_nearest_facility_km,
-        total_facilities_nearby,
-        operator_facilities_of_type,
-        plume_count,
-        timestamp_min,
-        timestamp_max
-      FROM emissions.attributed
-      WHERE rate_detected_kg_hr >= 100
-        AND confidence_score >= 75
-        AND distance_to_nearest_facility_km <= 0.5
-        AND LOWER(entity_name) LIKE '%' || ? || '%'
-      ORDER BY timestamp_max DESC
-      LIMIT 500
-    `, [search]);
-  } else {
-    plumes = await db.query(`
-      SELECT
-        id,
-        entity_name as operator,
-        rate_avg_kg_hr,
-        rate_detected_kg_hr,
-        latitude,
-        longitude,
-        nearest_facility_id,
-        nearest_facility_type,
-        distance_to_nearest_facility_km,
-        total_facilities_nearby,
-        operator_facilities_of_type,
-        plume_count,
-        timestamp_min,
-        timestamp_max
-      FROM emissions.attributed
-      WHERE rate_detected_kg_hr >= 100
-        AND confidence_score >= 75
-        AND distance_to_nearest_facility_km <= 0.5
-      ORDER BY timestamp_max DESC
-      LIMIT 25
-    `);
-  }
-};
-
-await updatePlumes();
-
-const observer = new MutationObserver(() => {
-  updatePlumes().then(() => {
-    document.dispatchEvent(new CustomEvent('plumesUpdated'));
-  });
-});
-
-globalThis.plumeUpdateListener = setInterval(() => {
-  const search = globalThis.searchOperator || '';
-  updatePlumes().then(() => {
-    document.dispatchEvent(new CustomEvent('plumesUpdated'));
-  });
-}, 500);
-
-globalThis.plumes = plumes;
-  </script>
-
-  <!-- Load infrastructure for current plumes -->
-  <script id="infrastructure-data" type="module">
-const db = await sql`SELECT 1`.db;
-let infrastructure = [];
-
-const loadInfrastructure = async () => {
-  const currentPlumes = globalThis.plumes || [];
-  if (currentPlumes.length === 0) {
-    infrastructure = [];
-    return;
-  }
-
-  const plume_ids = currentPlumes.map(p => p.id);
-  infrastructure = await db.query(`
-    INSTALL spatial;
-    LOAD spatial;
-
-    WITH plume_locations AS (
-      SELECT
-        id,
-        latitude,
-        longitude
-      FROM emissions.attributed
-      WHERE id = ANY(?)
-    )
-    SELECT
-      p.id as plume_id,
-      f.facility_id,
-      f.infra_type,
-      f.operator,
-      f.facility_subtype,
-      ST_Y(f.geom) as latitude,
-      ST_X(f.geom) as longitude,
-      ROUND(ST_Distance(
-        ST_Point(p.longitude, p.latitude),
-        f.geom
-      ) * 111 * 1000, 0) as distance_m
-    FROM plume_locations p
-    CROSS JOIN infrastructure.all_facilities f
-    WHERE ST_DWithin(
-      ST_Point(p.longitude, p.latitude),
-      f.geom,
-      0.015
-    )
-    ORDER BY p.id, distance_m
-  `, [plume_ids]);
-};
-
-await loadInfrastructure();
-
-document.addEventListener('plumesUpdated', async () => {
-  await loadInfrastructure();
-});
-
-globalThis.infrastructure = infrastructure;
+WITH plume_locations AS (
+  SELECT
+    id,
+    latitude,
+    longitude
+  FROM emissions.attributed
+  WHERE rate_detected_kg_hr >= 100
+    AND confidence_score >= 75
+    AND distance_to_nearest_facility_km <= 0.5
+  ORDER BY timestamp_max DESC
+  LIMIT 500
+)
+SELECT
+  p.id as plume_id,
+  f.facility_id,
+  f.infra_type,
+  f.operator,
+  f.facility_subtype,
+  ST_Y(f.geom) as latitude,
+  ST_X(f.geom) as longitude,
+  ROUND(ST_Distance(
+    ST_Point(p.longitude, p.latitude),
+    f.geom
+  ) * 111 * 1000, 0) as distance_m
+FROM plume_locations p
+CROSS JOIN infrastructure.all_facilities f
+WHERE ST_DWithin(
+  ST_Point(p.longitude, p.latitude),
+  f.geom,
+  0.015
+)
+ORDER BY p.id, distance_m
   </script>
 
   <script id="plume-cards" type="module">
-// Add responsive styles for card details
+// Add responsive styles for card details and search
 const style = document.createElement('style');
 style.textContent = `
   .card-details {
@@ -186,6 +83,25 @@ style.textContent = `
     font-size: 0.9em;
     text-align: right;
     margin-left: auto;
+  }
+
+  .search-container {
+    margin-bottom: 1.5rem;
+  }
+
+  .search-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #666;
+    border-radius: 4px;
+    background: #1a1a1a;
+    color: #fff;
+  }
+
+  .search-input::placeholder {
+    color: #888;
   }
 
   @media (max-width: 768px) {
@@ -198,17 +114,48 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Create wrapper container
+const wrapper = document.createElement('div');
+
+// Add search input
+const searchContainer = document.createElement('div');
+searchContainer.className = 'search-container';
+
+const searchInput = document.createElement('input');
+searchInput.type = 'text';
+searchInput.className = 'search-input';
+searchInput.placeholder = 'Search operator...';
+
+searchContainer.appendChild(searchInput);
+wrapper.appendChild(searchContainer);
+
+// Cards container
 const cardsContainer = document.createElement('div');
-cardsContainer.id = 'plume-cards-container';
+wrapper.appendChild(cardsContainer);
+
 let currentlyExpanded = null;
+let allPlumes = [...plumes];
 
 const renderCards = () => {
-  const plumes = globalThis.plumes || [];
+  const searchTerm = searchInput.value.trim().toLowerCase();
+
+  let filteredPlumes = allPlumes;
+  if (searchTerm) {
+    filteredPlumes = allPlumes.filter(p =>
+      (p.operator || '').toLowerCase().includes(searchTerm)
+    );
+  }
+
   cardsContainer.innerHTML = '';
   currentlyExpanded = null;
 
-  for (let i = 0; i < plumes.length; i++) {
-    const plume = plumes[i];
+  if (filteredPlumes.length === 0) {
+    cardsContainer.innerHTML = '<p style="opacity: 0.7;">No matching plumes found</p>';
+    return;
+  }
+
+  for (let i = 0; i < filteredPlumes.length; i++) {
+    const plume = filteredPlumes[i];
     const cardId = `card-${i}`;
     const mapId = `map-${i}`;
     const detailsId = `details-${i}`;
@@ -325,17 +272,16 @@ const renderCards = () => {
     card.appendChild(expandedContent);
     cardsContainer.appendChild(card);
 
-    if (i < plumes.length - 1) {
+    if (i < filteredPlumes.length - 1) {
       const hr = document.createElement('hr');
       cardsContainer.appendChild(hr);
     }
   }
 };
 
+searchInput.addEventListener('input', renderCards);
 renderCards();
-display(cardsContainer);
-
-document.addEventListener('plumesUpdated', renderCards);
+display(wrapper);
   </script>
 
   <script id="leaflet-loader" type="module">
