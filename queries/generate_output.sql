@@ -7,9 +7,10 @@ WITH lng_contracts AS (
     SELECT * FROM read_csv_auto('data/supply-contracts-gemini-2-5-pro.csv')
 ),
 
--- Get base plume info (one row per plume) with operator
+-- Get best plume attribution (one row per plume) with operator
+-- Filter to high-confidence matches (>= 75) and select best match per plume
 plume_info AS (
-    SELECT
+    SELECT DISTINCT ON (id)
         id,
         rate_avg_kg_hr,
         rate_detected_kg_hr,
@@ -28,6 +29,8 @@ plume_info AS (
         entity_name as operator
     FROM emissions.attributed
     WHERE entity_type = 'operator'
+      AND confidence_score >= 75
+    ORDER BY id, confidence_score DESC, distance_to_nearest_facility_km ASC
 ),
 
 -- Get Texas well details for purchaser lookup

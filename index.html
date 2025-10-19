@@ -6,8 +6,6 @@
 # *Nom de plume*
 
 The list below shows oil and gas infrastructure — mostly wells — which have been linked to methane plumes meeting the US Environmental Protection Agency's definition of a 'super-emitter event' (at least 100 kg/hr), published by [Carbon Mapper](https://data.carbonmapper.org/).
-
----
   </script>
 
   <!-- Get first 500 plumes ordered by most recent -->
@@ -128,6 +126,11 @@ searchInput.placeholder = 'Search operator...';
 
 searchContainer.appendChild(searchInput);
 wrapper.appendChild(searchContainer);
+
+// Add horizontal rule
+const hr = document.createElement('hr');
+hr.style.marginBottom = '1.5rem';
+wrapper.appendChild(hr);
 
 // Cards container
 const cardsContainer = document.createElement('div');
@@ -271,11 +274,6 @@ const renderCards = () => {
     card.appendChild(header);
     card.appendChild(expandedContent);
     cardsContainer.appendChild(card);
-
-    if (i < filteredPlumes.length - 1) {
-      const hr = document.createElement('hr');
-      cardsContainer.appendChild(hr);
-    }
   }
 };
 
