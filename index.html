@@ -28,7 +28,7 @@ SELECT
   timestamp_min,
   timestamp_max
 FROM emissions.attributed
-WHERE rate_avg_kg_hr >= 100
+WHERE rate_detected_kg_hr >= 100
   AND confidence_score >= 75
   AND distance_to_nearest_facility_km <= 0.5
 ORDER BY timestamp_max DESC
@@ -46,7 +46,7 @@ WITH plume_locations AS (
     latitude,
     longitude
   FROM emissions.attributed
-  WHERE rate_avg_kg_hr >= 100
+  WHERE rate_detected_kg_hr >= 100
     AND confidence_score >= 75
     AND distance_to_nearest_facility_km <= 0.5
   ORDER BY timestamp_max DESC
