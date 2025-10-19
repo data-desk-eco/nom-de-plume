@@ -172,6 +172,10 @@ for (let i = 0; i < plumes.length; i++) {
   detailsPanel.innerHTML = `
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
       <tr>
+        <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>plume id</strong></td>
+        <td style="padding: 0.5rem 0;"><code style="font-size: 0.85em;">${plume.id}</code></td>
+      </tr>
+      <tr>
         <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>operator</strong></td>
         <td style="padding: 0.5rem 0;">${plume.operator || 'Unknown'}</td>
       </tr>
