@@ -15,7 +15,8 @@ CREATE SCHEMA infrastructure;
 CREATE OR REPLACE TABLE infrastructure.all_facilities AS
 WITH
 -- Wells
--- Note: Including all wells regardless of status since plugged wells can still emit
+-- Filter to exclude proposed/permitted wells that haven't been drilled yet
+-- This prevents attribution to drilling permits rather than actual infrastructure
 wells AS (
     SELECT
         CAST(FAC_ID AS VARCHAR) as facility_id,
@@ -32,6 +33,9 @@ wells AS (
         AND LONGITUDE IS NOT NULL
         AND OPERATOR IS NOT NULL
         AND OPERATOR != 'N/A'
+        -- Exclude proposed/permitted wells that haven't been built
+        AND (FAC_STATUS NOT IN ('PERMITTED', 'PROPOSED') OR FAC_STATUS IS NULL OR FAC_STATUS = 'N/A')
+        AND (OGIM_STATUS NOT IN ('PERMITTED', 'PROPOSED') OR OGIM_STATUS IS NULL OR OGIM_STATUS = 'N/A')
 ),
 
 -- Gas processing plants
