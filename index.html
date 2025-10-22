@@ -13,8 +13,8 @@ The list below shows oil and gas infrastructure — mostly wells — which have 
 SELECT
   id,
   entity_name as operator,
-  rate_avg_kg_hr,
-  rate_detected_kg_hr,
+  rate_kg_hr,
+  datetime,
   latitude,
   longitude,
   nearest_facility_id,
@@ -22,14 +22,12 @@ SELECT
   distance_to_nearest_facility_km,
   total_facilities_nearby,
   operator_facilities_of_type,
-  plume_count,
-  timestamp_min,
-  timestamp_max
+  confidence_score
 FROM emissions.attributed
-WHERE rate_detected_kg_hr >= 100
+WHERE rate_kg_hr >= 100
   AND confidence_score >= 75
   AND distance_to_nearest_facility_km <= 0.5
-ORDER BY timestamp_max DESC
+ORDER BY datetime DESC
 LIMIT 500
   </script>
 
@@ -44,10 +42,10 @@ WITH plume_locations AS (
     latitude,
     longitude
   FROM emissions.attributed
-  WHERE rate_detected_kg_hr >= 100
+  WHERE rate_kg_hr >= 100
     AND confidence_score >= 75
     AND distance_to_nearest_facility_km <= 0.5
-  ORDER BY timestamp_max DESC
+  ORDER BY datetime DESC
   LIMIT 500
 )
 SELECT
@@ -192,7 +190,7 @@ const renderCards = () => {
       }
     };
 
-    const maxDate = plume.timestamp_max ? new Date(plume.timestamp_max).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+    const observationDate = plume.datetime ? new Date(plume.datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 
     header.style.display = 'flex';
     header.style.flexWrap = 'wrap';
@@ -204,7 +202,7 @@ const renderCards = () => {
         ${plume.operator || 'Unknown Operator'}
       </h3>
       <div class="card-details">
-        ${maxDate} / ${plume.nearest_facility_type || 'Unknown'} / ${(plume.distance_to_nearest_facility_km * 1000)?.toFixed(0) || 'N/A'} m / ${plume.rate_detected_kg_hr?.toFixed(1) || 'N/A'} kg/hr
+        ${observationDate} / ${plume.nearest_facility_type || 'Unknown'} / ${(plume.distance_to_nearest_facility_km * 1000)?.toFixed(0) || 'N/A'} m / ${plume.rate_kg_hr?.toFixed(1) || 'N/A'} kg/hr
       </div>
     `;
 
@@ -231,7 +229,7 @@ const renderCards = () => {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
         <tr>
           <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>plume id</strong></td>
-          <td style="padding: 0.5rem 0;"><code style="font-size: 0.85em;"><a href="https://data.carbonmapper.org/?details=${plume.id}" target="_blank" style="color: inherit; text-decoration: underline;">${plume.id}</a></code></td>
+          <td style="padding: 0.5rem 0;"><code style="font-size: 0.85em;"><a href="https://data.carbonmapper.org/?plume_id=${plume.id}" target="_blank" style="color: inherit; text-decoration: underline;">${plume.id}</a></code></td>
         </tr>
         <tr>
           <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>operator</strong></td>
@@ -251,11 +249,15 @@ const renderCards = () => {
         </tr>
         <tr>
           <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>emission rate</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.rate_detected_kg_hr?.toFixed(1) || 'N/A'} kg/hr</td>
+          <td style="padding: 0.5rem 0;">${plume.rate_kg_hr?.toFixed(1) || 'N/A'} kg/hr</td>
         </tr>
         <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>observations</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.plume_count} plumes (${formatDate(plume.timestamp_min)} – ${formatDate(plume.timestamp_max)})</td>
+          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>observation date</strong></td>
+          <td style="padding: 0.5rem 0;">${formatDate(plume.datetime)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>confidence</strong></td>
+          <td style="padding: 0.5rem 0;">${plume.confidence_score?.toFixed(1) || 'N/A'}%</td>
         </tr>
         <tr>
           <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>facilities within 1.5 km</strong></td>
@@ -345,9 +347,8 @@ async function loadMap(index, plume) {
 
   plumeMarker.bindTooltip(`
     <strong>methane plume</strong><br>
-    ${plume.rate_detected_kg_hr?.toFixed(1)} kg/hr<br>
-    ${plume.plume_count} observations<br>
-    ${formatPopupDate(plume.timestamp_min)} to ${formatPopupDate(plume.timestamp_max)}
+    ${plume.rate_kg_hr?.toFixed(1)} kg/hr<br>
+    ${formatPopupDate(plume.datetime)}
   `, { permanent: false, sticky: false });
 
   const typeColors = {

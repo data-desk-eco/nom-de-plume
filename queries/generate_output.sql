@@ -12,12 +12,9 @@ WITH lng_contracts AS (
 plume_info AS (
     SELECT DISTINCT ON (id)
         id,
-        rate_avg_kg_hr,
-        rate_detected_kg_hr,
+        rate_kg_hr,
         rate_uncertainty_kg_hr,
-        plume_count,
-        timestamp_min,
-        timestamp_max,
+        datetime,
         latitude,
         longitude,
         nearest_facility_id,
@@ -136,12 +133,9 @@ aggregated_matches AS (
 SELECT
     p.id,
     p.operator,
-    p.rate_avg_kg_hr,
-    p.rate_detected_kg_hr,
+    p.rate_kg_hr,
     p.rate_uncertainty_kg_hr,
-    p.plume_count,
-    p.timestamp_min,
-    p.timestamp_max,
+    p.datetime,
     p.latitude,
     p.longitude,
     p.nearest_facility_id,
@@ -154,4 +148,4 @@ SELECT
     m.lng_seller_count
 FROM plume_info p
 INNER JOIN aggregated_matches m ON p.id = m.id
-ORDER BY p.timestamp_max DESC, p.rate_avg_kg_hr DESC NULLS LAST;
+ORDER BY p.datetime DESC, p.rate_kg_hr DESC NULLS LAST;

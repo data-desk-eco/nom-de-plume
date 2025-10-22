@@ -6,6 +6,8 @@ data/*.duckdb.wal
 data/*.ebc.gz
 data/*.json
 data/*.gpkg
+data/*.zip
+data/plumes_*.csv
 
 # Generated output files (but keep final CSV reports)
 output/*.tmp
