@@ -19,3 +19,10 @@ __pycache__/
 *.pyc
 .venv/
 .python-version
+
+# Node/Observable
+node_modules/
+.observable/
+
+# State-specific data directories
+data/sonris/
