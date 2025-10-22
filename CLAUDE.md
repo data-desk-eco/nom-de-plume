@@ -16,10 +16,12 @@ make clean-all         # Remove everything including source data
 
 **Goal**: Attribute satellite-detected methane plumes to oil and gas operators and LNG export facilities.
 
-**Current State**: Production-ready with 2,661 plumes attributed to infrastructure operators, 91 matched to LNG supply contracts.
+**Current State**: Production-ready with individual plume observations attributed to infrastructure operators and LNG supply contracts.
 
 **Data**:
-- 2,947 CH4 plumes from Carbon Mapper (2025 data, Texas + Louisiana)
+- 7,437 plume observations from Carbon Mapper (Jan-Oct 2025, global dataset filtered to Texas + Louisiana)
+  - 5,789 CH4 plumes, 1,648 CO2 plumes
+  - 579 plumes in Texas, 55 in Louisiana
 - 1.1M+ facilities from OGIM v2.7 and Texas RRC
 - LNG supply contracts from DOE filings
 
@@ -28,7 +30,7 @@ make clean-all         # Remove everything including source data
 ### Pipeline
 
 ```
-OGIM GeoPackage + Carbon Mapper API + Texas RRC data
+OGIM GeoPackage + Carbon Mapper plumes CSV + Texas RRC data
                   ↓
          DuckDB (data.duckdb)
                   ↓
@@ -48,13 +50,13 @@ OGIM GeoPackage + Carbon Mapper API + Texas RRC data
 - Fields: `facility_id`, `infra_type`, `type_weight`, `operator`, `facility_subtype`, `status`, `latitude`, `longitude`, `geom`
 
 **Emissions** (`emissions.sources`):
-- 2,947 CH4 plumes from Carbon Mapper
-- Fields: `id`, `emission_auto` (kg/hr), `plume_count`, `persistence`, `latitude`, `longitude`, `geom`
+- 7,437 plume observations from Carbon Mapper (individual observations, not aggregated)
+- Fields: `id`, `emission_auto` (kg/hr), `datetime`, `ipcc_sector`, `latitude`, `longitude`, `geom`, wind data, technical metadata
 
 **Attribution** (`emissions.attributed`):
-- 2,661 plumes matched to infrastructure (90% attribution rate)
+- Individual plumes matched to infrastructure
 - Confidence scores (0-100) based on distance, operator dominance, and facility density
-- Fields: `emission_id`, `nearest_facility_id`, `operator`, `infra_type`, `confidence_score`, `distance_to_nearest_facility_km`, `total_facilities_within_750m`, `operator_facilities_of_type`
+- Fields: `id`, `rate_kg_hr`, `datetime`, `nearest_facility_id`, `entity_name` (operator), `nearest_facility_type`, `confidence_score`, `distance_to_nearest_facility_km`, `total_facilities_nearby`, `operator_facilities_of_type`
 
 ### Hybrid Texas RRC + OGIM Attribution
 
@@ -92,13 +94,14 @@ Chain: `Plume → Infrastructure → Operator → LNG Seller → LNG Facility`
 
 ```
 data/
-  OGIM_v2.7.gpkg           # OGIM infrastructure (auto-downloaded, 2.9 GB)
-  sources.json             # Carbon Mapper emissions (auto-fetched, ~13 MB)
-  supply-contracts-*.csv   # LNG supply contracts (DOE)
-  p4f606.ebc.gz            # Texas RRC P-4 (manual download)
-  orf850.ebc.gz            # Texas RRC P-5 (manual download)
-  dbf900.ebc.gz            # Texas RRC wellbore (manual download)
-  data.duckdb              # Final database (gitignored)
+  OGIM_v2.7.gpkg                        # OGIM infrastructure (auto-downloaded, 2.9 GB)
+  plumes_2025-01-01_2025-10-01.zip      # Carbon Mapper plumes (auto-downloaded, ~900 KB)
+  plumes_2025-01-01_2025-10-01.csv      # Extracted plumes data (~3.4 MB)
+  supply-contracts-*.csv                # LNG supply contracts (DOE)
+  p4f606.ebc.gz                         # Texas RRC P-4 (manual download)
+  orf850.ebc.gz                         # Texas RRC P-5 (manual download)
+  dbf900.ebc.gz                         # Texas RRC wellbore (manual download)
+  data.duckdb                           # Final database (gitignored)
 
 queries/
   schema.sql               # Database schema
@@ -129,11 +132,12 @@ index.html                 # Observable Framework notebook for visualization
 The project includes an Observable Framework notebook (`index.html`) that provides an interactive exploration of super-emitter events.
 
 **Features**:
-- Displays 100 most recent super-emitter events (≥100 kg/hr, ≥75 confidence score)
-- Expandable cards showing operator, facility type, emission rate, and observation dates
+- Displays up to 500 most recent super-emitter events (≥100 kg/hr, ≥75 confidence score, ≤500m from facility)
+- Expandable cards showing operator, facility type, emission rate, observation date, and confidence score
 - Interactive maps with grayscale satellite imagery showing plume locations and nearby infrastructure
 - Color-coded facility markers by type (wells, compressors, processing plants, etc.)
 - Facility counts distinguishing operator-owned vs. total nearby facilities
+- Direct links to plume detail pages on Carbon Mapper's data portal
 
 **Usage**:
 ```bash
@@ -224,14 +228,16 @@ The P-4 "purchaser" field is used as the operator for wells, providing more curr
 ## Data Sources
 
 - **OGIM v2.7**: https://zenodo.org/records/15103476 (auto-downloaded)
-- **Carbon Mapper**: https://api.carbonmapper.org/api/v1/catalog/sources.geojson (auto-fetched)
+- **Carbon Mapper Plumes**: https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_2025-01-01_2025-10-01.zip (auto-downloaded)
 - **Texas RRC**: https://mft.rrc.texas.gov/ (manual download required)
 - **DOE LNG Contracts**: data/supply-contracts-gemini-2-5-pro.csv (parsed by Gemini 2.5 Pro)
 
 ## Future Work
 
 - Add Louisiana RRC data for Louisiana wells
-- Temporal analysis (track facility status changes)
+- Temporal analysis (track facility status changes over multiple observations)
+- Aggregate multiple observations of the same source/facility
 - Export to GeoJSON/Shapefile
-- Regular emissions data updates from Carbon Mapper API
+- Regular emissions data updates from Carbon Mapper
 - Pipeline infrastructure from OGIM
+- Support for additional plume metadata (wind data, uncertainty, technical parameters)
