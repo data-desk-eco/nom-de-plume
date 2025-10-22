@@ -9,32 +9,32 @@ data/OGIM_v2.7.gpkg:
 	@curl -sL -o $@ https://zenodo.org/records/15103476/files/OGIM_v2.7.gpkg
 	@echo "✓ OGIM database downloaded"
 
-# Fetch emissions data from Carbon Mapper API (2024-2025 CH4 plumes, Texas + Louisiana)
-# Bbox: west, south, east, north covering TX + LA
-data/sources.json:
+# Download plumes dataset from Carbon Mapper (2025 CH4 plumes)
+data/plumes_2025-01-01_2025-10-01.zip:
 	@mkdir -p $(@D)
-	@echo "Fetching emissions data from Carbon Mapper API (2024-2025)..."
-	@curl -sG -o $@ "https://api.carbonmapper.org/api/v1/catalog/sources.geojson" \
-		--data-urlencode "bbox=-106.65" \
-		--data-urlencode "bbox=25.84" \
-		--data-urlencode "bbox=-88.75" \
-		--data-urlencode "bbox=36.50" \
-		--data-urlencode "datetime=2024-01-01T00:00:00Z/.." \
-		--data-urlencode "plume_gas=CH4"
-	@echo "✓ Emissions data fetched"
+	@echo "Downloading plumes dataset from Carbon Mapper S3 (2025)..."
+	@curl -sL -o $@ "https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_2025-01-01_2025-10-01.zip"
+	@echo "✓ Plumes dataset downloaded"
+
+# Extract plumes CSV from zip file
+data/plumes_2025-01-01_2025-10-01.csv: data/plumes_2025-01-01_2025-10-01.zip
+	@echo "Extracting plumes CSV..."
+	@unzip -o $< -d data/
+	@touch $@
+	@echo "✓ Plumes CSV extracted"
 
 # Texas RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz)
 # must be downloaded manually from https://mft.rrc.texas.gov/ and placed in data/
 # The download links require active browser sessions and cannot be automated
 
-# Create DuckDB database from OGIM GeoPackage and Carbon Mapper emissions
+# Create DuckDB database from OGIM GeoPackage and Carbon Mapper plumes
 # Depends on: data files + database creation queries (schema, loading)
 # Does NOT depend on: attribution or LNG analysis queries (use separate targets for those)
-data/data.duckdb: data/OGIM_v2.7.gpkg data/sources.json data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/load_p4.sql queries/load_p5.sql queries/load_wellbore.sql scripts/create_p4_db.py scripts/parse_p4.py scripts/create_p5_db.py scripts/parse_p5.py scripts/create_wellbore_db.py scripts/parse_wellbore.py
+data/data.duckdb: data/OGIM_v2.7.gpkg data/plumes_2025-01-01_2025-10-01.csv data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz queries/schema.sql queries/load_emissions.sql queries/load_ogim.sql queries/load_p4.sql queries/load_p5.sql queries/load_wellbore.sql scripts/create_p4_db.py scripts/parse_p4.py scripts/create_p5_db.py scripts/parse_p5.py scripts/create_wellbore_db.py scripts/parse_wellbore.py
 	@echo "Building database from OGIM v2.7 + Texas RRC data..."
 	@echo "1/7 Creating schema..."
 	@duckdb $@ < queries/schema.sql
-	@echo "2/7 Loading emissions from Carbon Mapper..."
+	@echo "2/7 Loading plumes from Carbon Mapper..."
 	@duckdb $@ < queries/load_emissions.sql
 	@echo "3/7 Loading infrastructure from OGIM (wells, compressors, processing, tanks)..."
 	@duckdb $@ < queries/load_ogim.sql
@@ -82,5 +82,5 @@ clean:
 	rm -f /tmp/wellbore_root.csv /tmp/wellbore_location.csv /tmp/wellbore_wellid.csv
 
 clean-all: clean
-	rm -f data/OGIM_v2.7.gpkg data/sources.json
+	rm -f data/OGIM_v2.7.gpkg data/plumes_2025-01-01_2025-10-01.zip data/plumes_2025-01-01_2025-10-01.csv
 	@echo "Note: RRC data files (data/*.ebc.gz) not removed - download them manually from https://mft.rrc.texas.gov/"

@@ -305,33 +305,47 @@ CREATE TABLE p5.activity (
 DROP SCHEMA IF EXISTS emissions CASCADE;
 CREATE SCHEMA emissions;
 
--- Emission sources detected by Carbon Mapper (CH4, CO2, etc.)
+-- Individual plume observations detected by Carbon Mapper (CH4, CO2, etc.)
 CREATE TABLE emissions.sources (
-  id VARCHAR PRIMARY KEY,
-  geom GEOMETRY,
+  id VARCHAR PRIMARY KEY,                  -- plume_id from source data
+  geom GEOMETRY,                           -- Point geometry derived from lat/lon
+
+  -- Location
+  latitude DOUBLE,
+  longitude DOUBLE,
 
   -- Gas and sector
-  gas VARCHAR,                             -- Gas type (e.g., CH4)
-  sector VARCHAR,                          -- IPCC sector code (e.g., 6A = Oil and Gas)
+  gas VARCHAR,                             -- Gas type (e.g., CH4, CO2)
+  ipcc_sector VARCHAR,                     -- IPCC sector (e.g., "Oil & Gas (1B2)")
 
-  -- Plume observations
-  plume_count INTEGER,
-  detection_date_count INTEGER,
-  observation_date_count INTEGER,
+  -- Observation metadata
+  datetime TIMESTAMP,                      -- Observation datetime
+  instrument VARCHAR,                      -- Instrument (e.g., "tan")
+  platform VARCHAR,                        -- Platform (e.g., "Tanager")
+  provider VARCHAR,                        -- Provider (e.g., "Planet Labs Inc.")
+  mission_phase VARCHAR,                   -- Mission phase (e.g., "first_light")
 
   -- Emissions data
   emission_auto DOUBLE,                    -- Auto-calculated emission rate (kg/hr)
-  emission_uncertainty_auto DOUBLE,        -- Uncertainty in emission rate
+  emission_uncertainty_auto DOUBLE,        -- Uncertainty in emission rate (kg/hr)
+  emission_cmf_type VARCHAR,               -- Emission calculation type (e.g., "mfa")
 
-  -- Temporal coverage
-  timestamp_min DATE,
-  timestamp_max DATE,
-  published_at_min DATE,
-  published_at_max DATE,
+  -- Wind data
+  wind_speed_avg_auto DOUBLE,              -- Average wind speed (m/s)
+  wind_speed_std_auto DOUBLE,              -- Wind speed standard deviation
+  wind_direction_avg_auto DOUBLE,          -- Average wind direction (degrees)
+  wind_direction_std_auto DOUBLE,          -- Wind direction standard deviation
+  wind_source_auto VARCHAR,                -- Wind data source (e.g., "hrrr", "ecmwf_ifs")
 
-  -- Persistence
-  persistence DOUBLE,                      -- Fraction of observations with detection
+  -- Technical metadata
+  plume_bounds VARCHAR,                    -- Bounding box as string
+  gsd DOUBLE,                              -- Ground sampling distance
+  sensitivity_mode VARCHAR,                -- Sensitivity mode
+  off_nadir DOUBLE,                        -- Off-nadir angle (degrees)
 
-  -- Metadata
-  source_name VARCHAR
+  -- Processing metadata
+  published_at TIMESTAMP,                  -- When plume was published
+  modified TIMESTAMP,                      -- Last modification time
+  emission_version VARCHAR,                -- Emission calculation version
+  processing_software VARCHAR              -- Processing software version
 );

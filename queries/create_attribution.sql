@@ -43,7 +43,7 @@ rrc_handled_wells AS (
 
 -- All plumes (will be filtered separately for RRC vs OGIM)
 all_plumes AS (
-    SELECT id, geom, emission_auto, emission_uncertainty_auto, persistence, plume_count, timestamp_min, timestamp_max
+    SELECT id, geom, emission_auto, emission_uncertainty_auto, datetime
     FROM emissions.sources
     WHERE gas = 'CH4'
 ),
@@ -54,10 +54,7 @@ rrc_plume_well_pairs AS (
         e.id,
         e.emission_auto,
         e.emission_uncertainty_auto,
-        e.persistence,
-        e.plume_count,
-        e.timestamp_min,
-        e.timestamp_max,
+        e.datetime,
         e.geom as plume_geom,
         w.api_county || '-' || w.api_unique as well_api,
         w.operator_name,
@@ -80,10 +77,7 @@ rrc_nearest_wells AS (
         id,
         emission_auto,
         emission_uncertainty_auto,
-        persistence,
-        plume_count,
-        timestamp_min,
-        timestamp_max,
+        datetime,
         plume_geom,
         well_api,
         operator_name,
@@ -120,12 +114,9 @@ rrc_operator_counts AS (
 rrc_operator_rows AS (
     SELECT
         nw.id,
-        nw.emission_auto as rate_avg_kg_hr,
-        ROUND(nw.emission_auto / NULLIF(nw.persistence, 0), 2) as rate_detected_kg_hr,
+        nw.emission_auto as rate_kg_hr,
         nw.emission_uncertainty_auto as rate_uncertainty_kg_hr,
-        nw.plume_count,
-        nw.timestamp_min,
-        nw.timestamp_max,
+        nw.datetime,
         ST_Y(nw.plume_geom) as latitude,
         ST_X(nw.plume_geom) as longitude,
         nw.well_api as nearest_facility_id,
@@ -166,10 +157,7 @@ ogim_nearby_facilities AS (
         e.geom as emission_geom,
         e.emission_auto,
         e.emission_uncertainty_auto,
-        e.persistence,
-        e.plume_count,
-        e.timestamp_min,
-        e.timestamp_max,
+        e.datetime,
         f.facility_id,
         f.infra_type,
         f.operator,
@@ -222,10 +210,7 @@ ogim_best_matches AS (
         nf.emission_id,
         nf.emission_auto,
         nf.emission_uncertainty_auto,
-        nf.persistence,
-        nf.plume_count,
-        nf.timestamp_min,
-        nf.timestamp_max,
+        nf.datetime,
         nf.emission_geom,
         nf.facility_id,
         nf.infra_type,
@@ -259,12 +244,9 @@ ogim_best_matches AS (
 ogim_operator_rows AS (
     SELECT
         bm.emission_id as id,
-        bm.emission_auto as rate_avg_kg_hr,
-        ROUND(bm.emission_auto / NULLIF(bm.persistence, 0), 2) as rate_detected_kg_hr,
+        bm.emission_auto as rate_kg_hr,
         bm.emission_uncertainty_auto as rate_uncertainty_kg_hr,
-        bm.plume_count,
-        bm.timestamp_min,
-        bm.timestamp_max,
+        bm.datetime,
         ST_Y(bm.emission_geom) as latitude,
         ST_X(bm.emission_geom) as longitude,
         bm.facility_id as nearest_facility_id,
