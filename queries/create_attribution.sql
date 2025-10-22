@@ -63,7 +63,7 @@ rrc_plume_well_pairs AS (
         w.district,
         w.lease_rrcid,
         w.field_number,
-        ST_Distance(e.geom, w.geom) * 111 as distance_km
+        ST_Distance_Sphere(e.geom, w.geom) / 1000.0 as distance_km
     FROM all_plumes e
     CROSS JOIN texas_wells_with_rrc w
     WHERE ST_X(w.geom) BETWEEN ST_X(e.geom) - 0.015 AND ST_X(e.geom) + 0.015
@@ -163,7 +163,7 @@ ogim_nearby_facilities AS (
         f.operator,
         f.facility_subtype,
         f.geom as facility_geom,
-        ST_Distance(e.geom, f.geom) * 111 as distance_km
+        ST_Distance_Sphere(e.geom, f.geom) / 1000.0 as distance_km
     FROM all_plumes e
     CROSS JOIN infrastructure.all_facilities f
     WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.015 AND ST_X(e.geom) + 0.015

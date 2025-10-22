@@ -56,10 +56,10 @@ SELECT
   f.facility_subtype,
   ST_Y(f.geom) as latitude,
   ST_X(f.geom) as longitude,
-  ROUND(ST_Distance(
+  ROUND(ST_Distance_Sphere(
     ST_Point(p.longitude, p.latitude),
     f.geom
-  ) * 111 * 1000, 0) as distance_m
+  ), 0) as distance_m
 FROM plume_locations p
 CROSS JOIN infrastructure.all_facilities f
 WHERE ST_DWithin(

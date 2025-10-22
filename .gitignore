@@ -1,6 +1,6 @@
 # Generated database
 data/*.duckdb
-data/*.duckdb.wal
+data/*.duckdb.*
 
 # Large source data files (download separately)
 data/*.ebc.gz

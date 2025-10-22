@@ -1,6 +1,6 @@
 # Nom de plume
 
-Methane plume attribution system for Texas and Louisiana oil and gas infrastructure.
+Methane plume attribution system for global oil and gas infrastructure.
 
 ## Quick Start
 
@@ -19,10 +19,10 @@ make clean-all         # Remove everything including source data
 **Current State**: Production-ready with individual plume observations attributed to infrastructure operators and LNG supply contracts.
 
 **Data**:
-- 7,437 plume observations from Carbon Mapper (Jan-Oct 2025, global dataset filtered to Texas + Louisiana)
+- 7,437 plume observations from Carbon Mapper (Jan-Oct 2025, global dataset)
   - 5,789 CH4 plumes, 1,648 CO2 plumes
-  - 579 plumes in Texas, 55 in Louisiana
-- 1.1M+ facilities from OGIM v2.7 and Texas RRC
+  - Major coverage: Texas (581 plumes), California (271 plumes), Louisiana (40 plumes), global (6,545 plumes)
+- 1.1M+ facilities from OGIM v2.7 (global) and Texas RRC (Texas wells)
 - LNG supply contracts from DOE filings
 
 ## Architecture
@@ -77,7 +77,7 @@ Three-factor scoring system (0-100):
    - Weighted by infrastructure type (processing=2.0x, compressor=1.5x, tank=1.3x, well=1.0x)
 
 2. **Operator Dominance (0-50 points)**:
-   - Formula: `50 * (operator_facilities_of_type / total_facilities_within_750m)`
+   - Formula: `50 * (operator_facilities_of_type / total_facilities_within_1.5km)`
    - Higher when operator owns most nearby facilities of matched type
 
 3. **Facility Density (5-15 points)**:
@@ -172,7 +172,7 @@ SELECT
     f.facility_id,
     f.infra_type,
     f.operator,
-    ROUND(ST_Distance(e.geom, f.geom) * 111, 2) as distance_km
+    ROUND(ST_Distance_Sphere(e.geom, f.geom) / 1000.0, 2) as distance_km
 FROM emissions.sources e
 JOIN operator_facilities f ON ST_DWithin(e.geom, f.geom, 0.05)
 WHERE e.gas = 'CH4'
@@ -211,10 +211,12 @@ ORDER BY MIN(confidence_score) DESC;
 
 Attribution uses two-stage filtering:
 
-1. **Bounding box pre-filter**: Quickly eliminate facilities using coordinate ranges
-2. **ST_DWithin**: Precise 750m radius check
+1. **Bounding box pre-filter**: Quickly eliminate facilities using coordinate ranges (±0.015°)
+2. **ST_DWithin**: Precise 1.5km radius check using spherical distance calculations
 
 This is much faster than naive ST_Distance comparisons on 1M+ facilities.
+
+**Distance Calculation**: Uses `ST_Distance_Sphere()` which returns meters on a sphere (WGS84), avoiding the latitude-dependent errors from simple degree-to-km conversions.
 
 ### Texas RRC Data Integration
 
