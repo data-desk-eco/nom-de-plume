@@ -288,11 +288,14 @@ ogim_operator_rows AS (
 )
 
 -- Combine all attribution rows (RRC wells with P-4 data + OGIM for everything else)
--- Note: A small number of plumes may have both RRC and OGIM attributions if they're
--- near both P-4-matched wells and other OGIM facilities
-SELECT * FROM rrc_operator_rows
-UNION ALL
-SELECT * FROM ogim_operator_rows;
+-- Deduplicate to keep only the closest facility per plume
+SELECT DISTINCT ON (id) *
+FROM (
+    SELECT * FROM rrc_operator_rows
+    UNION ALL
+    SELECT * FROM ogim_operator_rows
+) combined
+ORDER BY id, distance_to_nearest_facility_km;
 
 -- Create indexes
 CREATE INDEX idx_attributed_entity_name ON emissions.attributed (entity_name);
