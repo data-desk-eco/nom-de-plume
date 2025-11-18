@@ -9,7 +9,7 @@ The list below shows oil and gas infrastructure — mostly wells — which have 
   </script>
 
   <!-- Get first 500 plumes ordered by most recent -->
-  <script id="plumes-sql" type="application/sql" database="data/data.duckdb" output="plumes" hidden>
+  <script id="plumes-sql" type="application/sql" database="../data/data.duckdb" output="plumes" hidden>
 SELECT
   id,
   entity_name as operator,
@@ -32,7 +32,7 @@ LIMIT 500
   </script>
 
   <!-- Pre-load ALL infrastructure for the plumes we're showing -->
-  <script id="infrastructure-sql" type="application/sql" database="data/data.duckdb" output="infrastructure" hidden>
+  <script id="infrastructure-sql" type="application/sql" database="../data/data.duckdb" output="infrastructure" hidden>
 INSTALL spatial;
 LOAD spatial;
 

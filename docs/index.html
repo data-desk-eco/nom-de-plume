@@ -1,424 +1,455 @@
-<!doctype html>
-<notebook theme="midnight">
-  <title>LNG Attribution Explorer</title>
-
-  <script id="title" type="text/markdown">
-# *Nom de plume*
-
-The list below shows oil and gas infrastructure — mostly wells — which have been linked to methane plumes meeting the US Environmental Protection Agency's definition of a 'super-emitter event' (at least 100 kg/hr), published by [Carbon Mapper](https://data.carbonmapper.org/).
-  </script>
-
-  <!-- Get first 500 plumes ordered by most recent -->
-  <script id="plumes-sql" type="application/sql" database="data/data.duckdb" output="plumes" hidden>
-SELECT
-  id,
-  entity_name as operator,
-  rate_kg_hr,
-  datetime,
-  latitude,
-  longitude,
-  nearest_facility_id,
-  nearest_facility_type,
-  distance_to_nearest_facility_km,
-  total_facilities_nearby,
-  operator_facilities_of_type,
-  confidence_score
-FROM emissions.attributed
-WHERE rate_kg_hr >= 100
-  AND confidence_score >= 75
-  AND distance_to_nearest_facility_km <= 0.5
-ORDER BY datetime DESC
-LIMIT 500
-  </script>
-
-  <!-- Pre-load ALL infrastructure for the plumes we're showing -->
-  <script id="infrastructure-sql" type="application/sql" database="data/data.duckdb" output="infrastructure" hidden>
-INSTALL spatial;
-LOAD spatial;
-
-WITH plume_locations AS (
-  SELECT
-    id,
-    latitude,
-    longitude
-  FROM emissions.attributed
-  WHERE rate_kg_hr >= 100
-    AND confidence_score >= 75
-    AND distance_to_nearest_facility_km <= 0.5
-  ORDER BY datetime DESC
-  LIMIT 500
-)
-SELECT
-  p.id as plume_id,
-  f.facility_id,
-  f.infra_type,
-  f.operator,
-  f.facility_subtype,
-  ST_Y(f.geom) as latitude,
-  ST_X(f.geom) as longitude,
-  ROUND(ST_Distance_Sphere(
-    ST_Point(p.longitude, p.latitude),
-    f.geom
-  ), 0) as distance_m
-FROM plume_locations p
-CROSS JOIN infrastructure.all_facilities f
-WHERE ST_DWithin(
-  ST_Point(p.longitude, p.latitude),
-  f.geom,
-  0.015
-)
-ORDER BY p.id, distance_m
-  </script>
-
-  <script id="plume-cards" type="module">
-// Add responsive styles for card details and search
-const style = document.createElement('style');
-style.textContent = `
-  .card-details {
-    opacity: 0.7;
-    font-size: 0.9em;
-    text-align: right;
-    margin-left: auto;
-  }
-
-  .search-container {
-    margin-bottom: 1.5rem;
-  }
-
-  .search-input {
-    width: 100%;
-    max-width: 400px;
-    padding: 0.5rem 0.75rem;
-    font-size: 1rem;
-    border: 1px solid #666;
-    border-radius: 4px;
-    background: #1a1a1a;
-    color: #fff;
-  }
-
-  .search-input::placeholder {
-    color: #888;
-  }
-
-  @media (max-width: 768px) {
-    .card-details {
-      margin-left: 0 !important;
-      text-align: left !important;
-      flex-basis: 100% !important;
-    }
-  }
-`;
-document.head.appendChild(style);
-
-// Create wrapper container
-const wrapper = document.createElement('div');
-
-// Add search input
-const searchContainer = document.createElement('div');
-searchContainer.className = 'search-container';
-
-const searchInput = document.createElement('input');
-searchInput.type = 'text';
-searchInput.className = 'search-input';
-searchInput.placeholder = 'Search operator...';
-
-searchContainer.appendChild(searchInput);
-wrapper.appendChild(searchContainer);
-
-// Add horizontal rule
-const hr = document.createElement('hr');
-hr.style.marginBottom = '1.5rem';
-wrapper.appendChild(hr);
-
-// Cards container
-const cardsContainer = document.createElement('div');
-wrapper.appendChild(cardsContainer);
-
-let currentlyExpanded = null;
-let allPlumes = [...plumes];
-
-const renderCards = () => {
-  const searchTerm = searchInput.value.trim().toLowerCase();
-
-  let filteredPlumes = allPlumes;
-  if (searchTerm) {
-    filteredPlumes = allPlumes.filter(p =>
-      (p.operator || '').toLowerCase().includes(searchTerm)
-    );
-  }
-
-  cardsContainer.innerHTML = '';
-  currentlyExpanded = null;
-
-  if (filteredPlumes.length === 0) {
-    cardsContainer.innerHTML = '<p style="opacity: 0.7;">No matching plumes found</p>';
-    return;
-  }
-
-  for (let i = 0; i < filteredPlumes.length; i++) {
-    const plume = filteredPlumes[i];
-    const cardId = `card-${i}`;
-    const mapId = `map-${i}`;
-    const detailsId = `details-${i}`;
-
-    const card = document.createElement('div');
-    card.id = cardId;
-    card.style.marginBottom = '0.5rem';
-
-    const header = document.createElement('div');
-    header.style.cursor = 'pointer';
-    header.onclick = () => {
-      const expandedContent = document.getElementById(`expanded-${i}`);
-      const isExpanded = currentlyExpanded === i;
-
-      if (isExpanded) {
-        expandedContent.style.display = 'none';
-        currentlyExpanded = null;
-      } else {
-        if (currentlyExpanded !== null) {
-          document.getElementById(`expanded-${currentlyExpanded}`).style.display = 'none';
-        }
-
-        expandedContent.style.display = 'grid';
-        currentlyExpanded = i;
-
-        const mapContainer = document.getElementById(mapId);
-        if (!mapContainer.dataset.loaded) {
-          loadMap(i, plume);
-          mapContainer.dataset.loaded = 'true';
-        }
+<!doctype html><html lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style type="text/css">
+      @import url("https://rsms.me/inter/inter.css");
+      /* Copyright 2025 Observable, Inc. */
+      :root {
+  --serif:
+    "Source Serif 4", "Iowan Old Style", "Apple Garamond", "Palatino Linotype", "Times New Roman",
+    "Droid Serif", Times, serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --sans-serif:
+    "Inter", -apple-system, BlinkMacSystemFont, "avenir next", avenir, helvetica, "helvetica neue",
+    ubuntu, roboto, noto, "segoe ui", arial, sans-serif;
+  --monospace: "Spline Sans Mono", Menlo, Consolas, monospace;
+  --monospace-font: 14px/1.5 var(--monospace);
+  --max-width: calc(1024px - 4 * 16px); /* max-w-5xl p-4 */
+}
+      html {
+  font: 17px/1.5 var(--serif);
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--theme-background);
+  color: var(--theme-foreground);
+  margin: 16px 0;
+  padding: 16px 24px;
+}
+      body {
+  margin: auto;
+  max-width: var(--max-width);
+}
+      h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--theme-foreground-alt);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  text-wrap: balance;
+}
+      h2 + p,
+h3 + p,
+h4 + p,
+h2 + table,
+h3 + table,
+h4 + table {
+  margin-top: 0;
+}
+      .observablehq:first-of-type h1 + h2 {
+  color: var(--theme-foreground);
+  font-size: 20px;
+  font-style: italic;
+  font-weight: normal;
+  margin-bottom: 1rem; /* see h2 ~ p */
+}
+      a[href] {
+  color: var(--theme-foreground-focus);
+  text-decoration: none;
+}
+      a[href]:hover,
+a[href]:focus {
+  text-decoration: underline;
+}
+      pre,
+code,
+tt {
+  font-family: var(--monospace);
+  font-size: 82.35294117%; /* from 17px to 14px */
+}
+      pre code,
+figcaption code {
+  font-size: inherit;
+}
+      pre[data-language] {
+  position: relative;
+}
+      pre[data-language]::before {
+  content: attr(data-language);
+  position: sticky;
+  top: 0;
+  left: 0;
+  height: 0;
+  display: block;
+  text-align: right;
+  margin-right: -4px;
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 21px;
+  color: var(--theme-foreground-muted);
+}
+      h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+  font-size: 88.235294117%; /* from 17px to 15px */
+}
+      h2[id] a[href],
+h3[id] a[href] {
+  color: inherit;
+}
+      pre {
+  line-height: 1.5;
+}
+      img {
+  max-width: 100%;
+}
+      p,
+table,
+figure,
+figcaption,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.katex-display {
+  max-width: 640px;
+}
+      blockquote,
+ol,
+ul {
+  max-width: 600px;
+}
+      blockquote {
+  margin: 1rem 1.5rem;
+}
+      ul,
+ol {
+  padding-left: 28px;
+}
+      hr {
+  height: 1px;
+  margin: 1rem 0;
+  padding: 1rem 0;
+  border: none;
+  background: no-repeat center/100% 1px
+    linear-gradient(to right, var(--theme-foreground-faintest), var(--theme-foreground-faintest));
+}
+      pre {
+  background-color: var(--theme-background-alt);
+  border-radius: 4px;
+  margin: 1rem -1rem;
+  min-height: 1.5em;
+  padding: 4px 1rem;
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+  box-sizing: border-box;
+}
+      pre > code:only-child {
+  display: block;
+  width: fit-content;
+}
+      input:not([type]),
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="range"],
+input[type="search"],
+input[type="tel"],
+input[type="text"],
+input[type="url"] {
+  width: 240px;
+}
+      input,
+canvas,
+button {
+  vertical-align: middle;
+}
+      button,
+input,
+textarea {
+  accent-color: var(--theme-foreground-focus);
+}
+      table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 13px/1.2 var(--sans-serif);
+}
+      table pre,
+table code,
+table tt {
+  font-size: inherit;
+  line-height: inherit;
+}
+      th > pre:only-child,
+td > pre:only-child {
+  margin: 0;
+  padding: 0;
+}
+      th {
+  color: var(--theme-foreground);
+  text-align: left;
+  vertical-align: bottom;
+}
+      td {
+  color: var(--theme-foreground-alt);
+  vertical-align: top;
+}
+      th,
+td {
+  padding: 3px 6.5px 3px 0;
+}
+      th:last-child,
+td:last-child {
+  padding-right: 0;
+}
+      tr:not(:last-child) {
+  border-bottom: solid 1px var(--theme-foreground-faintest);
+}
+      thead tr {
+  border-bottom: solid 1px var(--theme-foreground-fainter);
+}
+      figure,
+table {
+  margin: 1rem 0;
+}
+      figure img {
+  max-width: 100%;
+}
+      figure > h2,
+figure > h3 {
+  font-family: var(--sans-serif);
+}
+      figure > h2 {
+  font-size: 20px;
+}
+      figure > h3 {
+  font-size: 16px;
+  font-weight: normal;
+}
+      figcaption {
+  font: small var(--sans-serif);
+  color: var(--theme-foreground-muted);
+}
+      .observablehq--collapsed,
+.observablehq--expanded.observablehq--inspect a {
+  cursor: pointer;
+}
+      .observablehq--caret {
+  margin-right: 4px;
+  vertical-align: baseline;
+}
+      .observablehq--field {
+  text-indent: -1rem;
+  margin-left: 1rem;
+}
+      .observablehq--inspect {
+  font: var(--monospace-font);
+  overflow-x: auto;
+  white-space: pre;
+  display: block;
+  padding: 2px 0;
+}
+      .observablehq--inspect.observablehq--import {
+  white-space: normal;
+}
+      .observablehq--inspect::-webkit-scrollbar {
+  display: none;
+}
+      .observablehq--error .observablehq--inspect {
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+      .observablehq--string-expand {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 80%;
+  background: var(--theme-background-alt);
+  cursor: pointer;
+  vertical-align: middle;
+}
+      .observablehq--keyword {
+  color: var(--syntax-keyword);
+}
+      .observablehq--index,
+.observablehq--key {
+  color: var(--syntax-definition);
+}
+      .observablehq--symbol,
+.observablehq--regexp,
+.observablehq--string {
+  color: var(--syntax-string);
+}
+      .observablehq--null {
+  color: var(--syntax-keyword);
+}
+      .observablehq--undefined {
+  color: var(--syntax-variable);
+}
+      .observablehq--prototype-key {
+  color: var(--syntax-comment);
+}
+      .observablehq--bigint,
+.observablehq--boolean,
+.observablehq--date,
+.observablehq--forbidden,
+.observablehq--number {
+  color: var(--syntax-literal);
+}
+      .observablehq--error {
+  color: var(--theme-error);
+}
+      .observablehq--cell {
+  margin: 17px 0;
+  min-height: 1px; /* prevent margin collapse when empty */
+}
+      .tok-link {
+  color: var(--syntax-link);
+}
+      .tok-strong {
+  font-weight: 600;
+}
+      .tok-emphasis {
+  font-style: italic;
+}
+      .tok-keyword {
+  color: var(--syntax-keyword);
+}
+      .tok-atom {
+  color: var(--syntax-atom);
+}
+      .tok-literal {
+  color: var(--syntax-literal);
+}
+      .tok-string {
+  color: var(--syntax-string);
+}
+      .tok-comment {
+  color: var(--syntax-comment);
+}
+      .tok-invalid {
+  color: var(--syntax-invalid);
+}
+      .tok-variable {
+  color: var(--syntax-variable);
+}
+      .tok-definition {
+  color: var(--syntax-definition);
+}
+      .tok-meta {
+  color: var(--syntax-meta);
+}
+      .plot-d6a7b5 {
+  --plot-background: var(--theme-background);
+}
+      p .plot-d6a7b5 {
+  display: inline-block;
+}
+      .observablehq--cell:empty {
+  min-height: 0;
+}
+      .observablehq--cell:not(:empty) + pre {
+  margin-top: -11px;
+}
+      :root {
+        font-family: Inter, sans-serif;
+        font-feature-settings: 'liga' 1, 'calt' 1;
       }
-    };
+      @supports (font-variation-settings: normal) {
+        :root { font-family: InterVariable, sans-serif; }
+      }
+      svg#logo {
+        width: 50px;
+        fill: white;
+        float: right;
+        margin-left: 20px;
+      }
+      p#footer {
+        font-size: 14px;
+      }
+      p a, figcaption a, ul a {
+        color: inherit !important;
+        text-decoration: underline !important;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        color: var(--theme-foreground) !important;
+      }
+      ul {
+        list-style-type: none;
+        padding-left: 0;
+      }
+      li {
+        position: relative;
+        padding-left: 1.2em;
+      }
+      li::before {
+        content: "\3e";
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+      figure.full-width {
+        width: 100%;
+      }
+</style>
+  <meta name="generator" content="Observable Notebook Kit v1.5.0"><title>LNG Attribution Explorer</title>  <script type="module" crossorigin src="./assets/index-BgBx7_21.js"></script>
+</head>
+  <body>
+    <main>
+      <a href="https://datadesk.eco/">
+        <svg id="logo" viewBox="0 0 734.66 733.34">
+          <g>
+            <path d="M144.68,0c-4.92,0-9.63,1.99-13.05,5.52L4.17,136.69C1.49,139.44,0,143.12,0,146.96v440.75c-.01,3.83,1.54,7.6,4.22,10.32l128.48,130.9c2.77,2.82,6.56,4.41,10.51,4.41h224.12c49.96,0,98.27-9.63,143.61-28.63,43.81-18.36,83.08-44.69,116.71-78.24,33.61-33.53,59.98-72.67,78.37-116.33,19.01-45.12,28.64-93.17,28.64-142.81s-9.72-97.68-28.88-142.97c-18.5-43.74-44.99-83.02-78.72-116.76-33.73-33.73-73.02-60.22-116.76-78.72C465.01,9.72,416.91,0,367.33,0H144.68ZM29.46,152.93L128.48,51.03V455.48c0,8.13,6.59,14.73,14.73,14.73h224.12c56.73,0,102.88-46.15,102.88-102.88s-46.15-102.88-102.88-102.88h-73.42v-102.77h73.42c17.17,0,34.01,2.09,50.25,6.15,1.62,.41,3.24,.83,4.85,1.28,2.42,.67,4.82,1.38,7.2,2.13,31.02,9.82,59.45,27,83.11,50.67,26.1,26.1,44.31,57.97,53.46,92.74,1.49,5.66,2.74,11.4,3.74,17.2,.29,1.66,.55,3.32,.8,4.99,1.48,10.01,2.23,20.19,2.23,30.49s-.75,20.48-2.23,30.49c-.25,1.67-.51,3.33-.8,4.99-1,5.8-2.25,11.54-3.74,17.2-9.15,34.77-27.36,66.65-53.46,92.74-23.67,23.67-52.09,40.86-83.11,50.67-2.39,.76-4.79,1.47-7.2,2.13-1.61,.44-3.23,.87-4.85,1.28-16.23,4.06-33.08,6.15-50.25,6.15H29.46V152.93Zm264.45,140.98h73.42c40.48,0,73.42,32.94,73.42,73.42s-32.94,73.42-73.42,73.42h-73.42v-146.84Zm384.96,204.79c-16.9,40.12-41.13,76.09-72.02,106.91-30.92,30.85-67.02,55.05-107.29,71.93-41.71,17.48-86.19,26.34-132.22,26.34H149.39l-99.57-101.44H367.33c31.73,0,62.53-6.22,91.52-18.48,28-11.84,53.14-28.79,74.73-50.38,6.75-6.75,13.04-13.84,18.86-21.26,12.82-16.32,23.37-34.22,31.51-53.47,7.66-18.12,12.97-36.95,15.87-56.26,1.74-11.59,2.61-23.36,2.61-35.26s-.87-23.67-2.61-35.26c-2.9-19.32-8.2-38.14-15.87-56.26-8.14-19.25-18.7-37.15-31.51-53.47-5.83-7.42-12.12-14.51-18.86-21.26-21.59-21.59-46.73-38.54-74.73-50.38-28.99-12.26-59.79-18.48-91.52-18.48h-88.15c-8.13,0-14.73,6.59-14.73,14.73V440.75h-106.51V29.46h209.39c45.61,0,89.85,8.93,131.5,26.55,40.23,17.02,76.37,41.39,107.4,72.42,31.04,31.04,55.4,67.17,72.42,107.4,17.62,41.64,26.55,85.89,26.55,131.5s-8.86,89.89-26.33,131.37Z"></path>
+          </g>
+        </svg>
+      </a>
+   <div id="cell-1" class="observablehq observablehq--cell"><div><h1><em>Nom de plume</em></h1>
+<p>The list below shows oil and gas infrastructure — mostly wells — which have been linked to methane plumes meeting the US Environmental Protection Agency’s definition of a ‘super-emitter event’ (at least 100 kg/hr), published by <a href="https://data.carbonmapper.org/">Carbon Mapper</a>.</p>
+</div></div><div id="cell-2" class="observablehq observablehq--cell"></div><div id="cell-3" class="observablehq observablehq--cell"></div><div id="cell-4" class="observablehq observablehq--cell"></div><div id="cell-5" class="observablehq observablehq--cell"></div><div id="cell-6" class="observablehq observablehq--cell"></div></main>
+   <hr>
+   <p id="footer">
+     <a href="https://datadesk.eco/">Data Desk</a> produces investigative research and analysis on the global oil and gas industry for NGOs, think tanks and media organisations. This is a research notebook, a format we use to share findings and data, powered by <a href="https://observablehq.com/notebook-kit/">Observable</a>.
+   </p>
+  
 
-    const observationDate = plume.datetime ? new Date(plume.datetime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-
-    header.style.display = 'flex';
-    header.style.flexWrap = 'wrap';
-    header.style.alignItems = 'baseline';
-    header.style.gap = '0.75rem';
-
-    header.innerHTML = `
-      <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">
-        ${plume.operator || 'Unknown Operator'}
-      </h3>
-      <div class="card-details">
-        ${observationDate} / ${plume.nearest_facility_type || 'Unknown'} / ${(plume.distance_to_nearest_facility_km * 1000)?.toFixed(0) || 'N/A'} m / ${plume.rate_kg_hr?.toFixed(1) || 'N/A'} kg/hr
-      </div>
-    `;
-
-    const expandedContent = document.createElement('div');
-    expandedContent.id = `expanded-${i}`;
-    expandedContent.style.cssText = `
-      display: none;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 20px;
-      margin-top: 1.5rem;
-      align-items: start;
-    `;
-
-    const detailsPanel = document.createElement('div');
-    detailsPanel.id = detailsId;
-
-    const formatDate = (dateStr) => {
-      if (!dateStr) return 'N/A';
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    detailsPanel.innerHTML = `
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>plume id</strong></td>
-          <td style="padding: 0.5rem 0;"><code style="font-size: 0.85em;"><a href="https://data.carbonmapper.org/?plume_id=${plume.id}" target="_blank" style="color: inherit; text-decoration: underline;">${plume.id}</a></code></td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>operator</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.operator || 'Unknown'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>facility type</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.nearest_facility_type || 'Unknown'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>facility id</strong></td>
-          <td style="padding: 0.5rem 0;"><code style="font-size: 0.85em;">${plume.nearest_facility_id}</code></td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>distance</strong></td>
-          <td style="padding: 0.5rem 0;">${(plume.distance_to_nearest_facility_km * 1000)?.toFixed(0) || 'N/A'} metres from plume</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>emission rate</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.rate_kg_hr?.toFixed(1) || 'N/A'} kg/hr</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>observation date</strong></td>
-          <td style="padding: 0.5rem 0;">${formatDate(plume.datetime)}</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>confidence</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.confidence_score?.toFixed(1) || 'N/A'}%</td>
-        </tr>
-        <tr>
-          <td style="padding: 0.5rem 1rem 0.5rem 0; vertical-align: top;"><strong>facilities within 1.5 km</strong></td>
-          <td style="padding: 0.5rem 0;">${plume.operator_facilities_of_type || 0} same operator, ${plume.total_facilities_nearby} total</td>
-        </tr>
-      </table>
-      <div id="legend-${i}" style="font-size: 0.85em; line-height: 1.6;"></div>
-    `;
-
-    const mapPanel = document.createElement('div');
-    mapPanel.id = mapId;
-
-    expandedContent.appendChild(detailsPanel);
-    expandedContent.appendChild(mapPanel);
-
-    card.appendChild(header);
-    card.appendChild(expandedContent);
-    cardsContainer.appendChild(card);
-  }
-};
-
-searchInput.addEventListener('input', renderCards);
-renderCards();
-display(wrapper);
-  </script>
-
-  <script id="leaflet-loader" type="module">
-const loadLeaflet = async () => {
-  if (!globalThis.L) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-  return globalThis.L;
-};
-
-globalThis.loadLeaflet = loadLeaflet;
-  </script>
-
-  <script id="map-loader" type="module">
-async function loadMap(index, plume) {
-  const L = await loadLeaflet();
-  const mapId = `map-${index}`;
-  const mapPanel = document.getElementById(mapId);
-
-  const mapDiv = document.createElement('div');
-  mapDiv.style.cssText = 'height: 420px; border-radius: 4px; margin-bottom: 15px;';
-  mapPanel.appendChild(mapDiv);
-
-  const map = L.map(mapDiv, {
-    zoomControl: false
-  }).setView([plume.latitude, plume.longitude], 14);
-
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri',
-    maxZoom: 19,
-    className: 'grayscale-tiles'
-  }).addTo(map);
-
-  const style = document.createElement('style');
-  style.textContent = '.grayscale-tiles { filter: grayscale(100%) brightness(0.6); }';
-  document.head.appendChild(style);
-
-  const plumeMarker = L.circleMarker([plume.latitude, plume.longitude], {
-    radius: 10,
-    fillColor: '#D94848',
-    color: 'transparent',
-    weight: 0,
-    opacity: 1,
-    fillOpacity: 0.9
-  }).addTo(map);
-
-  const formatPopupDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  plumeMarker.bindTooltip(`
-    <strong>methane plume</strong><br>
-    ${plume.rate_kg_hr?.toFixed(1)} kg/hr<br>
-    ${formatPopupDate(plume.datetime)}
-  `, { permanent: false, sticky: false });
-
-  const typeColors = {
-    'well': '#60BF66',
-    'compressor': '#F1C644',
-    'processing': '#F28322',
-    'tank_battery': '#9461C7',
-    'injection_disposal': '#D94848',
-    'petroleum_terminal': '#F28322',
-    'station_other': '#9461C7',
-    'lng_facility': '#D94848',
-    'refinery': '#F28322'
-  };
-
-  const plumeInfra = infrastructure.filter(f => f.plume_id === plume.id);
-
-  // Count distinct facilities by type
-  const facilityIdsByType = {};
-  const infraCounts = {};
-
-  for (const facility of plumeInfra) {
-    if (!facilityIdsByType[facility.infra_type]) {
-      facilityIdsByType[facility.infra_type] = new Set();
-    }
-    facilityIdsByType[facility.infra_type].add(facility.facility_id);
-
-    const color = typeColors[facility.infra_type] || '#aaa';
-    const isMatched = facility.facility_id === plume.nearest_facility_id;
-
-    const marker = L.circleMarker([facility.latitude, facility.longitude], {
-      radius: isMatched ? 8 : 4,
-      fillColor: color,
-      color: 'transparent',
-      weight: 0,
-      opacity: 1,
-      fillOpacity: isMatched ? 1.0 : 0.7
-    }).addTo(map);
-
-    marker.bindTooltip(`
-      <strong>${facility.infra_type}</strong><br>
-      Operator: ${facility.operator || 'Unknown'}<br>
-      Distance: ${facility.distance_m}m<br>
-      <small>${facility.facility_id}</small>
-    `, { permanent: false, sticky: false });
-  }
-
-  // Convert sets to counts
-  for (const [type, ids] of Object.entries(facilityIdsByType)) {
-    infraCounts[type] = ids.size;
-  }
-
-  const legendDiv = document.getElementById(`legend-${index}`);
-
-  let legendContent = '<div><span style="color: #D94848; font-size: 1.2em;">●</span> methane plume</div>';
-
-  if (infraCounts.well) legendContent += `<div><span style="color: #60BF66;">●</span> wells (${infraCounts.well})</div>`;
-  if (infraCounts.compressor) legendContent += `<div><span style="color: #F1C644;">●</span> compressors (${infraCounts.compressor})</div>`;
-  if (infraCounts.processing) legendContent += `<div><span style="color: #F28322;">●</span> processing (${infraCounts.processing})</div>`;
-  if (infraCounts.tank_battery) legendContent += `<div><span style="color: #9461C7;">●</span> tank batteries (${infraCounts.tank_battery})</div>`;
-  if (infraCounts.injection_disposal) legendContent += `<div><span style="color: #D94848;">●</span> injection/disposal (${infraCounts.injection_disposal})</div>`;
-  if (infraCounts.petroleum_terminal) legendContent += `<div><span style="color: #F28322;">●</span> terminals (${infraCounts.petroleum_terminal})</div>`;
-  if (infraCounts.lng_facility) legendContent += `<div><span style="color: #D94848;">●</span> lng facilities (${infraCounts.lng_facility})</div>`;
-  if (infraCounts.refinery) legendContent += `<div><span style="color: #F28322;">●</span> refineries (${infraCounts.refinery})</div>`;
-
-  legendDiv.innerHTML = legendContent;
-
-  setTimeout(() => map.invalidateSize(), 100);
+<style type="text/css">:root {
+  --syntax-link: var(--theme-foreground-focus);
+  --syntax-keyword: #ffa657;
+  --syntax-atom: #a5d6ff;
+  --syntax-literal: #d2a8ff;
+  --syntax-string: #7ee787;
+  --syntax-comment: var(--theme-foreground-muted);
+  --syntax-invalid: var(--theme-error);
+  --syntax-definition: #79c0ff;
+  --syntax-variable: var(--theme-foreground-alt);
+  --syntax-meta: #ff7b72;
 }
 
-globalThis.loadMap = loadMap;
-  </script>
+:root {
+  --theme-background-a: color-mix(in srgb, var(--theme-foreground) 4%, var(--theme-background-b));
+  --theme-background: var(--theme-background-a);
+  --theme-background-alt: var(--theme-background-b);
+  --theme-foreground-alt: color-mix(in srgb, var(--theme-foreground) 90%, var(--theme-background-b));
+  --theme-foreground-muted: color-mix(in srgb, var(--theme-foreground) 60%, var(--theme-background-b));
+  --theme-foreground-faint: color-mix(in srgb, var(--theme-foreground) 50%, var(--theme-background-b));
+  --theme-foreground-fainter: color-mix(in srgb, var(--theme-foreground) 30%, var(--theme-background-b));
+  --theme-foreground-faintest: color-mix(in srgb, var(--theme-foreground) 14%, var(--theme-background-b));
+  --theme-error: #e7040f;
+  color-scheme: dark;
+}
 
-</notebook>
+:root {
+  --theme-foreground: #ebebeb;
+  --theme-foreground-focus: oklch(0.712564 0.257662 265.758);
+  --theme-background-b: #0d0d0d;
+}
+</style></body></html>
