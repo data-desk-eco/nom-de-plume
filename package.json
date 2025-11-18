@@ -8,6 +8,6 @@
   },
   "scripts": {
     "docs:preview": "notebooks preview --root . --template template.html",
-    "docs:build": "notebooks build --root . --template template.html"
+    "docs:build": "notebooks build --root . --template template.html -- index.html"
   }
 }
