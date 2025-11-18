@@ -1,6 +1,8 @@
 # Generated database
 data/*.duckdb
 data/*.duckdb.*
+docs/data/*.duckdb
+docs/data/*.duckdb.*
 
 # Large source data files (download separately)
 data/*.ebc.gz
@@ -8,6 +10,11 @@ data/*.json
 data/*.gpkg
 data/*.zip
 data/plumes_*.csv
+docs/data/*.ebc.gz
+docs/data/*.json
+docs/data/*.gpkg
+docs/data/*.zip
+docs/data/plumes_*.csv
 
 # Generated output files (but keep final CSV reports)
 output/*.tmp
@@ -25,6 +32,8 @@ __pycache__/
 # Node/Observable
 node_modules/
 .observable/
+docs/.observable/
 
 # State-specific data directories
 data/sonris/
+docs/data/sonris/

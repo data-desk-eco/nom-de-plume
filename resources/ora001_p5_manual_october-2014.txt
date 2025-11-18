@@ -1,0 +1,1647 @@
+ RAILROAD COMMISSION OF TEXAS
+
+
+ORGANIZATION REPORT (P-5) SYSTEM
+
+
+  MAGNETIC TAPE USER'S GUIDE
+                                      PUBLISHED BY THE
+                            RAILROAD COMMISSION OF TEXAS
+                            P.O. BOX 12967 - CAPITOL STATION
+                                 AUSTIN, TEXAS 78711-2967
+
+
+This publication was developed for the general public in response to inquiries concerning the
+availability of oil and gas information on magnetic tape. If you request assistance in using the
+manual, your request will be given every consideration.
+
+
+First Edition:        October 5, 1981
+      Revised:        September 19, 1986
+      Revised:        March 3, 1988
+      Revised:        June 3, 1988
+Second Edition:       November 15, 1988
+Third Edition:        February 1, 1991
+Fourth Edition:       September 3, 1992
+      Revised:        October 25, 2007
+      Revised:        April 5, 2010
+      Revised:        October 3, 2014.
+
+
+The Railroad Commission does not discriminate on the basis of race, color, national origin, sex,
+religion, age or disability. Information is available upon request by calling (512)463-7288 or
+(TDD) 1-800-735-2989 if special assistance is required.
+
+
+Publication Number: ORA001
+
+
+
+
+                                                 I
+                                 TABLE OF CONTENTS
+
+
+ITEM                                                 PAGE
+
+
+I.       GENERAL INFORMATION
+Identification                                       I.1
+Physical Tape Characteristics                        I.2
+System Description                                   I.3
+Record Types and Definitions                         I.4
+"SN" Specialty Codes Algorithms                      I.8
+
+
+II. FILE INFORMATION
+     Organization Report (P-5) Tape File             II.1
+
+
+
+
+                                           II
+I. GENERAL INFORMATION
+Identification
+______________
+
+
+Developed For:   Users of Organization Report File Tape
+
+
+By:              Railroad Commission of Texas
+
+
+System Name:     Organization Report (P-5) System
+
+
+Computer:        IBM 2003-116
+
+
+
+
+                                        I.1
+PHYSICAL TAPE CHARACTERISTICS
+
+
+1600 or 6250 BPI, Channel phase encoded
+
+
+IBM Standard Labels (one 80-character volume label, two 80-character leader labels and two 80-
+character trailer labels)
+
+
+The ORGANIZATION REPORT FILE TAPE is identified by the following internal dataset
+name and has the listed attributes:
+   Dataset Name:       S.ORF850 (Organization Report File Tape)
+
+   Record Length:      350
+
+   Blocking Factor:    30
+
+   Block Size:        10,500
+
+
+
+
+                                             I.2
+                                    SYSTEM DESCRIPTION
+
+
+
+
+This tape provides a complete set of information available from the Railroad Commission of Texas
+on the Organization Report (P-5) System. This tape will provide information on all organizations
+that have properly filed Form P-5 with the Commission.
+
+
+There are sixteen (16) records used internally by Railroad Commission personnel in the
+Organization Report (P-5) System. The first fifteen (15) records (Organization numbers (000001-
+000015) are RRC Office Designations for RRC personnel. Organization number 123456 is a test
+record used to train personnel. These records will not be duplicated onto the tape.
+
+
+Information is placed on the tape in a manner which shows a relational structure between the
+various record types that can exist for a given organization. The exception is the type '1T' record,
+which does not relate to a particular organization, but can be used to set up a table of all valid
+specialty codes and activity indicators. Each organization consists of one or more of the record
+types described below. Each organization has at least a type 'A ' record while other records may
+exist when additional information is available. If a value "H", hold-mail-code, appears in any
+organization's 'A ' Hold-mail-code data field, this means all of the mailing addresses within this
+organization are invalid (e.g., 'A ', 'F', 'H ', 'J ' and 'K ' records).
+
+
+
+
+                                                I.3
+RECORD TYPES AND DEFINITIONS
+RECORD ID DEFINITION
+'1T'           (Specialty code/activity indicator table records) These records identify all valid
+               activity indicators and spec-ialty codes currently in use by the Railroad
+               Commission.
+The following code types are represented by these records:
+        Code Type       Definition
+        --------- -----------
+          AD            This code is used internally by the Commission to identify a special
+                        address used when mailing a P-5 renewal form.
+          AI            ACTIVITY INDICATOR - This field shows activity in which an
+                        organization may be involved. For example, organizations may be
+                        gatherers of gas or condensate, or they may have oil allowables. Each
+                        organization participating in these activities will have a corresponding 'U'
+                        record to indicate these specific activities regulated by the Railroad
+                        Commission.
+                Activity Code          Description
+                 CSGD/G                Casinghead Gas Gatherer
+                 G/NOM                 Gas Nominator
+                 G/PUR                 Gas Purchaser
+                 GTHS/G                Gas Gatherer
+                 GTHS/O                Oil Gatherer
+                 OPRS/G                Gas Operator
+                 OPRS/O                Oil Operator
+                 GTHS/C                Condensate Gatherer
+                 CSGD/P                Casinghead Purchaser
+                 SEC/RC                This code is no longer used.
+
+
+          SR            SPECIALTY CODE - This type of specialty code serves two purposes:
+                                1. This code type allows for multiple addresses, that is, multiple 'F '
+                                records of the same specialty code for an organization.
+                                2. This code type indicates that the organization is currently
+                                involved in a specific operation as defined by the specialty code.
+               Note: There will not be any 'H ' district records associated with "SR" records.
+
+
+                                                      I.4
+     Specialty Code       Description
+     DIRSUR               Directional Surveying Companies
+     GASPLT               Gas Processing Plants
+     OILNOM               Nominator of Crude Oil
+     PIPE-A               Pipeline Operators' Affiliate Co.
+     PIPE-L               Pipeline Operators
+     PLUGGR               Approved Cementer for Plugging Wells as Specified in
+                          SWR14
+     RECLPL               Reclaiming and Treating Plants
+     REFINE               Refineries and Gasoline Plants
+     RESPIT               Reserved Pit Cleaners
+     SWDP18               Skim Oil Recovery from Salt Water Disposal Sites
+     SWHAUL               Salt Water Haulers For Hire
+     TRANSP               Company Physically Moving or Storing Crude or
+                          Condensate
+
+
+SN         SPECIALTY CODE - This type of specialty code indicates district
+           addresses. "SN" does not indicate kinds of operations in which an
+           organization may be involved. Only "AI" and "SR" types indicate kinds
+           of operations in which an organization may be involved. "SN" allows
+           only one address, that is, only one 'F ' record of the same specialty code
+           per organization; however, there may be multiple district ('H ') records
+           associated with the same specialty code.
+
+
+     Specialty Code       Description
+     CONTRL               Controls Oper. & Gather. Addresses Unless Specific
+                          Control Set
+     DOMSTC               Operator With Lease Used For Personal Use
+     GASNOM               Controls District Mailing for Gas Nominators on T-3 File
+     GASPUR               Controls District Mailings for Gas Purchasers on T-3 File
+     GATH-G               Controls Gatherer Gas Mailing Addresses
+     GATH-O               Controls Gatherer Oil Mailing Addresses
+     GATHER               Controls Gatherer Gas, Oil, Condensate Mailing Addresses
+     OPRATR               Controls Operator Gas, Oil, Condensate Mailing Addresses
+     OPRGAS               Controls Operator Gas Mailing Addresses
+     OPROIL               Controls Opertor Oil Mailing Addresses
+
+
+
+
+                                    I.5
+'A '   (Organization information) This record contains the most commonly needed information
+       for the organization.
+'F '   (Specialty codes) These records indicate specialty mailing addresses used for specialty
+       related correspondence. The various specialty codes are described under '1T' description.
+'H '   (Specialty addresses by district) These records indicate district mailing addresses within
+       a specialty code for an organization. The various specialty codes are described under the
+       '1T' description.
+'J '   (Field information) This record is for future use.
+'K '   (Officer information) These records contain officer or agent information provided by the
+       organization on Form P-5. There is one 'K ' record for each officer or agent.
+'P '   (Remarks) This record is for Railroad Commission personnel use only. Specific reasons
+       for filing of Form P-5 or miscellaneous documentation may be indicated.
+'U '   (Activity indicators) These records indicate that the organization is engaged in specific
+       activities regulated by the Railroad Commission. (These records are updated monthly.)
+'R '   (Activity restrictions) These records indicate the type of activities an organization is
+       restricted from participating in.
+
+
+
+
+                                                I.6
+The records appear sequentially on tape in the following manner:
+  '1T'                         All '1T' records are at the front of the tape. They are not related to
+                       specific organizations.
+   'A '                There will be one 'A ' record for each organization.
+                'F '   (Optional) for each organization ('A ') record. May have multiple
+                       specialty code ('F ').
+                        'H '   (Optional) for each "SN" specialty code ('F ') record.
+                               May have multiple district ('H ') records with the same "SN"
+                               specialty code.
+                       'J '    (Optional) for each district ('H ') record.
+                       May have multiple field ('J ') records with the same "SN" specialty code
+                       and district.
+                'K '   (Optional) may have multiple officer ('K ') records.
+                'P '   (Optional) may have multiple remarks ('P ') records.
+                'U '   (Optional) may have multiple activity indicator ('U ') records.
+                'R '   (Optional) may have multiple activity restriction ('R ') records.
+   'A '                Information for the next organization.
+                'F '   (Optional) for each organization ('A ') record.
+            .
+            .
+            .
+
+
+
+
+                                                 I.7
+                                "SN" Specialty Codes Algorithms
+
+
+There are two types of search algorithms used to locate an "SN" specialty code's district mailing
+address.
+       1. Specific Hierarchical "SN" Specialty Code District Address Search. This involves
+       seven (7) "SN" specialty codes.
+       2. General "SN" Specialty Code District Address Search. This involves the remainder of
+       the "SN" specialty codes.
+The Specific Hierarchical "SN" Specialty Code District Address Search Algorithm involves the
+following seven (7) "SN" specialty codes:
+1. CONTRL             Controls district/field mailings unless specific control set
+2. GATHER             Gatherer of gas, oil, or condensate mailing control
+3. GATH-G             Gatherer of gas mailing control
+4. GATH-O             Gatherer of oil mailing control
+5. OPRATR             Operator of oil/and of gas wells mailing control
+6. OPRGAS             Operator of gas well mailing control
+7. OPROIL             Operator of oil well mailing control
+
+
+These seven specialty codes are hierarchically related.
+                                       ************
+                           ************ CONTRL ************
+                           *           ************           *
+                           *                                  *
+                     ************                       ************
+              ******* GATHER ***                    *** OPRATR *******
+              *     ************ *                    * ************      *
+              *                    *                  *                   *
+          **********     **********                   **********     **********
+          * GATH‐G *     * GATH‐O *                   * OPRGAS *     * OPROIL *
+          **********     **********                   **********     **********
+NOTE: Certain "SN" specialty codes were changed in the RRC system only. The outside
+sources tape contains the old codes.
+             OLD              NEW
+             CONTRL           XCONTL
+             OPRATR           OPERAT
+             OPRGAS           OPER-G
+             OPROIL           OPER-O
+
+
+                                                I.8
+The Specific Hierarchical "SN" Specialty Code District Address Search Algorithm is as follows:
+GIVEN:          The operator number
+                One of the seven "SN" specialty codes
+                The district
+
+1. Locate the 'A ' record that has the given operator number.
+  ___________________________________________________________________________
+   If...                       then ...
+  ___________________________________________________________________________
+
+      'A ' record is located      go to specialty code 2
+     ___________________________________________________________________________
+      'A ' record is not located -there is not an organization with the given operator number
+                                  -end of search
+     ___________________________________________________________________________
+
+2.
+     ___________________________________________________________________________
+      If...                then ...
+     ___________________________________________________________________________
+
+     the given "SN" specialty go to specialty code 3
+      code is not:
+        - GATH-O and
+        - GATH-G
+     ___________________________________________________________________________
+
+     the given "SN" specialty locate the 'F ' record that has the given operator number and “SN”
+     code is:                 specialty code.
+        - GATH-O or
+        - GATH-G     ____________________________________________
+                        If...         then...
+                      ____________________________________________
+
+                      'F ' is located
+                                   locate the 'H ' record that has the given operator number,
+                                    “SN” specialty code and district
+                      ____________________________________________
+
+                      'H ' is located
+                                    -use the mailing address on the 'H ' record
+                                    -end of search
+                      ____________________________________________
+
+
+
+
+                                                I.9
+               ____________________________________________
+                 If...        then...
+                ____________________________________________
+ (continued)
+                 'H ' is not -use the mailing address on the 'F ' record
+                 located      -end of search
+                ____________________________________________
+
+                'F ' is not -set the given "SN" specialty code to “GATHER” specialty
+                located     code.
+                             -go to specialty code 4
+               _____________________________________________
+_________________________________________________________________________
+
+
+
+
+                                         I.10
+3.
+     ___________________________________________________________________________
+      If...                then ...
+     ___________________________________________________________________________
+
+     the given "SN" specialty go to specialty code 4
+      code is not:
+        - OPROIL AND
+        - OPRGAS
+     ___________________________________________________________________________
+
+     the given "SN" specialty locate the 'F ' record that has the given operator number and “SN”
+     code is:                 specialty code.
+        - OPROIL OR
+        - OPRGAS
+                                      _____________________________________________
+                                      If...            then...
+                                      _____________________________________________
+
+                                      'F ' is located locate the 'H ' record that has the given op-
+                                                      erator number, "SN" specialty code and
+                                                      district.
+                                      _____________________________________________
+
+                                      'H ' is located -use the mailing address on the 'H ' record
+                                                      -end of search
+                                      _____________________________________________
+
+                                      'H ' is not  -use the mailing address on the ‘F’ record
+                                      located     -end of search
+                                       _____________________________________________
+
+                                      'F ' is not
+                                            - set the given "SN" specialty code
+                                      located "OPERAT" specialty code
+                                             -go to specialty code 5
+                                 _____________________________________________
+     ___________________________________________________________________________
+
+
+
+
+                                                    I.11
+4.
+     ___________________________________________________________________________
+      If...                      then ...
+     ___________________________________________________________________________
+
+     the given "SN" specialty    go to specialty code 5
+      code is not:
+         "GATHER"
+     ___________________________________________________________________________
+
+     the given "SN" specialty    locate the 'F ' record that has the given operator number
+     code is:                    and "SN" specialty code.
+        "GATHER"
+                                 _____________________________________________
+                                 If...       then...
+                                 _____________________________________________
+
+                                 'F ' is located locate the 'H ' record that has the given
+                                                 operator number, "SN"specialty code and
+                                                 district
+                                 _____________________________________________
+
+                                 'H ' is located -use the mailing address on the 'H '
+                                                 record
+                                                 -End of search
+                                 _____________________________________________
+
+                                 'H ' is not -use the mailing address on the 'F ' record
+                                 Located     -end of search
+                                 _____________________________________________
+
+                                 'F ' is not -set the given "SN" specialty code to
+                                 located     "XCONTL" specialty code
+                                             -go to specialty code 6
+                                 _____________________________________________
+     ___________________________________________________________________________
+
+
+
+
+                                               I.12
+5.
+     ___________________________________________________________________________
+      If...                      then ...
+     ___________________________________________________________________________
+
+     the given "SN" specialty    go to specialty code 6
+      code is not:
+         "OPRATR"
+     ___________________________________________________________________________
+
+     the given "SN" specialty    locate the 'F ' record that has the given operator
+     code is:                    operator number and "SN" specialty code.
+        "OPRATR"
+                                 _____________________________________________
+                                  If...      then...
+                                 _____________________________________________
+
+                                 'F ' is located locate the 'H ' record that has the given
+                                                 operator number, "SN" specialty code and
+                                                 district.
+                                 _____________________________________________
+
+                                 'H ' is located -use the mailing address on the 'H ' record
+                                                 -end of search
+                                 _____________________________________________
+
+                                 'H ' is not -use the mailing address on the ‘F’ record
+                                 Located     -end of search
+                                 ____________________________________________
+
+                                 'F ' is not -set the given "SN" specialty code to
+                                 Located     “CONTRL” specialty code.
+                                             -go to specialty code 6
+                                 _____________________________________________
+     ___________________________________________________________________________
+
+
+
+
+                                               I.13
+6. Locate the 'F ' record that has the given operator number, "SN" specialty
+  code.
+
+  ___________________________________________________________________________
+  If...                       then...
+  ___________________________________________________________________________
+
+  The 'F ' record is located  locate the 'H ' record that has the given operator number,
+                              “SN” Specialty code, and district
+  ___________________________________________________________________________
+
+  the 'H ' record is located  -use the mailing address on the 'H ' record
+                              -end of search
+  ___________________________________________________________________________
+
+  the 'H ' record is not      -use the mailing address on the 'F ' record
+  located                     -end of search
+  ___________________________________________________________________________
+
+  the 'F ' record is not      -use the mailing address on the 'A ' record
+  located                     -end of search
+  ___________________________________________________________________________
+
+
+7. End of the Specific Hierarchical "SN" Specialty Code District Address
+  Search Algorithm.
+
+
+
+
+                                               I.14
+The remainder of the specialty codes use the General "SN" Specialty Code District Address
+Search Algorithm.
+
+
+The following is the General "SN" Specialty Code District Address
+Search Algorithm:
+
+
+  Given:       The operator number
+                The "SN" specialty code
+                The district
+
+
+1. Locate the 'A ' record that has the given operator number.
+  __________________________________________________________________________
+  If...                             then...
+  __________________________________________________________________________
+
+  'A ' record is located            go to specialty code 2
+  __________________________________________________________________________
+
+  'A ' record is not                -there is not an organization with the given operator
+  Located                           number
+                                    -go to specialty code 4
+  __________________________________________________________________________
+
+2. Locate the 'F ' record that has the given operator number and "SN" specialty code.
+  ___________________________________________________________________________
+  If...                                        then...
+  ___________________________________________________________________________
+
+  'F ' record is located            go to specialty code 3
+  ___________________________________________________________________________
+
+  'F ' record is not                -use the mailing address on the 'A ' record
+  located                           -go to specialty code 4
+  __________________________________________________________________________
+
+
+
+
+                                               I.15
+3. Locate the 'H ' record that has the given operator number and "SN"
+  specialty code, and district.
+
+
+  ___________________________________________________________________________
+  If...                       then...
+  ___________________________________________________________________________
+
+  'H ' record is located      -use the mailing address on the 'H ' record
+                              -go to specialty code 4
+  ___________________________________________________________________________
+
+  'H ' record is not          -use the mailing address on the 'F ' record
+  located                     -go to specialty code 4
+  ___________________________________________________________________________
+
+
+4. End of the General "SN" Specialty Code District Address Search
+  Algorithm.
+
+
+
+
+                                              I.16
+II. FILE INFORMATION
+*****************************************************************
+*ORW850A3                                                             *
+*            ORGANIZATION REPORT FORM (P-5)                           *
+*                                                                     *
+*             TAPE FOR OUTSIDE REQUESTS.                              *
+*                                                                     *
+*                                                                     *
+*****************************************************************
+******************************************************************
+**********     SPECIALTY/ACTIVITY CODE TABLE        **********
+******************************************************************
+01 OROR-ORF850-REC.
+      03 OROR-SPEC-TABLE-ID                    PIC X(02).        1
+             88 OROR-SPECIALTY-TABLE-REC        VALUE '1T'.
+      03 OROR-SPEC-TABLE-CODE-INDICATOR        PIC X(06).        3
+      03 OROR-SPEC-TABLE-CODE-TYPE             PIC X(02).        9
+      03 OROR-SPEC-TABLE-CODE-NAME             PIC X(60).        11
+      03 FILLER                                PIC X(280).       71
+
+
+
+
+                               II.1
+*****************************************************************
+  **********      ORGANIZATION INFORMATION           **********
+******************************************************************
+01 OROR-ORG-REC REDEFINES OROR-ORF850-REC.                   POSITION
+     03 OROR-ORGANIZATION-INFO-ID          PIC X(02).            1
+           88 OROR-ORGANIZATION-REC        VALUE 'A '.
+     03 OROR-ORG-OPERATOR-NUMBER           PIC 9(06).               3
+     03 OROR-ORG-ORGANIZATION-NAME         PIC X(32).               9
+     03 OROR-REFILING-REQUIRED-FLAG        PIC X(01).               41
+           88 OROR-REFILING-REQUIRED       VALUE 'Y'.
+           88 OROR-REFILING-NOT-REQUIRED VALUE 'N'.
+     03 OROR-P-5-STATUS                    PIC X(01).               42
+           88 OROR-P-5-STATUS-ACTIVE       VALUE 'A'.
+           88 OROR-P-5-STATUS-INACTIVE     VALUE 'I'.
+           88 OROR-P-5-STATUS-DELINQUENT VALUE 'D'.
+           88 OROR-P-5-STATUS-SEE-REMARKS VALUE 'S'.
+     03 OROR-HOLD-MAIL-CODE                PIC X(01).                43
+           88 OROR-HOLD-MAIL               VALUE 'H'.
+           88 OROR-DO-NOT-HOLD-MAIL        VALUE 'N'.
+     03 OROR-RENEWAL-LETTER-CODE           PIC X(01).               44
+           88 OROR-PROPERTY-RENEWAL        VALUE 'P'.
+           88 OROR-NON-PROPERTY-RENEWAL VALUE 'N'.
+     03 OROR-ORGANIZATION-CODE             PIC X(01).               45
+           88 OROR-ORG-CORPORATION         VALUE 'A'.
+           88 OROR-ORG-LIMITED-PARTNERSHIPVALUE 'B'.
+            88 OROR-ORG-SOLE-PROPRIETOR    VALUE 'C'.
+           88 OROR-ORG-PARTNERSHIP         VALUE 'D'.
+           88 OROR-ORG-TRUST               VALUE 'E'.
+           88 OROR-ORG-JOINT-VENTURE       VALUE 'F'.
+           88 OROR-ORG-OTHER               VALUE 'G'.
+     03 OROR-ORGAN-OTHER-COMMENT           PIC X(20).               46
+      03 OROR-GATHERER-CODE                PIC X(05).               66
+     03 OROR-ORG-ADDR-LINE1                PIC X(31).               71
+     03 OROR-ORG-ADDR-LINE2                PIC X(31).               102
+     03 OROR-ORG-ADDR-CITY                 PIC X(13).               133
+     03 OROR-ORG-ADDR-STATE                PIC X(02).               146
+     03 OROR-ORG-ADDR-ZIP                  PIC 9(05).               148
+     03 OROR-ORG-ADDR-ZIP-SUFFIX           PIC 9(04).               153
+     03 OROR-LOCATION-ADDR-LINE1           PIC X(31).               157
+     03 OROR-LOCATION-ADDR-LINE2           PIC X(31).               188
+     03 OROR-LOCATION-ADDR-CITY            PIC X(13).               219
+     03 OROR-LOCATION-ADDR-STATE           PIC X(02).               232
+     03 OROR-LOCATION-ADDR-ZIP             PIC 9(05).               234
+                            II.2
+        03 OROR-LOCATION-ADDR-ZIP-SUFFIX       PIC 9(04).   239
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-DATE-BUILT                   PIC 9(08).     243
+        03 FILLER REDEFINES OROR-DATE-BUILT.
+              05 OROR-DATE-BUILT-CCYY.
+                   10 OROR-DATE-BUILT-CC     PIC 9(02).
+                   10 OROR-DATE-BUILT-YY     PIC 9(02).
+              05 OROR-DATE-BUILT-MM          PIC 9(02).
+              05 OROR-DATE-BUILT-DD          PIC 9(02).
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-DATE-INACTIVE                PIC 9(08).     251
+        03 FILLER REDEFINES OROR-DATE-INACTIVE.
+              05 OROR-DATE-INACTIVE-CCYY.
+                   10 OROR-DATE-INACTIVE-CC PIC 9(02).
+                   10 OROR-DATE-INACTIVE-YY PIC 9(02).
+              05 OROR-DATE-INACTIVE-MM       PIC 9(02).
+              05 OROR-DATE-INACTIVE-DD       PIC 9(02).
+
+
+
+
+                                II.3
+        03 OROR-PHONE-NUMBER                  PIC 9(10).     259
+        03 FILLER REDEFINES OROR-PHONE-NUMBER.
+              05 OROR-PHONE-AREA-CODE         PIC 9(03).
+              05 OROR-PHONE-PREFIX            PIC 9(03).
+              05 OROR-PHONE-SUFFIX            PIC 9(04).
+        03 OROR-REFILE-NOTICE-MONTH           PIC 9(02).     269
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-REFILE-LETTER-DATE            PIC 9(08).     271
+        03 FILLER REDEFINES OROR-REFILE-LETTER-DATE.
+              05 OROR-REFILE-LETTER-CCYY.
+                   10 OROR-REFILE-LETTER-CC   PIC 9(02).
+                   10 OROR-REFILE-LETTER-YY PIC 9(02).
+              05 OROR-REFILE-LETTER-MM        PIC 9(02).
+              05 OROR-REFILE-LETTER-DD        PIC 9(02).
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-REFILE-NOTICE-DATE            PIC 9(08).     279
+        03 FILLER REDEFINES OROR-REFILE-NOTICE-DATE.
+              05 OROR-REFILE-NOTICE-CCYY.
+                   10 OROR-REFILE-NOTICE-CC   PIC 9(02).
+                   10 OROR-REFILE-NOTICE-YY   PIC 9(02).
+              05 OROR-REFILE-NOTICE-MM        PIC 9(02).
+              05 OROR-REFILE-NOTICE-DD        PIC 9(02).
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-REFILE-RECEIVED-DATE          PIC 9(08).     287
+        03 FILLER REDEFINES OROR-REFILE-RECEIVED-DATE.
+              05 OROR-REFILE-RECEIVED-CCYY.
+                   10 OROR-REFILE-RECEIVED-CC PIC 9(02).
+                   10 OROR-REFILE-RECEIVED-YY PIC 9(02).
+              05 OROR-REFILE-RECEIVED-MM      PIC 9(02).
+              05 OROR-REFILE-RECEIVED-DD      PIC 9(02).
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-LAST-P-5-RECEIVED-DATE        PIC 9(08).     295
+        03 FILLER REDEFINES OROR-LAST-P-5-RECEIVED-DATE.
+              05 OROR-LAST-P-5-RECEIVED-CCYY.
+                   10 OROR-LAST-P-5-RECEIVED-CC PIC 9(02).
+                   10 OROR-LAST-P-5-RECEIVED-YY PIC 9(02).
+              05 OROR-LAST-P-5-RECEIVED-MM    PIC 9(02).
+              05 OROR-LAST-P-5-RECEIVED-DD    PIC 9(02).
+        03 OROR-OTHER-ORGANIZATION-NO         PIC 9(06).     303
+*==> MMDDYY TO CCYYMMDD.
+        03 OROR-FILING-PROBLEM-DATE           PIC 9(08).     309
+        03 FILLER REDEFINES OROR-FILING-PROBLEM-DATE.
+              05 OROR-FILING-PROBLEM-CCYY.
+                   07 OROR-FILING-PROBLEM-CC PIC 9(02).
+                   07 OROR-FILING-PROBLEM-YY PIC 9(02).
+                                II.4
+               05 OROR-FILING-PROBLEM-MM     PIC 9(02).
+               05 OROR-FILING-PROBLEM-DD     PIC 9(02).
+         03 OROR-FILING-PROBLEM-LTR-CODE     PIC X(03).   317
+         03 OROR-TELEPHONE-VERIFY-FLAG       PIC X.       320
+         03 OROR-OP-NUM-MULTI-USED-FLAG      PIC X.       321
+         03 OROR-OIL-GATHERER-STATUS         PIC X.       322
+         03 OROR-GAS-GATHERER-STATUS         PIC X.       323
+         03 OROR-TAX-CERT                    PIC X.       324
+         03 OROR-EMER-PHONE-NUMBER           PIC 9(10).   325
+         03 FILLER REDEFINES OROR-EMER-PHONE-NUMBER.
+               05 OROR-EMER-PHONE-AREA-CODE PIC 9(03).
+               05 OROR-EMER-PHONE-PREFIX     PIC 9(03).
+               05 OROR-EMER-PHONE-SUFFIX     PIC 9(04).
+*==* FILLER X(30) TO X(16).
+         03 FILLER                           PIC X(16).   335
+*==* EXPANDED ZERO BYTES.
+
+
+
+
+                               II.5
+   ******************************************************************
+         **********        SPECIALTY CODES          **********
+   ******************************************************************
+01 OROR-SPECIALTY-CODES-REC REDEFINES OROR-ORF850-REC.           POSITION
+        03 OROR-SPECIALTY-CODES-ID          PIC X(02).               1
+              88 OROR-SPECIALTY-CODE-REC    VALUE 'F '.
+        03 OROR-SPEC-OPERATOR-NUMBER        PIC 9(06).               3
+        03 OROR-SPEC-ORGANIZATION-NAME      PIC X(32).               9
+        03 OROR-SPECIALTY-CODE              PIC X(06).               41
+        03 OROR-SPEC-ADDR-LINE1             PIC X(31).               47
+        03 OROR-SPEC-ADDR-LINE2             PIC X(31).               78
+        03 OROR-SPEC-ADDR-CITY              PIC X(13).               109
+        03 OROR-SPEC-ADDR-STATE             PIC X(02).               122
+        03 OROR-SPEC-ADDR-ZIP               PIC 9(05).               124
+        03 OROR-SPEC-ADDR-ZIP-SUFFIX        PIC 9(04).               129
+        03 FILLER                           PIC X(218).              133
+
+
+
+
+                                  II.6
+   ******************************************************************
+      **********     SPECIAL ADDRESS BY DISTRICT        **********
+   ******************************************************************
+01 OROR-DISTRICT-REC REDEFINES OROR-ORF850-REC.             POSITION
+        03 OROR-DISTRICT-ID                    PIC X(02).        1
+              88 OROR-DISTRICT-REC             VALUE 'H '.
+        03 OROR-DIST-OPERATOR-NUMBER           PIC 9(06).        3
+        03 OROR-DIST-ORGANIZATION-NAME         PIC X(32).        9
+        03 OROR-DIST-SPECIALTY-CODE            PIC X(06).        41
+        03 OROR-DISTRICT-CODE                  PIC 9(14).        47
+        03 FILLER REDEFINES OROR-DISTRICT-CODE.
+               05 OROR-DISTRICTS OCCURS 14 TIMES PIC 9(01).
+                    88 OROR-DIST-INACTIVE      VALUE ZERO.
+                    88 OROR-DIST-ACTIVE        VALUE 1.
+              03 OROR-DIST-ADDR-LINE1          PIC X(31).        61
+              03 OROR-DIST-ADDR-LINE2          PIC X(31).        92
+              03 OROR-DIST-ADDR-CITY           PIC X(13).        123
+              03 OROR-DIST-ADDR-STATE          PIC X(02).        136
+              03 OROR-DIST-ADDR-ZIP            PIC 9(05).        138
+              03 OROR-DIST-ADDR-ZIP-SUFFIX     PIC 9(04).        143
+              03 FILLER                        PIC X(204).       147
+
+
+
+
+                                  II.7
+  ******************************************************************
+    **********    FIELD INFORMATION (FUTURE SET)       **********
+  ******************************************************************
+01 OROR-FIELD-REC REDEFINES OROR-ORF850-REC.                   POSITION
+        03 OROR-FIELD-ID                         PIC X(02).        1
+              88 OROR-FIELD-REC                  VALUE 'J '.
+        03 OROR-FIELD-OPERATOR-NUMBER            PIC 9(06).         3
+        03 OROR-FIELD-ORGANIZATION-NAME          PIC X(32).         9
+        03 OROR-FIELD-SPECIALTY-CODE             PIC X(06).         41
+        03 OROR-DIST-FIELD-NUMBER.
+              05 OROR-FIELD-DISTRICT-CODE        PIC 9(02).         47
+              05 OROR-FIELD-NUMBER               PIC 9(08).         49
+        03 OROR-FIELD-ADDR-LINE1                 PIC X(31).         57
+        03 OROR-FIELD-ADDR-LINE2                 PIC X(31).         88
+        03 OROR-FIELD-ADDR-CITY                  PIC X(13).         119
+        03 OROR-FIELD-ADDR-STATE                 PIC X(02).         132
+        03 OROR-FIELD-ADDR-ZIP                   PIC 9(05).         134
+        03 OROR-FIELD-ADDR-ZIP-SUFFIX            PIC 9(04).         139
+        03 FILLER                                PIC X(208).        143
+
+
+
+
+                                 II.8
+   ******************************************************************
+       **********       OFFICER INFORMATION           **********
+   ******************************************************************
+01 OROR-OFFICER-REC REDEFINES OROR-ORF850-REC.                 POSITION
+        03 OROR-OFFICER-ID                   PIC X(02).             1
+              88 OROR-OFFICER-REC            VALUE 'K '.
+        03 OROR-OFFICER-OPERATOR-NUMBER      PIC 9(06).              3
+        03 OROR-OFFICER-ORGANIZATION-NAME PIC X(32).                9
+        03 OROR-OFFICER-NAME                 PIC X(32).             41
+        03 OROR-OFFICER-TITLE                PIC X(32).             73
+        03 OROR-OFFICER-ADDR-LINE1           PIC X(31).             105
+        03 OROR-OFFICER-ADDR-LINE2           PIC X(31).             136
+        03 OROR-OFFICER-ADDR-CITY            PIC X(13).             167
+        03 OROR-OFFICER-ADDR-STATE           PIC X(02).             180
+        03 OROR-OFFICER-ADDR-ZIP             PIC 9(05).             182
+        03 OROR-OFFICER-ADDR-ZIP-SUFFIX      PIC 9(04).             187
+        03 OROR-OFFICER-LOC-ADDR-LINE1       PIC X(31).             191
+        03 OROR-OFFICER-LOC-ADDR-LINE2       PIC X(31).             222
+        03 OROR-OFFICER-LOC-ADDR-CITY        PIC X(13).             253
+        03 OROR-OFFICER-LOC-ADDR-STATE       PIC X(02).             266
+        03 OROR-OFFICER-LOC-ADDR-ZIP         PIC 9(05).             268
+        03 OROR-OFFICER-LOC-ADDR-ZIP-SFX     PIC 9(04).             273
+        03 OROR-OFFICER-TYPE-ID              PIC X.                 277
+        03 OROR-OFFICER-ID-STATE             PIC X(02).             278
+        03 OROR-OFFICER-ID-NUMBER            PIC X(20).             280
+        03 OROR-OFFICER-AGENT                PIC X(01).             300
+        03 FILLER                            PIC X(50).             301
+
+
+
+
+                                  II.9
+  ******************************************************************
+          **********          REMARKS            **********
+  ******************************************************************
+01 OROR-REMARKS-REC REDEFINES OROR-ORF850-REC.                 POSITION
+        03 OROR-REMARKS-ID                  PIC X(02).              1
+              88 OROR-REMARKS-REC           VALUE 'P '.
+        03 OROR-REMARKS-OPERATOR-NUMBER PIC 9(06).                 3
+        03 OROR-REMARKS-ORGANIZATION-NAME PIC X(32).               9
+        03 OROR-REMARKS                     PIC X(60).             41
+        03 OROR-REMARKS-LINE-NUMBER         PIC 9(04).             101
+        03 FILLER                           PIC X(246).            105
+
+
+
+
+                                 II.10
+  ******************************************************************
+       **********       ACTIVITY INDICATOR          **********
+  ******************************************************************
+01 OROR-ACT-IND-REC REDEFINES OROR-ORF850-REC.               POSITION
+        03 OROR-ACT-IND-ID                           PIC X(02).  1
+              88 OROR-ACTIVITY-INDICATOR-REC         VALUE 'U '.
+        03 OROR-ACT-IND-OPERATOR-NUMBER              PIC 9(06).  3
+        03 OROR-ACT-IND-ORGANIZATION-NAME            PIC X(32).  9
+        03 OROR-ACT-IND-CODE                         PIC X(06).  41
+        03 OROR-ACT-IND-FLAG-DISTRICTS               PIC 9(14).  47
+        03 FILLER REDEFINES OROR-ACT-IND-FLAG-DISTRICTS.
+              05 OROR-ACT-IND-DISTRICTS
+                              OCCURS 14 TIMES PIC 9(01).
+                   88 OROR-ACT-IND-DIST-INACTIVE     VALUE ZERO.
+                   88 OROR-ACT-IND-DIST-ACTIVE       VALUE 1.
+        03 FILLER                                    PIC X(290). 61
+
+
+
+
+                                 II.11
+   ******************************************************************
+        **********     ACTIVITY RESTRICTION          **********
+   ******************************************************************
+01 OROR-ACT-RESTR-REC REDEFINES OROR-ORF850-REC.           POSITION
+        03 OROR-ACT-RESTR-ID                       PIC X(02).  1
+              88 OROR-ACTIVITY-RESTRICTION-REC     VALUE 'R '.
+        03 OROR-ACT-RESTR-OPER-NUM                 PIC 9(06).  3
+        03 OROR-ACT-RESTR-ORG-NAME                 PIC X(32).  9
+        03 OROR-ACT-RESTR-CODE                     PIC X(06).  41
+        03 OROR-ACT-RESTR-FLAG-DISTRICTS           PIC 9(14).  47
+        03 FILLER REDEFINES OROR-ACT-RESTR-FLAG-DISTRICTS.
+              05 OROR-ACT-RESTR-DISTRICTS
+                              OCCURS 14 TIMES      PIC 9(01).
+                   88 OROR-ACT-NO-RESTRICTION      VALUE ZERO.
+                   88 OROR-ACT-RESTRICTION         VALUE 1.
+        03 FILLER                                  PIC X(290). 61
+
+
+
+
+                                  II.12
+*                DATA DICTIONARY COPY ORW850A2
+******************************************************************
+*
+*DATA FIELD DESCRIPTION:
+*
+*-----------------------------------------------------------------
+*OROR-SPEC-TABLE-REC
+*-----------------------------------------------------------------
+*
+*
+*OROR-SPEC-TABLE-ID                                      RECORD IDENTIFIER = '1T'. THIS IS A
+*                                                        TABLE OF ALL THE SPECIALTY CODES
+*                                                        AND ACTIVITY INDICATORS USED BY
+*                                                        THE RRC. NEW ONES MAY BE ADDED,
+*                                                        BUT NONE ARE DELETED.
+*
+*OROR-SPEC-TABLE-CODE-INDICATOR UNIQUE IDENTIFIER FOR A SPECIALTY
+*                                                        CODE OR ACTIVITY INDICATOR.
+*
+*OROR-SPEC-TABLE-CODE-TYPE                               INDICATES IF THIS RECORD IS A
+*                                                        SPECIALTY CODE OR AN ACTIVITY
+*                                                        INDICATOR.
+*
+*
+*OROR-SPEC-TABLE-CODE-NAME                               DESCRIPTION OF THE SPECIALTY CODE
+*                                                        OR ACTIVITY INDICATOR.
+
+
+
+
+                                            II.13
+*-----------------------------------------------------------------
+*OROR-ORGANIZATION-INFO-REC
+*-----------------------------------------------------------------
+*
+*OROR-ORGANIZATION-INFO-ID                             RECORD IDENTIFIER = 'A '
+*                                                      ORGANIZATION'S MASTER INFORMATION
+*                                                      AND MASTER ADDRESS.
+*
+*OROR-ORG-OPERATOR-NUMBER                              ORGANIZATION/OPERATOR ID NUMBER
+*                                                      AS ASSIGNED BY THE RAILROAD
+*                                                      COMMISSION OF TEXAS (RRC).
+*
+*OROR-ORG-ORGANIZATION-NAME                            ORGANIZATION NAME AS FILED ON
+*                                                      RRC ORGANIZATION REPORT FORM
+*                                                      P-5.
+*
+*OROR-REFILING-REQUIRED-FLAG                           CODE TO INDICATE IF REFILING OF
+*                                                      FORM P-5 IS REQUIRED.
+*
+*                                                                       'Y' - YES
+*                                                                       'N' - NO
+*
+*                                                      (IF YES, REFILING OF FORM P-5 IS
+*                                                      AN ANNUAL EVENT.)
+*
+*OROR-P-5-STATUS                                       STATUS CODE OF FORM P-5 ANNUAL
+*                                                      REFILING.
+*
+*                                                      'A' -     ACTIVE (REQUIRED TO
+*                                                                REFILE FORM P-5 ANNUALLY.
+*                                                                EXCEPTIONS ARE DOMESTIC &
+*                                                                MUNICIPALS.)
+*
+*                                                      'I' -     INACTIVE (REQUIRED TO REFILE,
+*                                                                BUT DID NOT FILE) (IF AN
+*                                                                ORGANIZATION IS REQUIRED TO
+*                                                                REFILE FORM P-5 ANNUALLY, DOES
+*                                                                NOT HAVE ANY "SR" SPECIALTY
+*                                                                CODES OR "AI" ACTIVITY INDI-
+*                                                                CATORS, AND HAS NOT REFILED ITS
+*                                                                FORM P-5 BY ITS REFILE NOTICE
+*                                                                MONTH, OROR-REFILE-NOTICE-MONTH
+*                                                                THEN ITS P-5 STATUS WILL BE
+*                                                                CHANGED FROM 'A' TO 'I'.)
+*
+*                                                      'D' -     DELINQUENT (REQUIRED TO RE-
+*                                                                FILE, BUT DID NOT FILE) (IF
+*                                                                AN ORGANIZATION IS REQUIRED
+*                                                                TO REFILE FORM P-5 ANNUALLY,
+*                                                                HAS "SR" SPECIALTY CODES OR
+                                             II.14
+*                                    "AI" ACTIVITY INDICATORS, AND
+*                                    HAS NOT REFILED ITS FORM P-5
+*                                    BY ITS REFILE NOTICE MONTH,
+*                                    THEN ITS P-5 STATUS WILL BE
+*                                    CHANGED FROM 'A' TO 'D'.)
+*
+*                           'S' - SEE REMARKS (NOT REQUIRED TO
+*                           FILE)
+*
+*OROR-HOLD-MAIL-CODE        INDICATES THE STATUS OF ADDRESSES OF
+*                           AN ORGANIZATION
+*
+*                           'H' -    INDICATES THAT ALL THE
+*                                    ADDRESSES OF THE ORGANIZATION
+*                                    ARE INVALID AND NO MAIL WILL
+*                                    BE SENT BY THE RAILROAD COM-
+*                                    MISSION OF TEXAS. THE LAST
+*                                    TIME ANY MAIL WAS SENT TO
+*                                    THESE ADDRESSES, IT WAS RE-
+*                                    TURNED BY THE POSTAL SERVICE.
+*
+*                           'N' -    INDICATES THAT ALL ADDRESSES
+*                                    ARE VALID FOR THIS ORGANIZATION
+*
+*OROR-RENEWAL-LETTER-CODE   INDICATES TYPE OF RENEWAL LETTER SENT
+*                           TO THE ORGANIZATION FOR THE ANNUAL
+*                           RENEWAL OF THE FORM P-5. (THIS REFLECTS
+*                           THE PROPERTY OR NON-PROPERTY STATUS OF
+*                           AN ORGANIZATION AT THE TIME THE FIRST
+*                           RENEWAL NOTICE WAS BEING PRINTED FOR
+*                           THIS ORGANIZATION. THIS DATE IS RE-
+*                           FLECTED IN REFILE LETTER DATE. PROPERTY
+*                           IS DEFINED AS HAVING "SR" SPECIALTY CODES
+*                           OR "AI" ACTIVITY INDICATORS.)
+*
+*                           'P' -    INDICATES A PROPERTY RENEWAL
+*                                    LETTER WAS SENT TO THE
+*                                    ORGANIZATION.
+*
+*                           'N' -    INDICATES A NON-PROPERTY LETTER
+*                                    WAS SENT.
+*
+*OROR-ORGANIZATION-CODE     CURRENT PLAN OF ORGANIZATION.
+*                                'A' - CORPORATION
+*                                'B' - LIMITED PARTNERSHIP
+*                                'C' - SOLE PROPRIETORSHIP
+*                                'D' - PARTNERSHIP
+*                                'E' - TRUST
+*                                'F' - JOINT VENTURE
+*                                'G' – OTHER
+                             II.15
+*
+*OROR-ORGAN-OTHER-COMMENT        IF THE ORGANIZATION CODE IS 'G' THEN
+*                                THIS WILL BE A DESCRIPTION OF THE CURRENT
+*                                PLAN OF ORGANIZATION OF THE
+*                                ORGANIZATION.
+*
+*OROR-GATHERER-CODE              GATHERER CODE IS A UNIQUE ASSIGNED CODE
+*                                THAT INDICATES THIS ORGANIZATION HAS OR
+*                                IS CURRENTLY PARTICIPATING IN GATHERER
+*                                ACTIVITIES. IF THEY ARE NOT, IT CONTAINS
+*                                SPACES.
+*
+*OROR-ORG-ADDR-LINE1             THIS IS THE FIRST LINE OF THE ORGANIZA-
+*                                TION'S MASTER MAILING ADDRESS.
+*
+*OROR-ORG-ADDR-LINE2             THIS IS THE SECOND LINE OF THE ORGANIZA-
+*                                TION'S MASTER MAILING ADDRESS.
+*
+*OROR-ORG-ADDR-CITY              THIS IS THE CITY OF THE ORGANIZATION'S
+*                                MASTER MAILING ADDRESS.
+*
+*OROR-ORG-ADDR-STATE             THIS IS THE STATE OF THE ORGANIZATION'S
+*                                MASTER MAILING ADDRESS.
+*
+*OROR-ORG-ADDR-ZIP               THIS IS THE ZIP CODE FOR THE ORGANIZA-
+*                                TION'S MASTER MAILING ADDRESS.
+*
+*OROR-ORG-ADDR-ZIP-SUFFIX        THIS IS THE ZIP CODE SUFFIX FOR THE
+*                                ORGANIZATION'S MASTER MAILING ADDRESS.
+*
+*OROR-LOCATION-ADDR-LINE1        THIS IS THE FIRST LINE OF THE ORGANIZA-
+*                                TION'S PHYSICAL LOCATION ADDRESS.
+*
+*OROR-LOCATION-ADDR-LINE2        THIS IS THE SECOND LINE OF THE ORGANIZA-
+*                                TION'S PHYSICAL LOCATION ADDRESS.
+*
+*OROR-LOCATION-ADDR-CITY         THIS IS THE CITY OF THE ORGANIZATION'S
+*                                PHYSICAL LOCATION ADDRESS.
+*
+*OROR-LOCATION-ADDR-STATE        THIS IS THE STATE OF THE ORGANIZATION'S
+*                                PHYSICAL LOCATION ADDRESS.
+*
+*OROR-LOCATION-ADDR-ZIP          THIS IS THE ZIP CODE FOR THE ORGANIZA-
+*                                TION'S PHYSICAL LOCATION ADDRESS.
+*
+*OROR-LOCATION-ADDR-ZIP-SUFFIX   THIS IS THE ZIP CODE SUFFIX FOR THE
+*                                ORGANIZATION'S PHYSICAL LOCATION
+*                                ADDRESS.
+*
+*OROR-DATE-BUILT                 DATE THIS ORGANIZATION WAS FIRST PLACED
+                                  II.16
+*                            ON THE RRC ORGANIZATION REPORT FILES.
+*
+*                                     (MMDDYY WHERE MM IS MONTH
+*                                                    DD IS DAY
+*                                                    YY IS YEAR)
+*
+*OROR-DATE-INACTIVE          DATE THIS ORGANIZATION BECAME INACTIVE
+*                            ON THE RRC ORGANIZATION REPORT FILES.
+*
+*                                     (MMDDYY WHERE MM IS MONTH
+*                                                    DD IS DAY
+*                                                    YY IS YEAR)
+*
+*OROR-PHONE-NUMBER           PHONE NUMBER OF THE PREPARER OF THE
+*                            FORM P-5 (THE FIRST THREE NUMBERS
+*                            COMPRISE THE AREA CODE.)
+*
+*OROR-REFILE-NOTICE-MONTH    THIS IS THE ANNIVERSARY MONTH OF FILING
+*                            OF THE FORM P-5 WITH THE RRC. REFILING
+*                            MUST BE COMPLETED BY THIS MONTH EACH
+*                            YEAR. THIS MAY BE ARBITRARILY SET OR
+*                            CHANGED BY THE RRC. IF THE ORGANIZA-
+*                            TION'S P-5 STATUS IS "ACTIVE" OR
+*                            "DELINQUENT" THEN THE REFILE NOTICE
+*                            MONTH CONTAINS A VALID MONTH. IF THE
+*                            ORGANIZATION'S P-5 STATUS IS "INACTIVE"
+*                            OR "SEE REMARKS" THEN THE REFILE NOTICE
+*                            MONTH IS ZEROES.
+*
+*OROR-REFILE-LETTER-DATE     DATE THAT THE ANNUAL REFILING
+*                            CORRESPONDENCE WAS MAILED TO THIS
+*                            ORGANIZATION BY THE RRC.
+*
+*                                     (MMDDYY WHERE MM IS MONTH
+*                                                    DD IS DAY
+*                                                    YY IS YEAR)
+*
+*OROR-REFILE-NOTICE-DATE     DATE THAT THE FINAL NOTICE
+*                            CORRESPONDENCE WAS MAILED TO
+*                            THIS ORGANIZATION BY THE RRC.
+*
+*                                     (MMDDYY WHERE MM IS MONTH
+*                                                    DD IS DAY
+*                                                    YY IS YEAR)
+*
+*OROR-REFILE-RECEIVED-DATE   DATE THAT THE REFILED FORM P-5 WAS
+*                            RECEIVED AND PROCESSED BY THE RRC.
+*
+*                                     (MMDDYY WHERE MM IS MONTH
+*                                                    DD IS DAY
+                              II.17
+*                                                          YY IS YEAR)
+*
+*OROR-LAST-P-5-RECEIVED-DATE      DATE THAT THE LAST REFILED FORM P-5 WAS
+*                                 RECEIVED AND PROCESSED BY THE RRC. THIS
+*                                 INCLUDES NOT JUST ANNUAL REFILINGS, BUT
+*                                 ALL FILINGS.
+*
+*                                         (MMDDYY WHERE MM IS MONTH
+*                                                          DD IS DAY
+*                                                          YY IS YEAR)
+*
+*OROR-OTHER-ORGANIZATION-NO      ORGANIZATION NUMBER IN WHICH THIS
+*                                 ORGANIZATION RELATES. THIS MAY POINT TO
+*                                 AN OLD NAME USED BY THIS ORGANIZATION.
+*
+*
+*OROR-FILING-PROBLEM-DATE          THE FORM P-5 FILED WAS NOT CORRECT AND
+*                                 A LETTER WAS MAILED REQUESTING A
+*                                 CORRECT FORM. THIS IS THE DATE THAT
+*                                 LETTER WAS MAILED.
+*
+*                                         (MMDDYY WHERE MM IS MONTH
+*                                                          DD IS DAY
+*                                                          YY IS YEAR)
+*
+*OROR-FILING-PROBLEM-LTR-CODE A THREE DIGIT CODE TO IDENTIFY THE TYPE
+*                                 OF FILING PROBLEM LETTER THAT WAS
+*                                 MAILED.
+*              AVL - ADDRESS VERIFICATION LETTER
+*
+*              DP5 - DELINQUENT P-5 FORM
+*
+*              E1 - WANTS TO CHANGE NAME
+*              E2 - P-5 REFILE NOT REQUIRED TILL MMYY
+*              E3 - SIGNATURE OMITTED
+*              E4 - DELQ P-5/P.O. ADDRESS CHANGE
+*              E5A - OMITTED STREET ADDRESS FOR
+*                     ORGANIZATION/AGENT/OFFICER(S)
+*              E5B - OMITTED AGENT NAME ON RENEWAL
+*              E5C - OMITTED OFFICER LICENSE/ID
+*              E5D - OMITTED OFFICER INFORMATION
+*              E5E - ADDRESS CHANGE - NEED AGENT
+*              E5F - CHANGED FROM CORP TO OTHER PLAN
+*
+*              HBL - HOUSE BILL LETTER
+*
+*              N1 - OLD FORM/MUST USE NEW FORM
+*              N2 - ORGANIZATION NAME ALREADY ON FILE
+*              N3 - SIGNATURE OMITTED
+*              N4A - STREET ADDRESS OMITTED FOR
+                                    II.18
+*                     ORGANIZATION
+*             N4B - STREET ADDRESS OMITTED FOR AGENT
+*             N4C - STREET ADDRESS OMITTED FOR OFFICER
+*             N5 - OMITTED AGENT NAME & ADDRESS
+*             N6 - OMITTED OFFICER INFORMATION
+*             N7 - OMITTED OFFICER LICENSE/ID
+*             N8 - ORGANIZATION NAME TOO LONG
+*             N9 - CORP NOT CHARTERED WITH SEC STATE
+*             N10 - PENCIL COPIES NOT ACCEPTABLE
+*             N11 - GENERAL PROBLEM / PLEASE CONTACT
+*                     THIS OFFICE
+*             NCL - NAME CHANGE LETTER
+*
+*             MDL - MULTIPLE DISCREPANCY LETTER
+*
+*             RAI - RESIDENT AGENT INFORMATION
+*
+*OROR-TELEPHONE-VERIFY-FLAG          THIS FLAG IS USED WHEN THE LOCATION
+*                                    ADDRESS IS QUESTIONED AND THE OPERATOR
+*                                    IS CALLED TO VERIFY THE ADDRESS.
+*                                            N = OPERATOR NOT CALLED
+*                                            Y = OPERATOR WAS CALLED AND
+*                                            ADDRESS VERIFIED
+*
+*OROR-OP-NUM-MULTI-USED-FLAG OPERATOR NUMBER ASSIGNED TO MORE THAN
+*                                    ONE ORGANIZATION.
+*
+*               'Y' - YES THIS OPERATOR NUMBER HAS
+*                     BEEN ASSIGNED TO MORE THAN ONE
+*                     ORGANIZATION. (E.G., AN
+*                     OPERATOR NUMBER WAS ASSIGNED IN
+*                     1970. IN 1971, THE OPERATOR
+*                     BECAME INACTIVE, SO THE P-5
+*                     STAFF AT THAT TIME DELETED THE
+*                     OPERATOR NUMBER. LATER, IN
+*                     1978, ANOTHER OPERATOR WAS
+*                     ASSIGNED THIS SAME OPERATOR
+*                     NUMBER. THIS MEANS THERE HAS
+*                     BEEN MORE THAN ONE OPERATOR
+*                     ASSIGNED TO THIS ONE OPERATOR
+*                     NUMBER.)
+*               'N' - NO THIS ORGANIZATION HAS NOT
+*                     BEEN ASSIGNED MULTIPLE NUMBERS.
+*
+*OROR-OIL-GATHERER-STATUS            THIS FLAG IS USED TO IDENTIFY THE TYPE OF
+*                                    PRODUCT THE GATHERER IS AUTHORIZED TO
+*                                    TRANSPORT. IT IS ALSO USED TO FLAG
+*                                    INACTIVE GATHERERS.
+*                                            N = NOT USED
+*                                            Y = LIQUID GATHERER
+                                       II.19
+*                                                                I = INACTIVE GATHERER
+*                                                                X = INVALID GATHERER WITH
+*                                                                REMARKS
+*
+*OROR-GAS-GATHERER-STATUS                              THIS FLAG IS USED TO IDENTIFY THE TYPE OF
+*                                                      PRODUCT THE GATHERER IS AUTHORIZED TO
+*                                                      TRANSPORT. IT IS ALSO USED TO FLAG
+*                                                      INACTIVE GATHERERS.
+*                                                                N = NOT USED
+*                                                                Y = GAS GATHERER
+*                                                                I = INACTIVE GATHERER
+*                                                                X = INVALID GATHERER WITH
+*                                                                REMARKS
+*
+*
+*OROR-TAX-CERT                                         THIS FLAG IS USED TO IDENTIFY IF THE
+*                                                      ORGANIZATION HAS A TAX CERTIFICATE
+*                                                      ON FILE. A TAX CERTIFICATE IS ONLY
+*                                                      REQUIRED FOR CERTAIN CORPORATIONS.
+*                                                                BLANK = NOT REQUESTED
+*                                                                Y = CERTIFICATE ON FILE
+*                                                                N = CERTIFICATE NOT ON FILE
+*                                                                X = CERTIFICATE NOT REQUIRED
+*
+*OROR-EMER-PHONE-NUMBER                                EMERGENCY PHONE NUMBER TO BE USED
+*                                                      AFTER HOURS IN CASE OF FIRE, PIPE-
+*                                                      LINE RUPTURE, ETC. (THE FIRST 3
+*                                                      DIGITS COMPRISE THE AREA CODE)
+*
+*-----------------------------------------------------------------
+*OROR-SPECIALTY-CODES-REC
+*-----------------------------------------------------------------
+*
+*OROR-SPECIALTY-CODES-ID                               RECORD IDENTIFIER = 'F ' AN ORGANIZA-
+*                                                      TION'S SPECIALTY CODE AND ADDRESS.
+*
+*OROR-SPEC-OPERATOR-NUMBER                             ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION
+*                                                      OF TEXAS (RRC).
+*
+*OROR-SPEC-ORGANIZATION-NAME ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-SPECIALTY-CODE                                   SPECIALTY CODE AS DESCRIBED IN '1T' AND
+*                                                      'F ' SECTION, RECORD TYPES & DEFINITIONS.
+
+*OROR-SPEC-ADDR-LINE1                      THIS IS THE FIRST LINE OF THE ORGANIZA-
+*                                          TION'S SPECIALTY CODE MAILING ADDRESS.
+*
+*OROR-SPEC-ADDR-LINE2                      THIS IS THE SECOND LINE OF THE ORGANIZA-
+                                            II.20
+*                                                      TION'S SPECIALTY CODE MAILING ADDRESS.
+*
+*OROR-SPEC-ADDR-CITY                                   THIS IS THE CITY FOR THE ORGANIZATION'S
+*                                                      SPECIALTY CODE MAILING ADDRESS.
+*
+*OROR-SPEC-ADDR-STATE                                  THIS IS THE STATE ABBREVIATION FOR THE
+*                                                      ORGANIZATION'S SPECIALTY CODE MAILING
+*                                                      ADDRESS.
+*
+*OROR-SPEC-ADDR-ZIP                                    THIS IS THE ZIP CODE FOR THE ORGANIZA-
+*                                                      TION'S SPECIALTY CODE MAILING ADDRESS.
+*
+*OROR-SPEC-ADDR-ZIP-SUFFIX                             THIS IS THE ZIP CODE SUFFIX FOR THE
+*                                                      ORGANIZATION'S SPECIALTY CODE MAILING
+*                                                      ADDRESS.
+*
+*-----------------------------------------------------------------
+*OROR-DISTRICT-REC
+*-----------------------------------------------------------------
+*
+*
+*OROR-DISTRICT-ID                                      RECORD IDENTIFIER = 'H ' AN ORGANIZA-
+*                                                      TION'S SPECIALTY CODE'S DISTRICT ADDRESS.
+*
+*OROR-DIST-OPERATOR-NUMBER                             ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION
+*                                                      OF TEXAS (RRC).
+*
+*OROR-DIST-ORGANIZATION-NAME ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-DIST-SPECIALTY-CODE                              SPECIALTY CODE AS DESCRIBED IN SECTIONS
+*                                                      '1T' AND 'F ', RECORD TYPES AND
+*                                                      DEFINITIONS.
+*
+*OROR-DISTRICT-CODE                                    A ONE DIGIT DISTRICT CODE FOR EACH OF
+*                                                      FOURTEEN POSSIBLE DISTRICTS.
+*
+*                                                                '0' (ZERO) - OFF
+*                                                                '1' (ONE) - ON
+*
+*                                                      MORE THAN ONE DISTRICT MAY BE 'ON' PER
+*                                                      RECORD. A DISTRICT CODE IS 'ON' ONCE
+*                                                      WITHIN A SPECIALTY CODE PER ORGANI-
+*                                                      ZATION.THE FOURTEEN POSSIBLE DISTRICTS
+*                                                      ARE:
+*
+*                                                                01 - DISTRICT 01
+*                                                                02 - DISTRICT 02
+*                                                                03 - DISTRICT 03
+                                                         II.21
+*                                     04 - DISTRICT 04
+*                                     05 - DISTRICT 05
+*                                     06 - DISTRICT 06
+*                                     07 - DISTRICT 6E
+*                                     08 - DISTRICT 7B
+*                                     09 - DISTRICT 7C
+*                                     10 - DISTRICT 08
+*                                     11 - DISTRICT 8A
+*                                     12 - NOT USED
+*                                     13 - DISTRICT 09
+*                                     14 - DISTRICT 10
+*
+*OROR-DIST-ADDR-LINE1        THIS IS THE FIRST LINE OF THE
+*                            ORGANIZATION'S DISTRICT MAILING ADDRESS.
+*
+*OROR-DIST-ADDR-LINE2        THIS IS THE SECOND LINE OF THE
+*                            ORGANIZATION'S DISTRICT MAILING ADDRESS.
+*
+*OROR-DIST-ADDR-CITY         THIS IS THE CITY OF THE ORGANIZATION'S
+*                            DISTRICT MAILING ADDRESS.
+*
+*OROR-DIST-ADDR-STATE        THIS IS THE STATE ABBREVIATION FOR THE
+*                            ORGANIZATION'S DISTRICT MAILING ADDRESS.
+*
+*OROR-DIST-ADDR-ZIP          THIS IS THE ZIP CODE OF THE ORGANIZA-
+*                            TION'S DISTRICT MAILING ADDRESS.
+*
+*OROR-DIST-ADDR-ZIP-SUFFIX   THIS IS THE ZIP CODE SUFFIX OF THE
+*                            ORGANIZATION'S DISTRICT MAILING ADDRESS.
+
+
+
+
+                              II.22
+*-----------------------------------------------------------------
+*OROR-FIELD-REC
+*-----------------------------------------------------------------
+*
+*OROR-FIELD-ID                                         RECORD IDENTIFIER = 'J ' AN
+*                                                      ORGANIZATION'S SPECIALTY CODE'S
+*                                                      DISTRICT FIELD ADDRESS.
+*
+*OROR-FIELD-OPERATOR-NUMBER                            ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION
+*                                                      OF TEXAS (RRC).
+*
+*OROR-FIELD-ORGANIZATION-NAME ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-FIELD-SPECIALTY-CODE                             SPECIALTY CODE AS DESCRIBED IN SECTION
+*                                                      '1T' AND 'F ', RECORD TYPE & DEFINITIONS.
+*
+*OROR-FIELD-DISTRICT-CODE                              DISTRICT CODE
+*
+*                                                      01 - DISTRICT 01
+*                                                      02 - DISTRICT 02
+*                                                      03 - DISTRICT 03
+*                                                      04 - DISTRICT 04
+*                                                      05 - DISTRICT 05
+*                                                      06 - DISTRICT 06
+*                                                      07 - DISTRICT 6E
+*                                                      08 - DISTRICT 7B
+*                                                      09 - DISTRICT 7C
+*                                                      10 - DISTRICT 08
+*                                                      11 - DISTRICT 8A
+*                                                      12 - NOT USED
+*                                                      13 - DISTRICT 09
+*                                                      14 - DISTRICT 10
+*
+*OROR-FIELD-NUMBER                                     FIELD NUMBER AS ASSIGNED BY RRC.
+*
+*OROR-FIELD-ADDR-LINE1                                 THIS IS THE FIRST LINE OF THE
+*                                                      ORGANIZATION'S FIELD MAILING ADDRESS.
+*
+*OROR-FIELD-ADDR-LINE2                                 THIS IS THE SECOND LINE OF THE
+*                                                      ORGANIZATION'S FIELD MAILING ADDRESS.
+*
+*OROR-FIELD-ADDR-CITY                                  THIS IS THE CITY OF THE ORGANIZATION'S
+*                                                      FIELD MAILING ADDRESS.
+*
+*OROR-FIELD-ADDR-STATE                                 THIS IS THE STATE ABBREVIATION FOR THE
+*                                                      ORGANIZATION'S FIELD MAILING ADDRESS.
+*
+*OROR-FIELD-ADDR-ZIP                                   THIS IS THE ZIP CODE OF THE ORGANIZA-
+                                                         II.23
+*                                                      TION'S FIELD MAILING ADDRESS.
+*
+*OROR-FIELD-ADDR-ZIP-SUFFIX                            THIS IS THE ZIP CODE SUFFIX OF THE
+*                                                      ORGANIZATION'S FIELD MAILING ADDRESS.
+*
+*-----------------------------------------------------------------
+*OROR-OFFICER-REC
+*-----------------------------------------------------------------
+*
+*
+*OROR-OFFICER-ID                                       RECORD IDENTIFIER = 'K ' AN
+*                                                      ORGANIZATION'S OFFICER NAME, TITLE, AND
+*                                                      ADDRESS. (THERE MAY NOT BE AN ADDRESS
+*                                                      FOR A GIVEN OFFICER.)
+*
+*OROR-OFFICER-OPERATOR-NUMBER ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION OF
+*                                                      TEXAS (RRC).
+*
+*OROR-OFFICER-ORGANIZATION-NAME ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-OFFICER-NAME                                     NAME OF A PRINCIPAL OFFICER, PARTNER,
+*                                                      JOINT VENTUREER, OR TRUSTEE OF THE
+*                                                      ORGANIZATION AS REPORTED TO THE RRC.
+*
+*OROR-OFFICER-TITLE                                    TITLE OF OFFICER.
+*
+*OROR-OFFICER-ADDR-LINE1                               THIS IS THE FIRST LINE OF THE OFFICER'S
+*                                                      MAILING ADDRESS.
+*
+*OROR-OFFICER-ADDR-LINE2                               THIS IS THE SECOND LINE OF THE OFFICER'S
+*                                                      MAILING ADDRESS.
+*
+*OROR-OFFICER-ADDR-CITY                                THIS IS THE CITY OF THE OFFICER'S MAILING
+*                                                      ADDRESS.
+*
+*OROR-OFFICER-ADDR-STATE                               THIS IS THE STATE ABBREVIATION FOR THE
+*                                                      OFFICER'S MAILING ADDRESS.
+*
+*OROR-OFFICER-ADDR-ZIP                                 THIS IS THE ZIP CODE OF THE OFFICER'S
+*                                                      ADDRESS.
+*
+*OROR-OFFICER-ADDR-ZIP-SUFFIX                          THIS IS THE ZIP CODE SUFFIX OF THE
+*                                                      OFFICER'S MAILING ADDRESS.
+*
+*OROR-OFFICER-LOC-ADDR-LINE1                           THIS IS THE FIRST LINE OF THE OFFICER'S
+*                                                      LOCATION ADDRESS.
+*
+*OROR-OFFICER-LOC-ADDR-LINE2                           THIS IS THE SECOND LINE OF THE OFFICER'S
+                                                         II.24
+*                                LOCATION ADDRESS.
+*
+*OROR-OFFICER-LOC-ADDR-CITY      THIS IS THE CITY OF THE OFFICER'S
+*                                LOCATION ADDRESS.
+*
+*OROR-OFFICER-LOC-ADDR-STATE     THIS IS THE STATE OF THE OFFICER'S
+*                                LOCATION ADDRESS.
+*
+*OROR-OFFICER-LOC-ADDR-ZIP       THIS IS THE ZIP CODE OF THE OFFICER'S
+*                                LOCATION ADDRESS.
+*
+*OROR-OFFICER-LOC-ADDR-ZIP-SFX   THIS IS THE ZIP CODE SUFFIX OF THE
+*                                OFFICER'S LOCATION ADDRESS.
+*
+*OROR-OFFICER-TYPE-ID            THIS ITEM INDICATES WHETHER THE OFFICER'S
+*                                IDENTIFICATION NUMBER COMES FROM HIS
+*                                DRIVER'S LICENSE OR A STATE ID CARD.
+*
+*                                         "L" - DRIVER'S LICENSE NUMBER
+*
+*                                         "I" - STATE ID CARD
+*
+*OROR-OFFICER-ID-STATE           THIS IS THE STATE THAT ISSUED THE
+*                                DRIVER'S LICENSE OR STATE ID.
+*
+*OROR-OFFICER-ID-NUMBER          THIS IS A 20-BYTE AREA CONTAINING THE
+*                                DRIVER'S LICENSE OR STATE ID NUMBER.
+*
+*OROR-OFFICER-AGENT              THIS SWITCH INDICATES WHETHER THIS
+*                                PERSON IS AN OFFICER OR THE TEXAS AGENT.
+*                                ONLY ONE AGENT ALLOWED FOR AN
+*                                ORGANIZATION.
+*
+*                                         "A" - TEXAS AGENT
+*                                         "O" - OFFICER
+
+
+
+
+                                  II.25
+*-----------------------------------------------------------------
+*OROR-REMARKS-REC
+*-----------------------------------------------------------------
+*
+*
+*OROR-REMARKS-ID                                       RECORD INDENTIFIER = 'P ' RRC'S COMMENTS
+*                                                      ON AN ORGANIZATION.
+*
+*OROR-REMARKS-OPERATOR-NUMBER ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION OF
+*                                                      TEXAS (RRC).
+*
+*OROR-REMARKS-ORGANIZATION-NAME ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-REMARKS                                          REMARKS RELATING TO THE ORGANIZATION.
+*
+*OROR-REMARKS-LINE-NUMBER                              LINE NUMBER OF REMARK. THIS IS IN
+*                                                      ASCENDING ORDER, BUT IS NOT NECESSARILY
+*                                                      CONSECUTIVE.
+
+
+
+
+                                            II.26
+*-----------------------------------------------------------------
+*OROR-ACT-IND-REC
+*-----------------------------------------------------------------
+*
+*
+*OROR-ACT-IND-ID                                       RECORD IDENTIFIER = 'U ' ORGANIZATION'S
+*                                                      ACTIVITY INDICATOR FLAGS.
+*
+*OROR-ACT-IND-OPERATOR-NUMBER ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION
+*                                                      OF TEXAS (RRC).
+*
+*OROR-ACT-IND-ORGANIZATION-NAME ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-ACT-IND-CODE                                     ACTIVITY INDICATOR
+*
+*OROR-ACT-IND-FLAG-DISTRICTS                           A ONE DIGIT DISTRICT CODE FOR EACH OF
+*                                                      FOURTEEN POSSIBLE DISTRICTS.
+*
+*                                                                  '0' (ZERO) - OFF
+*                                                                  '1' (ONE) - ON
+*
+*                                                      MORE THAN ONE DISTRICT MAY BE 'ON' FOR
+*                                                      THIS RECORD. THE FOURTEEN POSSIBLE
+*                                                      DISTRICTS ARE:
+*
+*                                                                  01 - DISTRICT 01
+*                                                                  02 - DISTRICT 02
+*                                                                  03 - DISTRICT 03
+*                                                                  04 - DISTRICT 04
+*                                                                  05 - DISTRICT 05
+*                                                                  06 - DISTRICT 06
+*                                                                  07 - DISTRICT 6E
+*                                                                  08 - DISTRICT 7B
+*                                                                  09 - DISTRICT 7C
+*                                                                  10 - DISTRICT 08
+*                                                                  11 - DISTRICT 8A
+*                                                                  12 - NOT USED
+*                                                                  13 - DISTRICT 09
+*                                                                  14 - DISTRICT 10
+
+
+
+
+                                             II.27
+*-----------------------------------------------------------------
+*OROR-ACT-RESTR-REC
+*-----------------------------------------------------------------
+*
+*
+*OROR-ACT-RESTR-ID                                     RECORD IDENTIFIER = 'R ' ORGANIZATION'S
+*                                                      ACTIVITY RESTRICTIONS INDICATOR FLAGS.
+*                                                      THIS RESTRICTED ACTIVITY SEGMENT IS USED
+*                                                      TO BLOCK A SPECIFIED ACTIVITY ON NEW
+*                                                      FORM P-4 FILINGS IN ONE OR MORE DISTRICTS.
+*
+*OROR-ACT-RESTR-OPER-NUM                               ORGANIZATION/OPERATOR ID NUMBER AS
+*                                                      ASSIGNED BY THE RAILROAD COMMISSION OF
+*                                                      OF TEXAS (RRC).
+*
+*OROR-ACT-RESTR-ORG-NAME                               ORGANIZATION NAME AS FILED ON RRC
+*                                                      ORGANIZATION REPORT FORM P-5.
+*
+*OROR-ACT-RESTR-CODE                                   TYPE OF ACTIVITY TO BE RESTRICTED.
+*
+*OROR-ACT-RESTR-FLAG-DISTRICTS A ONE DIGIT DISTRICT CODE FOR EACH OF
+*                                                      FOURTEEN POSSIBLE DISTRICTS.
+*
+*                                                                '0' (ZERO) - ACTIVITY NOT RESTRICTED
+*                                                                 '1' (ONE) - ACTIVITY RESTRICTED
+*
+*                                                      MORE THAN ONE DISTRICT MAY BE
+*                                                      RESTRICTED FOR THIS RECORD. THE
+*                                                      FOURTEEN POSSIBLE DISTRICTS ARE:
+*
+*                                                                        01 - DISTRICT 01
+*                                                                        02 - DISTRICT 02
+*                                                                        03 - DISTRICT 03
+*                                                                        04 - DISTRICT 04
+*                                                                        05 - DISTRICT 05
+*                                                                        06 - DISTRICT 06
+*                                                                        07 - DISTRICT 6E
+*                                                                        08 - DISTRICT 7B
+*                                                                        09 - DISTRICT 7C
+*                                                                        10 - DISTRICT 08
+*                                                                        11 - DISTRICT 8A
+*                                                                        12 - NOT USED
+*                                                                        13 - DISTRICT 09
+*                                                                        14 - DISTRICT 10
+*
+
+
+
+
+                                               II.28
+
