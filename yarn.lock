@@ -256,10 +256,10 @@
   dependencies:
     isoformat "^0.2.0"
 
-"@observablehq/notebook-kit@^1.0.1":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@observablehq/notebook-kit/-/notebook-kit-1.4.1.tgz#fd8f472590e3d2398b65b212f482dbcea6057186"
-  integrity sha512-7aXE+zwerYB28c9ydgntkRmUDGm0l3VdYwHanN7FM5aXLHA58/ywNsGemUznF0bPteSIITUUqcsI2NLQM69UkQ==
+"@observablehq/notebook-kit@^1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@observablehq/notebook-kit/-/notebook-kit-1.5.0.tgz#7d938bea82c54bbb398d9aa6ad8f7c1092b14dfd"
+  integrity sha512-9hNJbGWGhUMwYplHy15uDU7qldkxW3YPK3bWbTXQfV46auFHCGOV0wkU3jMylkdBGtb8YZFtwRmTZxHt2nHRxA==
   dependencies:
     "@fontsource/inter" "^5.2.6"
     "@fontsource/source-serif-4" "^5.2.8"
