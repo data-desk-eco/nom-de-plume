@@ -23,9 +23,21 @@ data/plumes_2025-01-01_2025-10-01.csv: data/plumes_2025-01-01_2025-10-01.zip
 	@touch $@
 	@echo "✓ Plumes CSV extracted"
 
-# Texas RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz)
-# must be downloaded manually from https://mft.rrc.texas.gov/ and placed in data/
-# The download links require active browser sessions and cannot be automated
+# Download Texas RRC data files from MFT server
+data/p4f606.ebc.gz:
+	@mkdir -p $(@D)
+	@echo "Downloading P-4 database from Texas RRC..."
+	@uv run scripts/download_rrc.py data p4f606.ebc.gz
+
+data/orf850.ebc.gz:
+	@mkdir -p $(@D)
+	@echo "Downloading P-5 organization data from Texas RRC..."
+	@uv run scripts/download_rrc.py data orf850.ebc.gz
+
+data/dbf900.ebc.gz:
+	@mkdir -p $(@D)
+	@echo "Downloading wellbore database from Texas RRC..."
+	@uv run scripts/download_rrc.py data dbf900.ebc.gz
 
 # Create DuckDB database from OGIM GeoPackage and Carbon Mapper plumes
 # Depends on: data files + database creation queries (schema, loading)
@@ -83,4 +95,4 @@ clean:
 
 clean-all: clean
 	rm -f data/OGIM_v2.7.gpkg data/plumes_2025-01-01_2025-10-01.zip data/plumes_2025-01-01_2025-10-01.csv
-	@echo "Note: RRC data files (data/*.ebc.gz) not removed - download them manually from https://mft.rrc.texas.gov/"
+	rm -f data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz

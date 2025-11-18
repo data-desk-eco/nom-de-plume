@@ -1,0 +1,8 @@
+[project]
+name = "nom-de-plume"
+version = "0.1.0"
+description = "Methane plume attribution system for global oil and gas infrastructure"
+requires-python = ">=3.10"
+dependencies = [
+    "playwright",
+]

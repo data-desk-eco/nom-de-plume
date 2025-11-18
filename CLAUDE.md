@@ -98,9 +98,9 @@ data/
   plumes_2025-01-01_2025-10-01.zip      # Carbon Mapper plumes (auto-downloaded, ~900 KB)
   plumes_2025-01-01_2025-10-01.csv      # Extracted plumes data (~3.4 MB)
   supply-contracts-*.csv                # LNG supply contracts (DOE)
-  p4f606.ebc.gz                         # Texas RRC P-4 (manual download)
-  orf850.ebc.gz                         # Texas RRC P-5 (manual download)
-  dbf900.ebc.gz                         # Texas RRC wellbore (manual download)
+  p4f606.ebc.gz                         # Texas RRC P-4 (auto-downloaded)
+  orf850.ebc.gz                         # Texas RRC P-5 (auto-downloaded)
+  dbf900.ebc.gz                         # Texas RRC wellbore (auto-downloaded)
   data.duckdb                           # Final database (gitignored)
 
 queries/
@@ -114,6 +114,7 @@ queries/
   generate_output.sql      # Generate LNG attribution CSV
 
 scripts/
+  download_rrc.py          # Download RRC files from MFT via Playwright
   create_p4_db.py          # Parse P-4 EBCDIC to /tmp CSVs
   parse_p4.py
   create_p5_db.py          # Parse P-5 EBCDIC to /tmp CSVs
@@ -220,8 +221,8 @@ This is much faster than naive ST_Distance comparisons on 1M+ facilities.
 
 ### Texas RRC Data Integration
 
-RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz) are EBCDIC-encoded binary files that must be:
-1. Downloaded manually from https://mft.rrc.texas.gov/
+RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz) are EBCDIC-encoded binary files that are:
+1. Auto-downloaded from https://mft.rrc.texas.gov/ via Playwright
 2. Parsed by Python scripts to /tmp/*.csv
 3. Loaded into DuckDB
 
@@ -231,7 +232,7 @@ The P-4 "purchaser" field is used as the operator for wells, providing more curr
 
 - **OGIM v2.7**: https://zenodo.org/records/15103476 (auto-downloaded)
 - **Carbon Mapper Plumes**: https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_2025-01-01_2025-10-01.zip (auto-downloaded)
-- **Texas RRC**: https://mft.rrc.texas.gov/ (manual download required)
+- **Texas RRC**: https://mft.rrc.texas.gov/ (auto-downloaded via Playwright)
 - **DOE LNG Contracts**: data/supply-contracts-gemini-2-5-pro.csv (parsed by Gemini 2.5 Pro)
 
 ## Future Work
