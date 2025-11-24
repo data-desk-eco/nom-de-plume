@@ -9,13 +9,13 @@ The list below shows oil and gas infrastructure — mostly wells — which have 
   </script>
 
   <!-- Load plumes data from pre-computed JSON -->
-  <script id="load-plumes" type="module">
-const plumes = await FileAttachment("../data/plumes.json").json();
+  <script id="load-plumes" output="plumes" type="module" hidden>
+await FileAttachment("../data/plumes.json").json()
   </script>
 
   <!-- Load infrastructure data from pre-computed JSON -->
-  <script id="load-infrastructure" type="module">
-const infrastructure = await FileAttachment("../data/infrastructure.json").json();
+  <script id="load-infrastructure" output="infrastructure" type="module" hidden>
+await FileAttachment("../data/infrastructure.json").json()
   </script>
 
   <script id="plume-cards" type="module">
