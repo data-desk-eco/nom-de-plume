@@ -1,0 +1,44 @@
+[
+  {
+    "id": "20250115T180626_GAO_CH4_PLM",
+    "operator": "APACHE CORPORATION",
+    "rate_kg_hr": 245.3,
+    "datetime": "2025-01-15T18:06:26Z",
+    "latitude": 31.8523,
+    "longitude": -102.3647,
+    "nearest_facility_id": "TX_well_42-123-45678",
+    "nearest_facility_type": "well",
+    "distance_to_nearest_facility_km": 0.125,
+    "total_facilities_nearby": 47,
+    "operator_facilities_of_type": 12,
+    "confidence_score": 89.5
+  },
+  {
+    "id": "20250114T175512_GAO_CH4_PLM",
+    "operator": "PIONEER NATURAL RESOURCES",
+    "rate_kg_hr": 178.9,
+    "datetime": "2025-01-14T17:55:12Z",
+    "latitude": 31.9234,
+    "longitude": -102.1234,
+    "nearest_facility_id": "TX_well_42-234-56789",
+    "nearest_facility_type": "well",
+    "distance_to_nearest_facility_km": 0.287,
+    "total_facilities_nearby": 34,
+    "operator_facilities_of_type": 8,
+    "confidence_score": 82.3
+  },
+  {
+    "id": "20250113T163421_GAO_CH4_PLM",
+    "operator": "CONOCOPHILLIPS COMPANY",
+    "rate_kg_hr": 312.7,
+    "datetime": "2025-01-13T16:34:21Z",
+    "latitude": 32.1456,
+    "longitude": -103.4567,
+    "nearest_facility_id": "TX_compressor_42-345-67890",
+    "nearest_facility_type": "compressor",
+    "distance_to_nearest_facility_km": 0.089,
+    "total_facilities_nearby": 23,
+    "operator_facilities_of_type": 15,
+    "confidence_score": 94.7
+  }
+]

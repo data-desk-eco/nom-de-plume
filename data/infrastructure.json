@@ -1,0 +1,42 @@
+[
+  {
+    "plume_id": "20250115T180626_GAO_CH4_PLM",
+    "facility_id": "TX_well_42-123-45678",
+    "infra_type": "well",
+    "operator": "APACHE CORPORATION",
+    "facility_subtype": "oil",
+    "latitude": 31.8535,
+    "longitude": -102.3658,
+    "distance_m": 125
+  },
+  {
+    "plume_id": "20250115T180626_GAO_CH4_PLM",
+    "facility_id": "TX_well_42-123-45679",
+    "infra_type": "well",
+    "operator": "APACHE CORPORATION",
+    "facility_subtype": "gas",
+    "latitude": 31.8545,
+    "longitude": -102.3668,
+    "distance_m": 234
+  },
+  {
+    "plume_id": "20250114T175512_GAO_CH4_PLM",
+    "facility_id": "TX_well_42-234-56789",
+    "infra_type": "well",
+    "operator": "PIONEER NATURAL RESOURCES",
+    "facility_subtype": "oil",
+    "latitude": 31.9262,
+    "longitude": -102.1256,
+    "distance_m": 287
+  },
+  {
+    "plume_id": "20250113T163421_GAO_CH4_PLM",
+    "facility_id": "TX_compressor_42-345-67890",
+    "infra_type": "compressor",
+    "operator": "CONOCOPHILLIPS COMPANY",
+    "facility_subtype": null,
+    "latitude": 32.1464,
+    "longitude": -103.4575,
+    "distance_m": 89
+  }
+]
