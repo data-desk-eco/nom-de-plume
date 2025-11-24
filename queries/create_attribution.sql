@@ -165,7 +165,7 @@ ogim_nearby_facilities AS (
         f.geom as facility_geom,
         ST_Distance_Sphere(e.geom, f.geom) / 1000.0 as distance_km
     FROM all_plumes e
-    CROSS JOIN infrastructure.all_facilities f
+    CROSS JOIN infra.all_facilities f
     WHERE ST_X(f.geom) BETWEEN ST_X(e.geom) - 0.015 AND ST_X(e.geom) + 0.015
       AND ST_Y(f.geom) BETWEEN ST_Y(e.geom) - 0.015 AND ST_Y(e.geom) + 0.015
       AND ST_DWithin(e.geom, f.geom, 0.015)

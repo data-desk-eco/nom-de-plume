@@ -124,7 +124,7 @@ data:
 	@echo "4/4 Exporting results for notebook..."
 	@mkdir -p data
 	@duckdb data/data.duckdb -c "COPY ($$(cat queries/exports/plumes.sql)) TO 'data/plumes.json' (FORMAT JSON, ARRAY true)"
-	@duckdb data/data.duckdb -c "COPY ($$(cat queries/exports/infrastructure.sql)) TO 'data/infrastructure.json' (FORMAT JSON, ARRAY true)"
+	@duckdb data/data.duckdb -c "INSTALL spatial; LOAD spatial; COPY ($$(cat queries/exports/infrastructure.sql)) TO 'data/infrastructure.json' (FORMAT JSON, ARRAY true)"
 	@echo "✓ ETL pipeline complete"
 	@ls -lh data/*.json
 

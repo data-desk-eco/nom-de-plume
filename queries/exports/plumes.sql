@@ -17,4 +17,4 @@ WHERE rate_kg_hr >= 100
   AND confidence_score >= 75
   AND distance_to_nearest_facility_km <= 0.5
 ORDER BY datetime DESC
-LIMIT 500;
+LIMIT 500

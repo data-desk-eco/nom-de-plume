@@ -7,12 +7,12 @@ INSTALL spatial;
 LOAD spatial;
 
 -- Drop existing schema if it exists
-DROP SCHEMA IF EXISTS infrastructure CASCADE;
-CREATE SCHEMA infrastructure;
+DROP SCHEMA IF EXISTS infra CASCADE;
+CREATE SCHEMA infra;
 
 -- Create unified infrastructure table combining all facility types
 -- Each type gets a weight reflecting its emission likelihood
-CREATE OR REPLACE TABLE infrastructure.all_facilities AS
+CREATE OR REPLACE TABLE infra.all_facilities AS
 WITH
 -- Wells
 -- Filter to exclude proposed/permitted wells that haven't been drilled yet
@@ -211,15 +211,15 @@ UNION ALL
 SELECT * FROM refineries;
 
 -- Create spatial index for fast queries
-CREATE INDEX idx_infrastructure_geom ON infrastructure.all_facilities USING RTREE (geom);
-CREATE INDEX idx_infrastructure_operator ON infrastructure.all_facilities (operator);
-CREATE INDEX idx_infrastructure_type ON infrastructure.all_facilities (infra_type);
+CREATE INDEX idx_infrastructure_geom ON infra.all_facilities USING RTREE (geom);
+CREATE INDEX idx_infrastructure_operator ON infra.all_facilities (operator);
+CREATE INDEX idx_infrastructure_type ON infra.all_facilities (infra_type);
 
 -- Summary statistics
 SELECT
     infra_type,
     COUNT(*) as facility_count,
     COUNT(DISTINCT operator) as unique_operators
-FROM infrastructure.all_facilities
+FROM infra.all_facilities
 GROUP BY infra_type
 ORDER BY facility_count DESC;

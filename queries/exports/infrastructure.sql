@@ -1,7 +1,4 @@
 -- Export infrastructure within 1.5km of super-emitter plumes
-INSTALL spatial;
-LOAD spatial;
-
 WITH plume_locations AS (
   SELECT id, latitude, longitude
   FROM emissions.attributed
@@ -24,10 +21,10 @@ SELECT
     f.geom
   ), 0) as distance_m
 FROM plume_locations p
-CROSS JOIN infrastructure.all_facilities f
+CROSS JOIN infra.all_facilities f
 WHERE ST_DWithin(
   ST_Point(p.longitude, p.latitude),
   f.geom,
   0.015
 )
-ORDER BY p.id, distance_m;
+ORDER BY p.id, distance_m
