@@ -1,6 +1,7 @@
 -- Load plumes data from Carbon Mapper CSV
 
 -- Load spatial extension (if not already loaded)
+INSTALL spatial;
 LOAD spatial;
 
 -- Load CSV directly into emissions.sources table

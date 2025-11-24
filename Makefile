@@ -107,7 +107,7 @@ data/plumes_latest.zip:
 
 data/plumes_latest.csv: data/plumes_latest.zip
 	@echo "Extracting plumes CSV..."
-	@unzip -o $< -d data/
+	@unzip -o $< -d data
 	@YEAR=$$(date +%Y) && mv data/plumes_$$YEAR-*.csv $@ 2>/dev/null || true
 	@touch $@
 	@echo "✓ Plumes CSV extracted"
