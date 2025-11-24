@@ -81,14 +81,29 @@ data/infrastructure.duckdb.gz:
 	fi
 
 # Download recent plumes from Carbon Mapper
+# Try dates going backwards since Carbon Mapper data has significant lag
 data/plumes_latest.zip:
 	@mkdir -p $(@D)
 	@echo "Downloading latest plumes from Carbon Mapper..."
 	@YEAR=$$(date +%Y) && \
 	START_DATE="$$YEAR-01-01" && \
-	END_DATE=$$(date +%Y-%m-%d) && \
-	curl -sL -o $@ "https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_$${START_DATE}_$${END_DATE}.zip"
-	@echo "✓ Latest plumes downloaded"
+	SUCCESS=0 && \
+	for DAYS_AGO in 0 7 14 21 30 40 50 54 60 75 90; do \
+		END_DATE=$$(date -d "$$DAYS_AGO days ago" +%Y-%m-%d 2>/dev/null || date -v-$${DAYS_AGO}d +%Y-%m-%d); \
+		URL="https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_$${START_DATE}_$${END_DATE}.zip"; \
+		echo "  Trying $$END_DATE..."; \
+		if curl -sf -o $@ "$$URL"; then \
+			if unzip -tq $@ >/dev/null 2>&1; then \
+				echo "✓ Downloaded plumes through $$END_DATE"; \
+				SUCCESS=1; \
+				break; \
+			fi; \
+		fi; \
+	done; \
+	if [ $$SUCCESS -eq 0 ]; then \
+		echo "ERROR: Could not find valid plumes data (tried dates up to 60 days ago)"; \
+		exit 1; \
+	fi
 
 data/plumes_latest.csv: data/plumes_latest.zip
 	@echo "Extracting plumes CSV..."
