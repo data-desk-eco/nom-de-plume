@@ -108,9 +108,15 @@ data/plumes_latest.zip:
 data/plumes_latest.csv: data/plumes_latest.zip
 	@echo "Extracting plumes CSV..."
 	@unzip -o $< -d data
-	@YEAR=$$(date +%Y) && mv data/plumes_$$YEAR-*.csv $@ 2>/dev/null || true
-	@touch $@
-	@echo "✓ Plumes CSV extracted"
+	@YEAR=$$(date +%Y) && \
+		if ls data/plumes_$$YEAR-*.csv 1>/dev/null 2>&1; then \
+			mv data/plumes_$$YEAR-*.csv $@; \
+			echo "✓ Plumes CSV extracted"; \
+		else \
+			echo "ERROR: Could not find extracted plumes CSV matching data/plumes_$$YEAR-*.csv"; \
+			ls -la data/plumes*.csv 2>&1 || true; \
+			exit 1; \
+		fi
 
 # ETL: Download infrastructure, load plumes, run attribution, export results
 .PHONY: data

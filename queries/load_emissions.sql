@@ -34,7 +34,7 @@ SELECT
     TRY_CAST(modified AS TIMESTAMP) as modified,
     emission_version,
     processing_software
-FROM read_csv_auto('data/plumes_2025-01-01_2025-10-01.csv', header=true);
+FROM read_csv_auto('data/plumes_latest.csv', header=true);
 
 -- Show summary
 SELECT 'Total plumes' as metric, COUNT(*) as count FROM emissions.sources
