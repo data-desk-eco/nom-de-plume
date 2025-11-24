@@ -1,326 +1,344 @@
-# Nom de plume
+# Data Desk Research Notebooks
 
-Methane plume attribution system for global oil and gas infrastructure.
-
-This is a Data Desk research notebook built with Observable Notebook Kit 2.0.
-
-## Quick Start
-
-```bash
-# LOCAL DEVELOPMENT (infrequent - every few months)
-make infrastructure     # Build infrastructure.duckdb (OGIM + Texas RRC)
-                       # Upload to GitHub Releases after building
-
-# GITHUB ACTIONS (automatic - daily)
-make data              # ETL: Download infra DB → load plumes → run attribution → export JSON
-make build             # Build notebook and deploy
-
-# LOCAL TESTING
-make preview           # Start local development server
-make build             # Build static site for local testing
-
-# UTILITIES
-make clean             # Remove generated files (keep source data)
-make clean-all         # Remove everything including source data
-```
-
-## Project Overview
-
-**Goal**: Attribute satellite-detected methane plumes to oil and gas operators and LNG export facilities.
-
-**Current State**: Production-ready with individual plume observations attributed to infrastructure operators and LNG supply contracts.
-
-**Data**:
-- Latest plume observations from Carbon Mapper (updated daily via ETL)
-  - Super-emitters: ≥100 kg/hr, ≥75% confidence, ≤500m from facility
-  - Historical range: Jan 2025 - present
-- 1.1M+ facilities from OGIM v2.7 (global) and Texas RRC (Texas wells)
-  - Infrastructure database rebuilt manually every few months
-
-## Architecture
-
-### Two-Stage Pipeline
-
-**Stage 1: Infrastructure Database (Local, Manual - Every few months)**
-```
-OGIM GeoPackage (2.9 GB) + Texas RRC data (20M+ records)
-                  ↓
-      Parse EBCDIC files to /tmp CSVs
-                  ↓
-      Load to infrastructure.duckdb
-                  ↓
-         Vacuum and optimize
-                  ↓
-   Compress and upload to GitHub Releases
-```
-**Command:** `make infrastructure` → upload `infrastructure.duckdb.gz` to releases
-
-**Stage 2: ETL + Notebook Build (GitHub Actions - Daily)**
-```
-Download infrastructure.duckdb.gz from GitHub Releases
-                  ↓
-    Download latest plumes (YYYY-01-01 to today)
-                  ↓
-    Copy infra DB → data.duckdb + load plumes
-                  ↓
-    Spatial join + confidence scoring
-                  ↓
-      Export top 500 super-emitters to JSON
-          (queries/exports/*.sql → data/*.json)
-                  ↓
-     Commit data/*.json to repo
-                  ↓
-     Observable notebook loads ../data/*.json
-          (FileAttachment API)
-                  ↓
-         Build and deploy to GitHub Pages
-```
-**Command:** `make data` (runs in GitHub Actions)
-
-**Key Benefits:**
-- Infrastructure DB: ~500 MB (vs 2.9 GB source), updated quarterly
-- ETL: Fast (~2 min), runs daily with latest plumes
-- Notebook: Loads pre-computed JSON, no database needed at runtime
-
-### Database Schema
-
-**Infrastructure** (`infrastructure.all_facilities`):
-- 1.1M+ facilities with unified schema
-- Types: wells, compressor stations, processing plants, tank batteries
-- Source: OGIM v2.7 + Texas RRC (with hybrid operator attribution)
-- Fields: `facility_id`, `infra_type`, `type_weight`, `operator`, `facility_subtype`, `status`, `latitude`, `longitude`, `geom`
-
-**Emissions** (`emissions.sources`):
-- 7,437 plume observations from Carbon Mapper (individual observations, not aggregated)
-- Fields: `id`, `emission_auto` (kg/hr), `datetime`, `ipcc_sector`, `latitude`, `longitude`, `geom`, wind data, technical metadata
-
-**Attribution** (`emissions.attributed`):
-- Individual plumes matched to infrastructure
-- Confidence scores (0-100) based on distance, operator dominance, and facility density
-- Fields: `id`, `rate_kg_hr`, `datetime`, `nearest_facility_id`, `entity_name` (operator), `nearest_facility_type`, `confidence_score`, `distance_to_nearest_facility_km`, `total_facilities_nearby`, `operator_facilities_of_type`
-
-### Hybrid Texas RRC + OGIM Attribution
-
-The system uses a **hybrid approach** combining Texas RRC operator data with OGIM infrastructure:
-
-1. **Wells**: Use Texas RRC P-4 purchaser/gatherer data (more current) instead of OGIM operator field
-2. **Other infrastructure**: Use OGIM operator field (compressors, processing plants, tank batteries)
-
-This provides more accurate operator attribution for wells while maintaining comprehensive infrastructure coverage.
-
-### Confidence Scoring
-
-Three-factor scoring system (0-100):
-
-1. **Distance Score (0-35 points, type-weighted)**:
-   - Formula: `GREATEST(0, 35 * (1 - distance_km/0.75)) * type_weight`
-   - Closer facilities score higher
-   - Weighted by infrastructure type (processing=2.0x, compressor=1.5x, tank=1.3x, well=1.0x)
-
-2. **Operator Dominance (0-50 points)**:
-   - Formula: `50 * (operator_facilities_of_type / total_facilities_within_1.5km)`
-   - Higher when operator owns most nearby facilities of matched type
-
-3. **Facility Density (5-15 points)**:
-   - 1 facility: 15 pts (unambiguous)
-   - 2-3: 12 pts, 4-10: 9 pts, 11-30: 6 pts, 30+: 5 pts
-
-### LNG Supply Chain Matching
-
-Matches facility operators to LNG contract sellers using fuzzy string matching (Jaro-Winkler > 0.85).
-
-Chain: `Plume → Infrastructure → Operator → LNG Seller → LNG Facility`
+Data Desk publishes investigative research as interactive notebooks using Observable Notebook Kit 2.0. Notebooks are standalone HTML pages with embedded JavaScript that compile to static sites.
 
 ## File Structure
 
 ```
-docs/
-  index.html               # Observable notebook source (EDIT THIS)
-  assets/                  # Images and static assets
-  .observable/dist/        # Built output (gitignored, deployed to GitHub Pages)
-
-data/
-  plumes.json             # Exported plume data (committed, generated by ETL)
-  infrastructure.json     # Exported facility data (committed, generated by ETL)
-  infrastructure.duckdb    # Infrastructure-only DB (gitignored, built locally)
-  infrastructure.duckdb.gz # Compressed infra DB (uploaded to GitHub Releases)
-  data.duckdb             # Working database (gitignored, built in ETL)
-  plumes_latest.zip       # Latest plumes from Carbon Mapper (auto-downloaded in ETL)
-  plumes_latest.csv       # Extracted plumes data
-  OGIM_v2.7.gpkg          # OGIM infrastructure (auto-downloaded, 2.9 GB)
-  p4f606.ebc.gz           # Texas RRC P-4 (auto-downloaded)
-  orf850.ebc.gz           # Texas RRC P-5 (auto-downloaded)
-  dbf900.ebc.gz           # Texas RRC wellbore (auto-downloaded)
-
-queries/
-  schema.sql              # Database schema
-  load_emissions.sql      # Load Carbon Mapper data
-  load_ogim.sql           # Load OGIM infrastructure
-  load_p4.sql             # Load Texas RRC P-4
-  load_p5.sql             # Load Texas RRC P-5
-  load_wellbore.sql       # Load Texas RRC wellbore
-  create_attribution.sql  # Create attribution table
-  exports/
-    plumes.sql           # Export query for plume data
-    infrastructure.sql   # Export query for facility data
-
-scripts/
-  download_rrc.py         # Download RRC files from MFT via Playwright
-  create_p4_db.py         # Parse P-4 EBCDIC to /tmp CSVs
-  parse_p4.py
-  create_p5_db.py         # Parse P-5 EBCDIC to /tmp CSVs
-  parse_p5.py
-  create_wellbore_db.py   # Parse wellbore EBCDIC to /tmp CSVs
-  parse_wellbore.py
-
-template.html             # HTML wrapper (auto-updates from main repo)
-Makefile                  # Build automation
-CLAUDE.md                 # This file (auto-updates)
+repo/
+├── docs/
+│   ├── index.html           # Notebook source (EDIT THIS)
+│   ├── assets/              # Images
+│   └── .observable/dist/    # Built output (gitignored)
+├── data/                    # DuckDB, CSV, JSON files
+├── etl/                     # Optional: dbt models
+├── template.html            # HTML wrapper (auto-updates from main repo)
+├── Makefile
+└── CLAUDE.md                # This file (auto-updates)
 ```
 
-## Interactive Visualization
+**Commit:** `docs/index.html`, `data/*`, `docs/assets/*`, `etl/*`, `Makefile`
+**Don't commit:** `docs/.observable/dist/`, `node_modules/`, `template.html`, `CLAUDE.md`
 
-The project includes an Observable Notebook Kit notebook (`docs/index.html`) that provides an interactive exploration of super-emitter events.
+## Observable Notebook Basics
 
-**Features**:
-- Displays up to 500 most recent super-emitter events (≥100 kg/hr, ≥75 confidence score, ≤500m from facility)
-- Expandable cards showing operator, facility type, emission rate, observation date, and confidence score
-- Interactive maps with grayscale satellite imagery showing plume locations and nearby infrastructure
-- Color-coded facility markers by type (wells, compressors, processing plants, etc.)
-- Facility counts distinguishing operator-owned vs. total nearby facilities
-- Direct links to plume detail pages on Carbon Mapper's data portal
+Notebooks use `<notebook>` element, not Jupyter format. Reactive execution: cells auto-run when dependencies change.
 
-**Usage**:
-```bash
-make preview    # Start development server (http://localhost:3000)
-make build      # Compile to static site
+### Cell Types
+
+```html
+<!doctype html>
+<notebook theme="midnight">
+  <title>Research Title</title>
+
+  <!-- Markdown -->
+  <script id="header" type="text/markdown">
+    # Heading
+  </script>
+
+  <!-- JavaScript -->
+  <script id="analysis" type="module">
+    const data = await FileAttachment("../data/flows.csv").csv({typed: true});
+    display(Inputs.table(data));
+  </script>
+
+  <!-- SQL (queries DuckDB) -->
+  <script id="flows" output="flows" type="application/sql" database="../data/data.duckdb" hidden>
+    SELECT * FROM flows ORDER BY date DESC
+  </script>
+
+  <!-- Raw HTML -->
+  <script id="chart" type="text/html">
+    <div id="map" style="height: 500px;"></div>
+  </script>
+</notebook>
 ```
 
-**Technical Details**:
-- Loads pre-computed data from `../data/plumes.json` and `../data/infrastructure.json`
-- Data files committed to repo in `data/` directory (generated by ETL pipeline)
-- Pre-loads infrastructure within 1.5km of each plume for map display
-- Uses Leaflet.js for interactive maps with Esri World Imagery tiles
-- Responsive design: side-by-side layout on desktop, stacked on mobile
-- Color palette: Red (#D94848), Orange (#F28322), Yellow (#F1C644), Green (#60BF66), Purple (#9461C7)
+**Key points:**
+- Each `<script>` has unique `id`
+- Cells are `type="module"` by default (ES6 syntax)
+- Use `display()` to render output (don't rely on return values)
+- Variables defined in one cell available to all others
 
-**Data Consistency Note**: Map facility counts may differ from attribution table totals if data has been updated since attribution calculation. Run `make attribution` to regenerate with current data.
+## Loading Data
 
-## Common Queries
+### FileAttachment API
 
-### Find emissions near a specific operator
+Paths relative to notebook (`docs/index.html`):
+- Data files in root `data/` → use `../data/`
+- Assets in `docs/assets/` → use `assets/`
+- Always `await` FileAttachment calls
+
+```javascript
+// CSV with type inference
+const flows = await FileAttachment("../data/flows.csv").csv({typed: true});
+
+// JSON
+const projects = await FileAttachment("../data/projects.json").json();
+
+// Parquet
+const tracks = await FileAttachment("../data/tracks.parquet").parquet();
+
+// Images
+const img = await FileAttachment("assets/photo.jpg").url();
+```
+
+### DuckDB / SQL Cells
+
+SQL cells query DuckDB at build time, results embedded in HTML.
+
+```html
+<script id="query" output="flows" type="application/sql" database="../data/data.duckdb" hidden>
+  SELECT * FROM flows WHERE year >= 2020
+</script>
+```
+
+**Attributes:**
+- `type="application/sql"` - marks as SQL query
+- `database="../data/data.duckdb"` - path to database (relative to notebook)
+- `output="flows"` - variable name for results
+- `hidden` - don't display output (optional)
+
+Results available as JS variable:
+```javascript
+display(html`<p>Found ${flows.length} flows</p>`);
+```
+
+### DuckDB Client (for complex queries)
+
+```javascript
+const db = DuckDBClient.of();
+const summary = await db.query(`
+  SELECT year, count(*) as n, sum(volume_kt) as total
+  FROM flows GROUP BY year ORDER BY year
+`);
+display(Inputs.table(summary));
+```
+
+## Visualization
+
+### Observable Plot
+
+```javascript
+display(Plot.plot({
+  title: "Annual volumes by destination",
+  x: {label: "Year"},
+  y: {label: "Volume (Mt)", grid: true},
+  color: {legend: true},
+  marks: [
+    Plot.barY(data, {x: "year", y: "volume", fill: "region", tip: true}),
+    Plot.ruleY([0])
+  ]
+}));
+```
+
+**Common marks:** `Plot.line()`, `Plot.barY()`, `Plot.areaY()`, `Plot.dot()`
+**Built-in:** automatic scales, tooltips with `tip: true`, responsive layout
+
+### Interactive Inputs
+
+```javascript
+// Toggle
+const show_all = view(Inputs.toggle({label: "Show all columns"}));
+
+// Search
+const searched = view(Inputs.search(data));
+
+// Table
+display(Inputs.table(searched, {
+  rows: 25,
+  columns: show_all ? undefined : ["name", "date", "value"]
+}));
+
+// Slider, select, etc.
+const threshold = view(Inputs.range([0, 100], {step: 1, value: 50}));
+const country = view(Inputs.select(["UK", "Norway", "Sweden"]));
+```
+
+`view()` makes input reactive - other cells auto-update when value changes.
+
+### External Libraries
+
+Load via dynamic imports or CDN:
+
+```html
+<!-- CSS -->
+<script type="text/html">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+</script>
+
+<!-- JS library -->
+<script type="module">
+  const script = document.createElement('script');
+  script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+  script.onload = () => initMap();
+  document.head.appendChild(script);
+</script>
+```
+
+## Build & Deploy
+
+### Makefile Targets
+
+```makefile
+.PHONY: build preview data clean
+
+build:
+	yarn build
+
+preview:
+	yarn preview
+
+data:
+	# Repo-specific: generate/update data files
+
+clean:
+	rm -rf docs/.observable/dist
+```
+
+**Usage:**
+- `make preview` - local dev server with hot reload (http://localhost:3000)
+- `make build` - compile to `docs/.observable/dist/`
+- `make data` - generate/update data (implementation varies by repo)
+- `make clean` - remove build artifacts
+
+**File target pattern for incremental builds:**
+```makefile
+.PHONY: data
+data: data/data.duckdb
+
+data/data.duckdb: raw/*.csv scripts/process.py
+	python scripts/process.py
+	duckdb $@ "CREATE TABLE flows AS SELECT * FROM 'raw/*.csv'"
+```
+
+### Build Process
+
+Compiles `docs/index.html` into standalone page:
+1. Parse `<notebook>` element
+2. Compile JS cells to modules
+3. Bundle dependencies
+4. Apply `template.html`
+5. Output to `docs/.observable/dist/`
+
+**Important:** SQL cells query at build time. Database needed for build, not deployment (results embedded in HTML).
+
+### GitHub Actions Deployment
+
+Workflow auto-downloads itself from main repo on every run:
+1. Download shared `template.html`, `CLAUDE.md`, `deploy.yml`
+2. Run `make data` (if exists)
+3. Commit updates
+4. Run `make build`
+5. Deploy to GitHub Pages
+
+**Pages setup:** Settings → Pages → Source: GitHub Actions
+
+## Common Patterns
+
+### Data Aggregation
+
+```javascript
+// Group by and sum
+const annual = d3.rollup(flows, v => d3.sum(v, d => d.volume), d => d.year);
+
+// Map to array
+const data = Array.from(annual, ([year, volume]) => ({year, volume}))
+  .sort((a, b) => a.year - b.year);
+```
+
+### Formatting
+
+```javascript
+const formatDate = d3.utcFormat("%B %Y");
+const formatNumber = d3.format(",.1f");
+const formatCurrency = d3.format("$,.0f");
+```
+
+### Inline Calculations in Markdown
+
+```javascript
+// Calculate stats
+const total = d3.sum(flows, d => d.volume);
+const maxYear = d3.max(flows, d => d.year);
+```
+
+Reference in markdown:
+```html
+<script type="text/markdown">
+  Analysis found ${total.toFixed(1)} Mt across ${flows.length} voyages,
+  peaking in ${maxYear}.
+</script>
+```
+
+### Geospatial (DuckDB Spatial)
 
 ```sql
-INSTALL spatial; LOAD spatial;
-
-WITH operator_facilities AS (
-    SELECT geom, facility_id, infra_type, operator
-    FROM infrastructure.all_facilities
-    WHERE UPPER(operator) LIKE '%COMPANY%'
-)
-SELECT
-    e.id,
-    e.emission_auto as kg_per_hr,
-    f.facility_id,
-    f.infra_type,
-    f.operator,
-    ROUND(ST_Distance_Sphere(e.geom, f.geom) / 1000.0, 2) as distance_km
-FROM emissions.sources e
-JOIN operator_facilities f ON ST_DWithin(e.geom, f.geom, 0.05)
-WHERE e.gas = 'CH4'
-ORDER BY e.emission_auto DESC, distance_km;
+<script type="application/sql" database="../data/flows.duckdb" output="ports">
+  SELECT port_name, ST_AsGeoJSON(geometry) as geojson, count(*) as visits
+  FROM port_visits GROUP BY port_name, geometry
+</script>
 ```
 
-### Show attribution confidence distribution
-
-```sql
-SELECT
-    CASE
-        WHEN confidence_score >= 80 THEN '80-100 (High)'
-        WHEN confidence_score >= 60 THEN '60-79 (Medium-High)'
-        WHEN confidence_score >= 40 THEN '40-59 (Medium)'
-        ELSE 'Under 40 (Low)'
-    END as confidence_range,
-    COUNT(*) as plume_count,
-    ROUND(AVG(distance_to_nearest_facility_km), 2) as avg_distance_km
-FROM emissions.attributed
-GROUP BY confidence_range
-ORDER BY MIN(confidence_score) DESC;
+Use in Mapbox/Leaflet:
+```javascript
+ports.forEach(p => {
+  const coords = JSON.parse(p.geojson).coordinates;
+  new mapboxgl.Marker().setLngLat(coords).addTo(map);
+});
 ```
 
-## Development Guidelines
+## ETL Pattern
 
-- **Use uv for Python**: All Python scripts use uv (specified in global CLAUDE.md)
-- **Two-stage architecture**: Infrastructure DB built locally (infrequent), ETL runs in CI (frequent)
-- **Commit JSON exports**: `data/*.json` files committed to repo for notebook (use `!data/*.json` in .gitignore)
-- **SQL in files**: Export queries in `queries/exports/*.sql`, not inline in Makefile
-- **File-based Makefile targets**: Use actual file targets instead of .PHONY where possible
-- **Keep repo clean**: Parse Texas RRC data to `/tmp`, not the repo
-- **DuckDB CLI for pipelines**: No Python/language bindings needed for data loading
-- **GitHub Releases**: Upload `infrastructure.duckdb.gz` to GitHub Releases after building locally
+Two-stage pipeline common in research notebooks:
 
-## Workflow
+**Stage 1 (outside notebook):** `etl/` directory (dbt + DuckDB)
+- Process raw data from APIs, spreadsheets, AIS feeds
+- Output clean databases/CSVs to `data/`
+- Heavy processing happens once, not on every notebook load
 
-### Initial Setup (One-time)
+**Stage 2 (in notebook):** Analysis and viz
+- Load prepared data via FileAttachment or SQL
+- Transform and aggregate with JS/SQL
+- Create visualizations
 
-1. **Build infrastructure database locally**:
-   ```bash
-   make infrastructure  # Downloads OGIM + RRC data, builds infrastructure.duckdb
-   ```
+## Critical Gotchas
 
-2. **Upload to GitHub Releases**:
-   ```bash
-   gzip data/infrastructure.duckdb
-   gh release create v1.0 data/infrastructure.duckdb.gz \
-     --title "Infrastructure Database v1.0" \
-     --notes "OGIM v2.7 + Texas RRC data ($(date +%Y-%m-%d))"
-   ```
+1. **Data paths:** Use `../data/` from notebook, not `data/`
+2. **SQL database path:** `database="../data/data.duckdb"` in SQL cells
+3. **Display everything:** Use `display()` explicitly, don't rely on return values
+4. **Cell IDs:** Must be unique across notebook
+5. **Await FileAttachment:** All FileAttachment calls return promises
+6. **Edit source:** Edit `docs/index.html`, not `docs/.observable/dist/`
+7. **Auto-updating files:** `template.html` and `CLAUDE.md` download from main repo on deploy
+8. **Case-sensitive paths:** GitHub Pages is case-sensitive
+9. **SQL cells at build time:** Database must exist when running `make build`
 
-3. **Enable GitHub Pages**: Settings → Pages → Source: GitHub Actions
+## Creating New Notebook
 
-### Ongoing Updates (Automatic)
+1. Use `data-desk-eco.github.io` as GitHub template
+2. Enable Pages (Settings → Pages → Source: GitHub Actions)
+3. Clone: `git clone [url] && cd [repo] && yarn`
+4. Preview: `make preview`
+5. Edit `docs/index.html`
+6. Push - deploys to `https://research.datadesk.eco/[repo-name]/`
 
-- **Daily**: GitHub Actions runs `make data` to update plumes
-- **Quarterly**: Rebuild infrastructure DB locally and upload new release
-- **As needed**: Update queries in `queries/exports/*.sql` for different data exports
+## This Repo (data-desk-eco.github.io)
 
-**Note**: Notebook loads from `../data/*.json` (relative to `docs/index.html`), following standard Data Desk pattern.
+Special case: serves as both template and research index at `https://research.datadesk.eco/`
 
-## Key Implementation Details
+`make data` implementation:
+- Fetches all public repos with Pages enabled from `data-desk-eco` org
+- Filters repos with descriptions
+- Writes to `data/data.duckdb` as `projects` table
+- Notebook queries table and renders as list
 
-### Spatial Query Optimization
+Updates automatically via GitHub Actions (daily + on push).
 
-Attribution uses two-stage filtering:
+## Resources
 
-1. **Bounding box pre-filter**: Quickly eliminate facilities using coordinate ranges (±0.015°)
-2. **ST_DWithin**: Precise 1.5km radius check using spherical distance calculations
-
-This is much faster than naive ST_Distance comparisons on 1M+ facilities.
-
-**Distance Calculation**: Uses `ST_Distance_Sphere()` which returns meters on a sphere (WGS84), avoiding the latitude-dependent errors from simple degree-to-km conversions.
-
-### Texas RRC Data Integration
-
-RRC data files (p4f606.ebc.gz, orf850.ebc.gz, dbf900.ebc.gz) are EBCDIC-encoded binary files that are:
-1. Auto-downloaded from https://mft.rrc.texas.gov/ via Playwright
-2. Parsed by Python scripts to /tmp/*.csv
-3. Loaded into DuckDB
-
-The P-4 "purchaser" field is used as the operator for wells, providing more current attribution than OGIM.
-
-## Data Sources
-
-- **OGIM v2.7**: https://zenodo.org/records/15103476 (auto-downloaded)
-- **Carbon Mapper Plumes**: https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_2025-01-01_2025-10-01.zip (auto-downloaded)
-- **Texas RRC**: https://mft.rrc.texas.gov/ (auto-downloaded via Playwright)
-- **DOE LNG Contracts**: data/supply-contracts-gemini-2-5-pro.csv (parsed by Gemini 2.5 Pro)
-
-## Future Work
-
-- Add Louisiana RRC data for Louisiana wells
-- Temporal analysis (track facility status changes over multiple observations)
-- Aggregate multiple observations of the same source/facility
-- Export to GeoJSON/Shapefile
-- Regular emissions data updates from Carbon Mapper
-- Pipeline infrastructure from OGIM
-- Support for additional plume metadata (wind data, uncertainty, technical parameters)
+- Observable Notebook Kit: https://observablehq.com/notebook-kit/
+- Observable Plot: https://observablehq.com/plot/
+- Observable Inputs: https://observablehq.com/notebook-kit/inputs
+- DuckDB SQL: https://duckdb.org/docs/sql/introduction
+- All Data Desk notebooks: https://research.datadesk.eco/
