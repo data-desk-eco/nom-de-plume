@@ -107,7 +107,8 @@ data:
 	@if [ ! -f data/infrastructure.duckdb ]; then \
 		echo "Downloading infrastructure.duckdb from GitHub Releases..."; \
 		mkdir -p data; \
-		gh release download latest -p infrastructure.duckdb.gz -D data && gunzip data/infrastructure.duckdb.gz || \
+		LATEST_TAG=$$(gh release list --limit 1 --json tagName --jq '.[0].tagName'); \
+		gh release download $$LATEST_TAG -p infrastructure.duckdb.gz -D data && gunzip data/infrastructure.duckdb.gz || \
 		(echo "ERROR: No infrastructure database. Run 'make infrastructure' locally and upload to releases." && exit 1); \
 	fi
 	@# Download latest plumes
