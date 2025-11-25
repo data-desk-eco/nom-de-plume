@@ -1,4 +1,4 @@
-.PHONY: all preview build clean clean-all infrastructure data etl
+.PHONY: all preview build clean clean-all etl data
 
 all: data
 
@@ -60,8 +60,8 @@ data/infrastructure.duckdb: data/OGIM_v2.7.gpkg data/p4f606.ebc.gz data/orf850.e
 	@echo "✓ Infrastructure database complete: $@"
 	@ls -lh $@
 
-.PHONY: infrastructure
-infrastructure: data/infrastructure.duckdb
+# (removed - now using etl)
+etl: data/infrastructure.duckdb
 	@echo "Infrastructure database ready. Upload to GitHub Releases for CI/CD use."
 
 # ==============================================================================
