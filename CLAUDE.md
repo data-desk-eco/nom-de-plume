@@ -11,13 +11,12 @@ repo/
 │   ├── assets/              # Images
 │   └── .observable/dist/    # Built output (gitignored)
 ├── data/                    # DuckDB, CSV, JSON files
-├── etl/                     # Optional: dbt models
-├── template.html            # HTML wrapper (auto-updates from main repo)
+├── template.html            # HTML wrapper (auto-updates from .github repo)
 ├── Makefile
 └── CLAUDE.md                # This file (auto-updates)
 ```
 
-**Commit:** `docs/index.html`, `data/*`, `docs/assets/*`, `etl/*`, `Makefile`
+**Commit:** `docs/index.html`, `data/*`, `docs/assets/*`, `Makefile`
 **Don't commit:** `docs/.observable/dist/`, `node_modules/`, `template.html`, `CLAUDE.md`
 
 ## Observable Notebook Basics
@@ -180,8 +179,16 @@ Load via dynamic imports or CDN:
 
 ### Makefile Targets
 
+Every notebook should define two data targets:
+
+| Target | Purpose | Where |
+|--------|---------|-------|
+| `make etl` | Expensive computation (large downloads, model training, heavy processing) | Local only |
+| `make data` | Lightweight refresh (fetch artifacts, run analysis, export for notebook) | GitHub Actions |
+
+**Simple notebook (no heavy step):**
 ```makefile
-.PHONY: build preview data clean
+.PHONY: build preview etl data clean
 
 build:
 	yarn build
@@ -189,28 +196,54 @@ build:
 preview:
 	yarn preview
 
+etl: data  # no heavy step, just alias
+
 data:
-	# Repo-specific: generate/update data files
+	python scripts/fetch_and_process.py
 
 clean:
 	rm -rf docs/.observable/dist
 ```
 
+**Complex notebook (with heavy ETL):**
+```makefile
+.PHONY: build preview etl data clean
+
+build:
+	yarn build
+
+preview:
+	yarn preview
+
+# Expensive local computation - run manually, upload artifacts to GitHub Releases
+etl: data/infrastructure.duckdb
+	@echo "Done. Upload to GitHub Releases:"
+	@echo "  gzip -k data/infrastructure.duckdb"
+	@echo "  gh release create v1 data/infrastructure.duckdb.gz"
+
+data/infrastructure.duckdb: data/source.gpkg scripts/build_infra.py
+	python scripts/build_infra.py
+
+# CI-friendly refresh - downloads artifacts, runs lightweight analysis
+data:
+	@if [ ! -f data/infrastructure.duckdb ]; then \
+		echo "Downloading from GitHub Releases..."; \
+		gh release download latest -p infrastructure.duckdb.gz -D data && \
+		gunzip data/infrastructure.duckdb.gz; \
+	fi
+	python scripts/analyze.py
+	duckdb data/data.duckdb < queries/export.sql
+
+clean:
+	rm -rf docs/.observable/dist data/data.duckdb
+```
+
 **Usage:**
 - `make preview` - local dev server with hot reload (http://localhost:3000)
 - `make build` - compile to `docs/.observable/dist/`
-- `make data` - generate/update data (implementation varies by repo)
+- `make etl` - run expensive local computation (manual, infrequent)
+- `make data` - lightweight data refresh (runs in GitHub Actions)
 - `make clean` - remove build artifacts
-
-**File target pattern for incremental builds:**
-```makefile
-.PHONY: data
-data: data/data.duckdb
-
-data/data.duckdb: raw/*.csv scripts/process.py
-	python scripts/process.py
-	duckdb $@ "CREATE TABLE flows AS SELECT * FROM 'raw/*.csv'"
-```
 
 ### Build Process
 
@@ -225,14 +258,47 @@ Compiles `docs/index.html` into standalone page:
 
 ### GitHub Actions Deployment
 
-Workflow auto-downloads itself from main repo on every run:
-1. Download shared `template.html`, `CLAUDE.md`, `deploy.yml`
-2. Run `make data` (if exists)
-3. Commit updates
-4. Run `make build`
-5. Deploy to GitHub Pages
+Each notebook repo has a minimal `deploy.yml` that calls a shared reusable workflow:
+
+```yaml
+name: Deploy notebook
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'  # Monthly - adjust per repo
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    uses: data-desk-eco/.github/.github/workflows/notebook-deploy.yml@main
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    secrets: inherit
+```
+
+The reusable workflow handles:
+1. Checkout and setup (Node, Yarn, DuckDB)
+2. Download shared `template.html` and `CLAUDE.md`
+3. Run `make data`
+4. Commit any changes
+5. Run `make build`
+6. Deploy to GitHub Pages
 
 **Pages setup:** Settings → Pages → Source: GitHub Actions
+
+**Skip data step:** For notebooks without a data target:
+```yaml
+jobs:
+  deploy:
+    uses: data-desk-eco/.github/.github/workflows/notebook-deploy.yml@main
+    with:
+      skip_data: true
+    # ...
+```
 
 ## Common Patterns
 
@@ -288,20 +354,6 @@ ports.forEach(p => {
 });
 ```
 
-## ETL Pattern
-
-Two-stage pipeline common in research notebooks:
-
-**Stage 1 (outside notebook):** `etl/` directory (dbt + DuckDB)
-- Process raw data from APIs, spreadsheets, AIS feeds
-- Output clean databases/CSVs to `data/`
-- Heavy processing happens once, not on every notebook load
-
-**Stage 2 (in notebook):** Analysis and viz
-- Load prepared data via FileAttachment or SQL
-- Transform and aggregate with JS/SQL
-- Create visualizations
-
 ## Critical Gotchas
 
 1. **Data paths:** Use `../data/` from notebook, not `data/`
@@ -310,7 +362,7 @@ Two-stage pipeline common in research notebooks:
 4. **Cell IDs:** Must be unique across notebook
 5. **Await FileAttachment:** All FileAttachment calls return promises
 6. **Edit source:** Edit `docs/index.html`, not `docs/.observable/dist/`
-7. **Auto-updating files:** `template.html` and `CLAUDE.md` download from main repo on deploy
+7. **Auto-updating files:** `template.html` and `CLAUDE.md` download from `.github` repo on deploy
 8. **Case-sensitive paths:** GitHub Pages is case-sensitive
 9. **SQL cells at build time:** Database must exist when running `make build`
 
@@ -322,18 +374,6 @@ Two-stage pipeline common in research notebooks:
 4. Preview: `make preview`
 5. Edit `docs/index.html`
 6. Push - deploys to `https://research.datadesk.eco/[repo-name]/`
-
-## This Repo (data-desk-eco.github.io)
-
-Special case: serves as both template and research index at `https://research.datadesk.eco/`
-
-`make data` implementation:
-- Fetches all public repos with Pages enabled from `data-desk-eco` org
-- Filters repos with descriptions
-- Writes to `data/data.duckdb` as `projects` table
-- Notebook queries table and renders as list
-
-Updates automatically via GitHub Actions (daily + on push).
 
 ## Resources
 
