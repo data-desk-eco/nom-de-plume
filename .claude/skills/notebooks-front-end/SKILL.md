@@ -1,6 +1,6 @@
 ---
 name: notebooks-front-end
-description: Use when editing Observable notebooks (docs/index.html), creating charts with Plot, adding SQL cells, loading data with FileAttachment, or working with DuckDB. Triggers on notebook editing, visualization, data loading.
+description: Use when editing docs/index.html, creating charts with Plot, adding SQL cells, loading data with FileAttachment, or building visualizations. Triggers on any editing of docs/index.html, Observable notebooks, or front-end visualization work.
 ---
 
 # Observable Notebook Kit 2.0
@@ -43,6 +43,7 @@ Data Desk notebooks use Observable Notebook Kit 2.0 - standalone HTML pages with
 - Use `display()` to render output (don't rely on return values)
 - Variables defined in one cell available to all others
 - Use **sentence case** for all titles, headings, and chart titles (e.g., "Outages by country" not "Outages By Country")
+- **Keep the "last updated" date element** - this is auto-populated from git and should not be removed
 
 ## Loading data
 
@@ -210,6 +211,31 @@ ports.forEach(p => {
   const coords = JSON.parse(p.geojson).coordinates;
   new mapboxgl.Marker().setLngLat(coords).addTo(map);
 });
+```
+
+## Building and previewing
+
+**Before building or previewing, always run `yarn` first** to install dependencies (including DuckDB). Without this, SQL queries will fail silently.
+
+```bash
+# Install dependencies (required for DuckDB queries)
+yarn
+
+# Preview with hot reload (auto-kills existing servers first)
+make preview
+
+# Build for production
+make build
+
+# Kill any orphaned preview servers
+make kill
+```
+
+**For Claude Code:** Run preview in background, then kill when done:
+```bash
+make preview &   # Start in background
+# ... do work ...
+make kill        # Clean up when finished
 ```
 
 ## Resources

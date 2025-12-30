@@ -1,11 +1,13 @@
 ---
 name: notebooks-back-end
-description: Use when building, deploying, or setting up notebooks. Covers Makefile targets (make build, make data, make etl), GitHub Actions workflows, CI/CD, and creating new notebook repositories.
+description: Use when working with DuckDB databases, Makefiles, or building/deploying notebooks. Triggers on DuckDB queries, database creation, Makefile editing, make targets (build, data, etl), GitHub Actions workflows, CI/CD, and creating new notebook repositories.
 ---
 
 # Notebook build and deployment
 
 ## Makefile targets
+
+**Script philosophy:** Prefer shell scripts (`scripts/*.sh`) with Unix tools (curl, jq, sed) for data fetching, and DuckDB SQL (via `duckdb data.duckdb < query.sql`) for data processing. Only use Python in unusual cases where shell scripts genuinely can't do the job.
 
 Every notebook should define two data targets:
 
@@ -14,7 +16,7 @@ Every notebook should define two data targets:
 | `make etl` | Expensive computation (large downloads, model training, heavy processing) | Local only |
 | `make data` | Lightweight refresh (fetch artifacts, run analysis, export for notebook) | GitHub Actions |
 
-**Simple notebook (no heavy step):**
+**Simple notebook:**
 ```makefile
 .PHONY: build preview etl data clean
 
@@ -24,16 +26,17 @@ build:
 preview:
 	yarn preview
 
-etl: data  # no heavy step, just alias
+etl: data
 
 data:
-	python scripts/fetch_and_process.py
+	./scripts/fetch.sh
+	duckdb data/data.duckdb < scripts/transform.sql
 
 clean:
-	rm -rf docs/.observable/dist
+	rm -rf docs/.observable/dist data/data.duckdb
 ```
 
-**Complex notebook (with heavy ETL):**
+**Complex notebook (with heavy ETL uploaded to GitHub Releases):**
 ```makefile
 .PHONY: build preview etl data clean
 
@@ -43,24 +46,15 @@ build:
 preview:
 	yarn preview
 
-# Expensive local computation - run manually, upload artifacts to GitHub Releases
 etl: data/infrastructure.duckdb
-	@echo "Done. Upload to GitHub Releases:"
-	@echo "  gzip -k data/infrastructure.duckdb"
-	@echo "  gh release create v1 data/infrastructure.duckdb.gz"
 
-data/infrastructure.duckdb: data/source.gpkg scripts/build_infra.py
-	python scripts/build_infra.py
+data/infrastructure.duckdb:
+	./scripts/build_infra.sh
 
-# CI-friendly refresh - downloads artifacts, runs lightweight analysis
 data:
-	@if [ ! -f data/infrastructure.duckdb ]; then \
-		echo "Downloading from GitHub Releases..."; \
-		gh release download latest -p infrastructure.duckdb.gz -D data && \
-		gunzip data/infrastructure.duckdb.gz; \
-	fi
-	python scripts/analyze.py
-	duckdb data/data.duckdb < queries/export.sql
+	gh release download latest -p infrastructure.duckdb.gz -D data --clobber
+	gunzip -f data/infrastructure.duckdb.gz
+	duckdb data/data.duckdb < scripts/export.sql
 
 clean:
 	rm -rf docs/.observable/dist data/data.duckdb

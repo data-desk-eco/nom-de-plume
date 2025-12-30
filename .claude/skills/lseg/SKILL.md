@@ -178,7 +178,7 @@ curl -s -X POST "$LSEG_API_ENDPOINT" \
 
 ## Helper scripts
 
-This skill includes helper scripts in `.claude/skills/lseg/`:
+This skill includes helper scripts in `.claude/skills/lseg/scripts/`:
 
 | Script | Purpose |
 |--------|---------|
@@ -192,13 +192,13 @@ This skill includes helper scripts in `.claude/skills/lseg/`:
 source .env
 
 # Query company data
-.claude/skills/lseg/lseg-query.sh "AAPL.O,MSFT.O" "TR.CommonName,TR.PriceClose"
+.claude/skills/lseg/scripts/lseg-query.sh "AAPL.O,MSFT.O" "TR.CommonName,TR.PriceClose"
 
 # Convert ISIN to RIC
-.claude/skills/lseg/lseg-symbology.sh "US0378331005" ISIN RIC
+.claude/skills/lseg/scripts/lseg-symbology.sh "US0378331005" ISIN RIC
 
 # Get time series
-.claude/skills/lseg/lseg-timeseries.sh "AAPL.O" "TR.PriceClose" "2025-01-01" "2025-01-31"
+.claude/skills/lseg/scripts/lseg-timeseries.sh "AAPL.O" "TR.PriceClose" "2025-01-01" "2025-01-31"
 ```
 
 ## Rate limits

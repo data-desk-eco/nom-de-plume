@@ -22,7 +22,7 @@ KPLER_PASSWORD=your_password
 Copy the client module to your project:
 
 ```bash
-cp .claude/skills/kpler/kpler_client.py scripts/
+cp .claude/skills/kpler/scripts/kpler_client.py scripts/
 ```
 
 Install dependencies:

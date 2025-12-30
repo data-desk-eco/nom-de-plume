@@ -22,6 +22,13 @@ repo/
 **Commit:** `docs/index.html`, `data/*`, `docs/assets/*`, `Makefile`, `CLAUDE.md` (if project-specific)
 **Don't commit:** `docs/.observable/dist/`, `node_modules/`, `template.html`, `.claude/`
 
+## Technical philosophy
+
+Data Desk values minimal, elegant solutions:
+- **DuckDB SQL** for all data transformation, analysis, and aggregation
+- **Shell scripts with Unix tools** (curl, jq, sed, awk, make) for data fetching and pipeline orchestration
+- Keep code concise; avoid over-engineering
+
 ## Style guide
 
 - Use **sentence case** for all titles, headings, and chart titles (e.g., "Outages by country" not "Outages By Country")
