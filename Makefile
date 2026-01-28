@@ -68,55 +68,13 @@ etl: data/infrastructure.duckdb
 # STAGE 2: ETL Pipeline (GITHUB ACTIONS - Runs frequently)
 # ==============================================================================
 
-# Download infrastructure database from GitHub Releases (or copy locally for testing)
-data/infrastructure.duckdb.gz:
+# Fetch plumes from Carbon Mapper API (Texas + Louisiana CH4)
+.PHONY: data/plumes_latest.csv
+data/plumes_latest.csv:
 	@mkdir -p $(@D)
-	@if [ ! -f data/infrastructure.duckdb ]; then \
-		echo "Downloading infrastructure database from GitHub Releases..."; \
-		gh release download latest -p infrastructure.duckdb.gz -D data || \
-		(echo "ERROR: No infrastructure.duckdb found locally and failed to download from GitHub Releases" && exit 1); \
-	else \
-		echo "Using local infrastructure.duckdb (for testing)"; \
-		gzip -c data/infrastructure.duckdb > $@; \
-	fi
-
-# Download recent plumes from Carbon Mapper
-# Try dates going backwards since Carbon Mapper data has significant lag
-data/plumes_latest.zip:
-	@mkdir -p $(@D)
-	@echo "Downloading latest plumes from Carbon Mapper..."
-	@YEAR=$$(date +%Y) && \
-	START_DATE="$$YEAR-01-01" && \
-	SUCCESS=0 && \
-	for DAYS_AGO in 0 7 14 21 30 40 50 54 60 75 90; do \
-		END_DATE=$$(date -d "$$DAYS_AGO days ago" +%Y-%m-%d 2>/dev/null || date -v-$${DAYS_AGO}d +%Y-%m-%d); \
-		URL="https://s3.us-west-1.amazonaws.com/msf.data/exports/plumes_$${START_DATE}_$${END_DATE}.zip"; \
-		echo "  Trying $$END_DATE..."; \
-		if curl -sf -o $@ "$$URL"; then \
-			if unzip -tq $@ >/dev/null 2>&1; then \
-				echo "✓ Downloaded plumes through $$END_DATE"; \
-				SUCCESS=1; \
-				break; \
-			fi; \
-		fi; \
-	done; \
-	if [ $$SUCCESS -eq 0 ]; then \
-		echo "ERROR: Could not find valid plumes data (tried dates up to 60 days ago)"; \
-		exit 1; \
-	fi
-
-data/plumes_latest.csv: data/plumes_latest.zip
-	@echo "Extracting plumes CSV..."
-	@unzip -o $< -d data
-	@YEAR=$$(date +%Y) && \
-		if ls data/plumes_$$YEAR-*.csv 1>/dev/null 2>&1; then \
-			mv data/plumes_$$YEAR-*.csv $@; \
-			echo "✓ Plumes CSV extracted"; \
-		else \
-			echo "ERROR: Could not find extracted plumes CSV matching data/plumes_$$YEAR-*.csv"; \
-			ls -la data/plumes*.csv 2>&1 || true; \
-			exit 1; \
-		fi
+	@echo "Fetching plumes from Carbon Mapper API..."
+	@uv run --quiet scripts/fetch_emissions.py > $@
+	@echo "✓ Plumes fetched: $$(wc -l < $@ | tr -d ' ') rows"
 
 # ETL: Download infrastructure, load plumes, run attribution, export results
 .PHONY: data
@@ -162,6 +120,6 @@ clean:
 	rm -f /tmp/wellbore_root.csv /tmp/wellbore_location.csv /tmp/wellbore_wellid.csv
 
 clean-all: clean
-	rm -f data/OGIM_v2.7.gpkg data/plumes_latest.zip data/plumes_latest.csv
+	rm -f data/OGIM_v2.7.gpkg data/plumes_latest.csv
 	rm -f data/p4f606.ebc.gz data/orf850.ebc.gz data/dbf900.ebc.gz
 	rm -f data/infrastructure.duckdb data/infrastructure.duckdb.gz
