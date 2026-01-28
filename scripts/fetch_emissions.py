@@ -14,7 +14,7 @@ REGIONS = {
     "louisiana": [-94.04, 28.93, -88.75, 33.02],
 }
 
-# Date filter - start of current year
+# Date filter - past 12 months of data
 DATETIME_FILTER = "2025-01-01T00:00:00Z/.."
 
 

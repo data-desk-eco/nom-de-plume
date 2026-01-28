@@ -2,6 +2,8 @@
 """Parse Texas RRC P-4 EBCDIC data and output to CSV files matching the schema."""
 
 import gzip
+import zipfile
+import io
 import sys
 import csv
 from parse_p4 import parse_root_record, parse_info_record, parse_gpn_record, parse_lease_name_record
@@ -16,8 +18,26 @@ def main():
 
     print(f"Parsing {input_file}...")
 
-    with gzip.open(input_file, 'rb') as f, \
-         open(root_csv, 'w', newline='') as root_out, \
+    # Detect file type by magic bytes
+    with open(input_file, 'rb') as check:
+        magic = check.read(2)
+
+    if magic == b'PK':
+        # ZIP file - extract contents
+        with zipfile.ZipFile(input_file, 'r') as zf:
+            name = zf.namelist()[0]
+            zip_data = zf.read(name)
+        # Check if inner file is also gzipped
+        if zip_data[:2] == b'\x1f\x8b':
+            gzip_file = gzip.GzipFile(fileobj=io.BytesIO(zip_data))
+            f = io.BytesIO(gzip_file.read())
+        else:
+            f = io.BytesIO(zip_data)
+    else:
+        # Assume gzip
+        f = gzip.open(input_file, 'rb')
+
+    with open(root_csv, 'w', newline='') as root_out, \
          open(info_csv, 'w', newline='') as info_out, \
          open(gpn_csv, 'w', newline='') as gpn_out, \
          open(lease_name_csv, 'w', newline='') as lease_name_out:

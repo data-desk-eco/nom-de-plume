@@ -73,7 +73,7 @@ etl: data/infrastructure.duckdb
 data/plumes_latest.csv:
 	@mkdir -p $(@D)
 	@echo "Fetching plumes from Carbon Mapper API..."
-	@uv run --quiet scripts/fetch_emissions.py > $@
+	@python3 scripts/fetch_emissions.py > $@
 	@echo "✓ Plumes fetched: $$(wc -l < $@ | tr -d ' ') rows"
 
 # ETL: Download infrastructure, load plumes, run attribution, export results
