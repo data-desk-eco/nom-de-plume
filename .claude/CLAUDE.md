@@ -45,6 +45,7 @@ Data Desk values minimal, elegant solutions:
 7. **Auto-updating files:** `template.html` and `.claude/` download from `.github` repo on deploy
 8. **Case-sensitive paths:** GitHub Pages is case-sensitive
 9. **SQL cells at build time:** Database must exist when running `make build`
+10. **`-- SQL comments` get misinterpreted by the notebook builder, please avoid 
 
 ## Resources
 
