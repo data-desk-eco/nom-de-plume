@@ -4,6 +4,7 @@
 import csv
 import sys
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from io import StringIO
 
 API_BASE = "https://api.carbonmapper.org/api/v1/catalog/plume-csv"
@@ -14,8 +15,9 @@ REGIONS = {
     "louisiana": [-94.04, 28.93, -88.75, 33.02],
 }
 
-# Date filter - past 12 months of data
-DATETIME_FILTER = "2025-01-01T00:00:00Z/.."
+# Date filter - rolling 12-month window
+_start = (datetime.now(timezone.utc) - timedelta(days=365)).strftime("%Y-%m-%dT00:00:00Z")
+DATETIME_FILTER = f"{_start}/.."
 
 
 def fetch_plumes(bbox: list[float], gas: str | None = None) -> list[dict]:
