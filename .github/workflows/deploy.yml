@@ -9,9 +9,51 @@ on:
 
 jobs:
   deploy:
-    uses: data-desk-eco/.github/.github/workflows/notebook-deploy.yml@main
+    runs-on: ubuntu-latest
+    container: ghcr.io/data-desk-eco/notebook-runner:latest
     permissions:
       contents: write
       pages: write
       id-token: write
-    secrets: inherit
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: yarn --frozen-lockfile
+
+      - name: Setup
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          curl -sL -H "Authorization: token $GH_TOKEN" \
+            https://api.github.com/repos/data-desk-eco/.github/tarball/main | \
+            tar -xz --strip-components=1 --wildcards '*/.claude' '*/template.html'
+
+      - name: Run make data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            npm install @anthropic-ai/claude-code
+            export PATH="$PWD/node_modules/.bin:$PATH"
+          fi
+          make data
+
+      - name: Commit updates
+        run: |
+          git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"
+          [ -d data ] && git add data/
+          git diff --cached --quiet || git commit -m "Update data and shared files" && git push
+
+      - run: make build
+      - run: "[ -f favicon.ico ] && cp favicon.ico docs/.observable/dist/ || true"
+
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.observable/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
