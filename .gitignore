@@ -35,3 +35,8 @@ node_modules/
 .observable/
 docs/.observable/
 
+
+# agent exhaust — never commit
+*.log
+.playwright-mcp/
+.claude/multi_agent.py
